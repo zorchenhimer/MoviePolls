@@ -20,7 +20,10 @@ user and past movie data should be retrieved from the database when needed.
 
 - ID
 - Date started
-- Predicted date end
+- Date ending
+
+`Date ending` is just a suggestion.  Cycles must be manually reset by an admin
+or mod.
 
 ### Movies
 
@@ -29,6 +32,8 @@ user and past movie data should be retrieved from the database when needed.
 - Links
 - Short description
 - Cycle Added
+- Removed
+- Approved
 
 If there is cover art for a Movie, it should be stored in a folder on the
 server and use the above ID in its name.  The format should either be something
@@ -36,6 +41,12 @@ like `cover-###.jpg` or simply `###.jpg`.
 
 If `Cycle Added` is not the current cycle, and the movie has zero votes, do not
 carry it over to the next cycle.
+
+`Removed` is set when a Movie is removed by an admin or mod and it cannot be
+re-added unless added by an admin or mod.
+
+If the setting requiring movies to be approved is set, `Approved` is required
+to be set before it can appear in a cycle.
 
 ### Choices
 
@@ -75,4 +86,5 @@ Defines a user's vote for a cycle.
 - Current cycle ID (only once cycle is enabled at a time)
 - Default vote points (number of votes each user gets)
 - Voting open (boolean)
+- New choices require approval
 - (Other misc settings)
