@@ -2,7 +2,7 @@
 
 ## Purpose
 
-A more democratic process for selecting a movie to watch.  Allowing users to
+A more democratic process for selecting a movie to watch, allowing users to
 suggest and vote on movies to watch.
 
 ## Specific features
