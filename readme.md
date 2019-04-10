@@ -20,7 +20,8 @@ suggest and vote on movies to watch.
 
 Users are given a fixed number of vote points.  One vote = one point.  Each
 user is allowed to only vote once per movie, regardless of the number of
-available points.  Users can re-distribute their votes during a cycle.
+available points.  Users can re-distribute or undo their votes during an
+active cycle.
 
 Once a movie is chosen, that movie is added to a "watched/chosen" list and
 cannot be re-added (admin overwritable?).  Users that had voted on the selected
@@ -42,10 +43,14 @@ opt-in process.  Users should not receive notifications if they do not
 explicitly approve beforehand.  Removing approval for notifications should be a
 single-click process.
 
-Movies can be suggested at any time by a user.  Adding a movie must include the
-name and at least one link for more information.  The link should be to either
-IMDB, AniDB, or MAL.  Possibly auto-fetch info for a short synopsis and a cover
-image.
+Movies can be suggested at any time by a user.  Once a movie is added it is
+immediately available for voting.  The exception to this is if the server is
+configured to require admin or mod approval for each suggestion.  Movies can
+only be added if they have not been previously removed by an admin or mod.
+
+Adding a movie must include the name and at least one link for more
+information.  The link should be to either IMDB, AniDB, or MAL.  Possibly
+auto-fetch info for a short synopsis and a cover image.
 
 A vote for a selection will decay after a configurable number of cycles
 (default two?).  A decayed vote will be removed from the selection it was
