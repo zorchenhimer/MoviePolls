@@ -1,0 +1,36 @@
+{{define "header"}}
+
+{{end}}
+
+{{define "body"}}
+<div id="movieTile">
+    <div id="movieTitle">
+        {{.MovieTitle}}
+    </div>
+    <div id="moviePoster">
+        <img src="{{.MoviePoster}}" />
+    </div>
+    <div>
+        {{.Description}}
+    </div>
+</div>
+
+<div id="movieStats">
+    {{if .Watched}}
+    <p>Watched: {{.Watched}}</p>
+    {{else}}
+    <div>Added by: {{.AddedBy}}</div>
+    <div>
+        {{if .Votes}}
+        <p>Votes: {{.Votes}}</p>
+        <ul>{{range .Votes}}
+            <li>{{.}}</li>{{end}}
+        </ul>
+        {{else}}
+        <p>No votes</p>
+        {{end}}
+    </div>
+    {{end}}
+</div>
+
+{{end}}
