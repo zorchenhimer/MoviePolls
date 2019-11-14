@@ -3,11 +3,12 @@
     <head>
         <meta charset='utf-8'>
         <link rel="stylesheet" type="text/css" href="/static/style.css">
-        {{template "header" .}}
+        <title>{{.PageTitle}}</title>
+        {{template "header" . }}
     </head>
     <body>
         <div id="root">
-            {{template "body" .}}
+            {{template "body" . }}
         </div>
     </body>
 </html>

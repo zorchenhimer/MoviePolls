@@ -3,7 +3,7 @@
 {{end}}
 
 {{define "body"}}
-<div id="movieTile">
+<div id="movieCard">
     <div id="movieTitle">
         {{.MovieTitle}}
     </div>
@@ -22,7 +22,7 @@
     <div>Added by: {{.AddedBy}}</div>
     <div>
         {{if .Votes}}
-        <p>Votes: {{.Votes}}</p>
+        <p>Votes: {{len .Votes}}</p>
         <ul>{{range .Votes}}
             <li>{{.}}</li>{{end}}
         </ul>
