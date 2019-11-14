@@ -1,4 +1,4 @@
-package MoviePolls
+package moviepoll
 
 import (
 	"time"
