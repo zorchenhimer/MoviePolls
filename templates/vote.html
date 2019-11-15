@@ -1,0 +1,10 @@
+{{define "vote"}}
+<div class="voteRoot">
+    <div>{{.Name}}</div>
+    <div>Votes:
+        <ul>
+            {{range .Votes}}<li>{{.}}</li>{{end}}
+        </ul>
+    </div>
+</div>
+{{end}}

@@ -1,0 +1,25 @@
+{{/* Stuff for the current cycle */}}
+
+{{define "header"}}{{end}}
+
+{{define "body"}}
+<div class="cycleCard">
+    <div class="cycleTitle">
+        Cycle starting {{.Start}}
+    </div>
+
+    <div class="cycleMovieHead">
+        Movies this cycle
+    </div>
+
+    {{if .Active}}
+    <div class="cycleVotes">
+    {{range .Movies}}
+        {{template "vote" . }}
+    {{end}}
+    </div>
+    {{else}}
+    We watched something, idk.
+    {{end}}
+</div>
+{{end}}

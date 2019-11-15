@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	//"time"
+	"time"
 )
 
 const TEMPLATE_DIR = "templates/"
@@ -13,17 +13,23 @@ const TEMPLATE_BASE = TEMPLATE_DIR + "base.html"
 //var templates map[string]*template.Template
 
 // templateDefs is static throughout the life of the server process
-var templateDefs map[string]string = map[string]string{
-	"movieinfo": "movie-info.html",
+var templateDefs map[string][]string = map[string][]string{
+	"movieinfo":  []string{"movie-info.html"},
+	"cyclevotes": []string{"cycle.html", "vote.html"},
 }
 
 func (s *Server) registerTemplates() error {
 	s.templates = make(map[string]*template.Template)
 
-	for key, file := range templateDefs {
-		t, err := template.ParseFiles(TEMPLATE_BASE, TEMPLATE_DIR+file)
+	for key, files := range templateDefs {
+		fpth := []string{TEMPLATE_BASE}
+		for _, f := range files {
+			fpth = append(fpth, TEMPLATE_DIR+f)
+		}
+
+		t, err := template.ParseFiles(fpth...)
 		if err != nil {
-			return fmt.Errorf("Error parsing template %s: %v", file, err)
+			return fmt.Errorf("Error parsing template %s: %v", fpth, err)
 		}
 
 		fmt.Printf("Registering template %q\n", key)
@@ -57,4 +63,17 @@ type dataMovieInfo struct {
 	Watched     *Cycle // should prolly be a cycle
 	AddedBy     string
 	Votes       []string // list of names
+}
+
+type dataCycle struct {
+	PageTitle string
+	Active    bool
+	Start     time.Time
+	Movies    []dataMovie
+}
+
+type dataMovie struct {
+	Id    int
+	Name  string
+	Votes []string
 }

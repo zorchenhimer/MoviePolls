@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
+	"time"
 )
 
 type Options struct {
@@ -32,8 +33,9 @@ func NewServer(options Options) (*Server, error) {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", server.handler_Root)
 	mux.Handle("/api/", apiHandler{})
+	mux.HandleFunc("/", server.handler_Root)
+	mux.HandleFunc("/movie/", server.handler_Movie)
 	mux.HandleFunc("/data/", server.handler_Data)
 
 	hs.Handler = mux
@@ -58,6 +60,55 @@ func (s *Server) handler_Data(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handler_Root(w http.ResponseWriter, r *http.Request) {
+	data := dataCycle{
+		PageTitle: "Current Cycle",
+		Active:    true,
+		Start:     time.Now(),
+		Movies: []dataMovie{
+			dataMovie{
+				Id:   1,
+				Name: "Movie A",
+				Votes: []string{
+					"Person A",
+					"Person B",
+					"Person C",
+					"Person D",
+				},
+			},
+
+			dataMovie{
+				Id:   2,
+				Name: "Movie B",
+				Votes: []string{
+					"Person A",
+					"Person C",
+					"Person D",
+				},
+			},
+
+			dataMovie{
+				Id:   3,
+				Name: "Movie C",
+				Votes: []string{
+					"Person A",
+					"Person C",
+					"Person D",
+					"Person E",
+					"Person F",
+					"Person G",
+				},
+			},
+		},
+	}
+	_ = data
+
+	if err := s.executeTemplate(w, "cyclevotes", data); err != nil {
+		fmt.Printf("Error rendering template: %v\n", err)
+		//http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) handler_Movie(w http.ResponseWriter, r *http.Request) {
 	data := dataMovieInfo{
 		PageTitle:   "Movie Info - Some Movie, IDK",
 		Description: "A shitty movie about some sombies or something.  You figure it out.",
