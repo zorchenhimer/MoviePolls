@@ -3,19 +3,19 @@
 {{end}}
 
 {{define "body"}}
-<div id="movieCard">
+<div id="movieCard" class="movieCol">
     <div id="movieTitle">
         {{.MovieTitle}}
     </div>
     <div id="moviePoster">
-        <img src="{{.MoviePoster}}" />
+        <img style="width:25%" src="{{.MoviePoster}}" />
     </div>
     <div>
         {{.Description}}
     </div>
 </div>
 
-<div id="movieStats">
+<div id="movieStats" class="movieCol">
     {{if .Watched}}
     <p>Watched: {{.Watched}}</p>
     {{else}}

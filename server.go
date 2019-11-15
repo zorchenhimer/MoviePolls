@@ -15,6 +15,7 @@ type Options struct {
 type Server struct {
 	templates map[string]*template.Template
 	s         *http.Server
+	debug     bool // turns on debug things (eg, reloading templates on each page request)
 }
 
 func NewServer(options Options) (*Server, error) {
@@ -26,7 +27,9 @@ func NewServer(options Options) (*Server, error) {
 		Addr: options.Listen,
 	}
 
-	server := &Server{}
+	server := &Server{
+		debug: options.Debug,
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", server.handler_Root)

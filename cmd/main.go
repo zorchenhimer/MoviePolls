@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	s, err := moviepoll.NewServer(moviepoll.Options{})
+	s, err := moviepoll.NewServer(moviepoll.Options{Debug: true})
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

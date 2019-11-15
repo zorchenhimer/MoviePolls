@@ -1,0 +1,24 @@
+#root {
+    display:flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+#movieCard, #movieStats {
+    display:flex;
+    flex-direction: column;
+}
+
+#movieCard {
+    border: 1px solid black;
+    background: lightgrey;
+}
+
+#movieStats {
+    border: 1px solid black;
+    background: lightblue;
+}
+
+.movieCol {
+    width: 30%;
+}

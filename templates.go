@@ -33,6 +33,14 @@ func (s *Server) registerTemplates() error {
 }
 
 func (s *Server) executeTemplate(w http.ResponseWriter, key string, data interface{}) error {
+	// for deugging only
+	if s.debug {
+		err := s.registerTemplates()
+		if err != nil {
+			return err
+		}
+	}
+
 	t, ok := s.templates[key]
 	if !ok {
 		return fmt.Errorf("Template with key %q does not exist", key)
