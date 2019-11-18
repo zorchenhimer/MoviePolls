@@ -22,3 +22,23 @@
 .movieCol {
     width: 30%;
 }
+
+.cycleCard {
+    display:flex;
+    flex-direction: column;
+    width: 75%;
+}
+
+.cycleVotes {
+    display:flex;
+    flex-direction:row;
+    justify-content:space-around;
+    flex-wrap:wrap;
+}
+
+.voteRoot {
+    display:flex;
+    flex-direction:column;
+    width:30%;
+    padding:1em;
+}

@@ -5,7 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
-	"time"
+	//"time"
 )
 
 type Options struct {
@@ -63,7 +63,7 @@ func (s *Server) handler_Root(w http.ResponseWriter, r *http.Request) {
 	data := dataCycle{
 		PageTitle: "Current Cycle",
 		Active:    true,
-		Start:     time.Now(),
+		End:     "Saturday, November 23",
 		Movies: []dataMovie{
 			dataMovie{
 				Id:   1,
@@ -98,6 +98,14 @@ func (s *Server) handler_Root(w http.ResponseWriter, r *http.Request) {
 					"Person G",
 				},
 			},
+
+			//dataMovie{
+			//	Id:   4,
+			//	Name: "Movie D",
+			//	Votes: []string{
+			//		"Person G",
+			//	},
+			//},
 		},
 	}
 	_ = data

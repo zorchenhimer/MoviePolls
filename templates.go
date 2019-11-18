@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"time"
+	//"time"
 )
 
 const TEMPLATE_DIR = "templates/"
@@ -68,7 +68,7 @@ type dataMovieInfo struct {
 type dataCycle struct {
 	PageTitle string
 	Active    bool
-	Start     time.Time
+	End       string
 	Movies    []dataMovie
 }
 
