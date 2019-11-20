@@ -1,3 +1,5 @@
 cmd/server
 cmd/server.exe
+cmd/mkdata
+cmd/mkdata.exe
 

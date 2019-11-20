@@ -10,6 +10,11 @@ type Cycle struct {
 
 	Start time.Time
 	End   time.Time
+	EndingSet bool // has an end time been set? (ignore End value if false)
+}
+
+func (c Cycle) String() string {
+	return fmt.Sprintf("Cycle{Id:%d}", c.Id)
 }
 
 type Movie struct {
@@ -18,13 +23,37 @@ type Movie struct {
 	Links       []string
 	Description string
 
-	CycleAddedId int
+	//CycleAddedId int
 	CycleAdded   *Cycle
 
 	Removed  bool // Removed by a mod or admin
 	Approved bool // Approved by a mod or admin (if required by config)
+	Watched *time.Time
 
-	votes []*User
+	Votes []*Vote
+}
+
+func (m Movie) String() string {
+	votes := []string{}
+	for _, v := range m.Votes {
+		votes = append(votes, v.User.Name)
+	}
+
+	return fmt.Sprintf("Movie{Id:%d Name:%q Links:%s Description:%q CycleAdded:%s Votes:%s}",
+		m.Id,
+		m.Name,
+		m.Links,
+		m.Description,
+		m.CycleAdded,
+		votes,
+	)
+}
+
+type Vote struct {
+	User *User
+	Movie *Movie
+	// Decay based on cycles active.
+	CycleAdded *Cycle
 }
 
 type Configuration struct {

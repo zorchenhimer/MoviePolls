@@ -5,9 +5,10 @@ import (
 )
 
 type DataConnector interface {
-	GetCurrentCycle() *Cycle // should this always return a cycle?
+	GetCurrentCycle() *Cycle // Return nil when no cycle is active.
 	GetMovie(id int) (*Movie, error)
 	GetUser(id int) (*User, error)
+	GetActiveMovies() []*Movie
 
 	// Return a list of past cycles.  Start and end are an offset from
 	// the current.  Ie, a start of 1 and an end of 5 will get the last
@@ -18,6 +19,7 @@ type DataConnector interface {
 	AddMovie(movie *Movie) error
 	AddUser(user *User) error
 	AddCycle(end *time.Time) error
+	AddVote(userId, movieId, cycleId int) error
 
 	GetConfig() (*Configurator, error)
 	SaveConfig(config *Configurator) error
