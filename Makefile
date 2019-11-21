@@ -19,3 +19,6 @@ cmd/server: cmd/server.go $(SOURCES)
 
 cmd/mkdata: cmd/mkdata.go $(SOURCES)
 	go build -o cmd/mkdata cmd/mkdata.go
+
+run: all
+	cmd/server
