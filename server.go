@@ -63,7 +63,7 @@ func (s *Server) handler_Root(w http.ResponseWriter, r *http.Request) {
 	data := dataCycle{
 		PageTitle: "Current Cycle",
 		Active:    true,
-		End:     "Saturday, November 23",
+		End:       "Saturday, November 23",
 		Movies: []dataMovie{
 			dataMovie{
 				Id:   1,
@@ -121,7 +121,7 @@ func (s *Server) handler_Movie(w http.ResponseWriter, r *http.Request) {
 		PageTitle:   "Movie Info - Some Movie, IDK",
 		Description: "A shitty movie about some sombies or something.  You figure it out.",
 		MovieTitle:  "Zombie Butts",
-		MoviePoster: "data/poster.jpg",
+		MoviePoster: "/data/poster.jpg",
 		AddedBy:     "Zorchenhimer",
 		Votes: []string{
 			"Zorchenhimer",
