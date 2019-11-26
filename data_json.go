@@ -34,13 +34,18 @@ type jsonConnector struct {
 	Users []*User
 	Votes []jsonVote
 
-	Settings configMap
+	Settings Configurator
 }
 
-func NewJsonConnector() *jsonConnector {
-	return &jsonConnector{
-		CurrentCycle: 0,
+func NewJsonConnector(filename string) (*jsonConnector, error) {
+	if fileExists(filename) {
+		return LoadJson(filename)
 	}
+
+	return &jsonConnector{
+		filename: filename,
+		CurrentCycle: 0,
+	}, nil
 }
 
 func LoadJson(filename string) (*jsonConnector, error) {
@@ -60,13 +65,13 @@ func LoadJson(filename string) (*jsonConnector, error) {
 	return data, nil
 }
 
-func (j *jsonConnector) Save(filename string) error {
+func (j *jsonConnector) Save() error {
 	raw, err := json.MarshalIndent(j, "", " ")
 	if err != nil {
 		return fmt.Errorf("Unable to marshal JSON data: %v", err)
 	}
 
-	err = ioutil.WriteFile(filename, raw, 0777)
+	err = ioutil.WriteFile(j.filename, raw, 0777)
 	if err != nil {
 		return fmt.Errorf("Unable to write JSON data: %v", err)
 	}
@@ -94,13 +99,30 @@ func (j *jsonConnector) GetCurrentCycle() *Cycle {
 	return nil
 }
 
-func (j *jsonConnector) AddCycle(cycle *Cycle) error {
+func (j *jsonConnector) AddCycle(end *time.Time) error {
 	if j.Cycles == nil {
 		j.Cycles = []*Cycle{}
 	}
 
-	j.Cycles = append(j.Cycles, cycle)
+	c := &Cycle{Start: time.Now()}
 
+	if end != nil {
+		c.End = *end
+		c.EndingSet = true
+	} else {
+		c.EndingSet = false
+	}
+	j.Cycles = append(j.Cycles, c)
+
+	return nil
+}
+
+func (j *jsonConnector) AddOldCycle(c *Cycle) error {
+	if j.Cycles == nil {
+		j.Cycles = []*Cycle{}
+	}
+
+	j.Cycles = append(j.Cycles, c)
 	return nil
 }
 
@@ -155,6 +177,19 @@ func (j *jsonConnector) GetActiveMovies() []*Movie {
 	}
 
 	return movies
+}
+
+func (j *jsonConnector) GetPastCycles(start, end int) []*Cycle {
+	// TODO: implement this
+	return []*Cycle{}
+}
+
+func (j *jsonConnector) GetUser(userId int) (*User, error) {
+	u := j.findUser(userId)
+	if u ==  nil {
+		return nil, fmt.Errorf("User not found with ID %s", userId)
+	}
+	return u, nil
 }
 
 func (j *jsonConnector) AddUser(user *User) error {
@@ -239,15 +274,15 @@ func (j *jsonConnector) findUser(id int) *User {
 	return nil
 }
 
-func (j *jsonConnector) GetConfig() configMap {
+func (j *jsonConnector) GetConfig() (Configurator, error) {
 	if j.Settings == nil {
-		return configMap{}
+		return configMap{}, nil
 	}
-	return j.Settings
+	return j.Settings, nil
 }
 
-func (j *jsonConnector) SaveConfig(config configMap) error {
+func (j *jsonConnector) SaveConfig(config Configurator) error {
 	j.Settings = config
-	return j.Save(j.filename)
+	return j.Save()
 }
 

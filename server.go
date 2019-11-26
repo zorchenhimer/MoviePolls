@@ -17,11 +17,17 @@ type Server struct {
 	templates map[string]*template.Template
 	s         *http.Server
 	debug     bool // turns on debug things (eg, reloading templates on each page request)
+	data      DataConnector
 }
 
 func NewServer(options Options) (*Server, error) {
 	if options.Listen == "" {
 		options.Listen = ":8080"
+	}
+
+	data, err := NewJsonConnector("db/data.json")
+	if err != nil {
+		return nil, fmt.Errorf("Unable to load json data: %v", err)
 	}
 
 	hs := &http.Server{
@@ -30,6 +36,7 @@ func NewServer(options Options) (*Server, error) {
 
 	server := &Server{
 		debug: options.Debug,
+		data: data,
 	}
 
 	mux := http.NewServeMux()
@@ -41,7 +48,7 @@ func NewServer(options Options) (*Server, error) {
 	hs.Handler = mux
 	server.s = hs
 
-	err := server.registerTemplates()
+	err = server.registerTemplates()
 	if err != nil {
 		return nil, err
 	}
