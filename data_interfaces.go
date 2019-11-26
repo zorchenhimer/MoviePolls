@@ -16,13 +16,13 @@ type DataConnector interface {
 	// would be at a start value of 0.
 	GetPastCycles(start, end int) []*Cycle
 
+	AddCycle(end *time.Time) error
 	AddMovie(movie *Movie) error
 	AddUser(user *User) error
-	AddCycle(end *time.Time) error
 	AddVote(userId, movieId, cycleId int) error
 
-	GetConfig() (*Configurator, error)
-	SaveConfig(config *Configurator) error
+	GetConfig() (Configurator, error)
+	SaveConfig(config Configurator) error
 }
 
 type Configurator interface {
@@ -30,7 +30,10 @@ type Configurator interface {
 	GetInt(key string) (int, error)
 	GetBool(key string) (bool, error)
 
-	SetString(key, value string) error
-	SetInt(key string, value int) error
-	SetBool(key string, value bool) error
+	SetString(key, value string)
+	SetInt(key string, value int)
+	SetBool(key string, value bool)
+
+	//getValueMap() configMap
 }
+

@@ -24,9 +24,60 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	if err := saveConfig(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	if err := loadConfig(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 const jsonFilename string = "db/data.json"
+
+func loadConfig() error {
+	jc, err := mp.LoadJson(jsonFilename)
+	if err != nil {
+		return fmt.Errorf("Error loading json: %v", err)
+	}
+
+	cfg := jc.GetConfig()
+	if err != nil {
+		return fmt.Errorf("Error getting config: %v", err)
+	}
+
+	for k, v := range cfg {
+		fmt.Printf("%q: %v\n", k, v)
+	}
+
+	return nil
+}
+
+func saveConfig() error {
+	jc, err := mp.LoadJson(jsonFilename)
+	if err != nil {
+		return fmt.Errorf("Error loading json: %v", err)
+	}
+
+	cfg := jc.GetConfig()
+	if err != nil {
+		return fmt.Errorf("Error getting config: %v", err)
+	}
+
+	cfg.SetString("strVal", "some string")
+	cfg.SetInt("intVal", 53)
+	cfg.SetBool("boolVal", true)
+
+	err = jc.SaveConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("Error saving config: %v", err)
+	}
+
+	return nil
+}
 
 func printData() error {
 	jc, err := mp.LoadJson(jsonFilename)

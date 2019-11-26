@@ -26,13 +26,15 @@ type jsonVote struct {
 }
 
 type jsonConnector struct {
-	filename     string
+	filename     string `json:"-"`
 	CurrentCycle int
 
 	Cycles []*Cycle
 	Movies []jsonMovie
 	Users []*User
 	Votes []jsonVote
+
+	Settings configMap
 }
 
 func NewJsonConnector() *jsonConnector {
@@ -52,6 +54,8 @@ func LoadJson(filename string) (*jsonConnector, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Unable to read JSON data: %v", err)
 	}
+
+	data.filename = filename
 
 	return data, nil
 }
@@ -233,5 +237,17 @@ func (j *jsonConnector) findUser(id int) *User {
 		}
 	}
 	return nil
+}
+
+func (j *jsonConnector) GetConfig() configMap {
+	if j.Settings == nil {
+		return configMap{}
+	}
+	return j.Settings
+}
+
+func (j *jsonConnector) SaveConfig(config configMap) error {
+	j.Settings = config
+	return j.Save(j.filename)
 }
 
