@@ -3,26 +3,26 @@
 {{define "body"}}
 <div id="movieCard" class="movieCol">
     <div id="movieTitle">
-        {{.MovieTitle}}
+        {{.Movie.Name}}
     </div>
     <div id="moviePoster">
-        <img style="width:25%" src="{{.MoviePoster}}" />
+        <img style="width:25%" src="/data/{{.Movie.Poster}}" />
     </div>
     <div>
-        {{.Description}}
+        {{.Movie.Description}}
     </div>
 </div>
 
 <div id="movieStats" class="movieCol">
-    {{if .Watched}}
-    <p>Watched: {{.Watched}}</p>
+    {{if .Movie.Watched}}
+    <p>Watched: {{.Movie.Watched}}</p>
     {{else}}
-    <div>Added by: {{.AddedBy}}</div>
+    <div>Added by: somebody{{/* .Movie.AddedBy */}}</div>
     <div>
-        {{if .Votes}}
-        <p>Votes: {{len .Votes}}</p>
-        <ul>{{range .Votes}}
-            <li>{{.}}</li>{{end}}
+        {{if .Movie.Votes}}
+        <p>Votes: {{len .Movie.Votes}}</p>
+        <ul>{{range .Movie.Votes}}
+            <li>{{.User.Name}}</li>{{end}}
         </ul>
         {{else}}
         <p>No votes</p>

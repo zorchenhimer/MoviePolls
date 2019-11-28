@@ -1,13 +1,16 @@
-{{define "vote"}}
+{{define "vote"}}{{ $voteListSize := 10 }}
 <div class="voteRoot">
-    <div class="voteNamePoster">
-        <div class="voteName">{{.Name}}</div>
+    <div class="voteName"><a href="/movie/{{.Id}}">{{.Name}}</a></div>
+    <div class="votePosterList">
         <div class="votePoster"><img src="data/{{.Poster}}" /></div>
-    </div>
-    <div class="voteList">Votes:
-        <ul>
-            {{range .Votes}}<li>{{.User.Name}}</li>{{end}}
-        </ul>
+        <div class="voteList">
+            <b>Votes: {{len .Votes}}</b>
+            <ul>{{ $votes := .Votes }}{{ $vl := len $votes}}
+                {{if gt $vl $voteListSize}}{{$votes = slice $votes 0 $voteListSize}}{{end}}
+                {{range $votes}}<li>{{.User.Name}}</li>{{else}}<li>No Votes</li>{{end}}
+                {{if gt $vl $voteListSize}}<li><a href="#">[...]</a></li>{{end}}
+            </ul>
+        </div>
     </div>
 </div>
 {{end}}

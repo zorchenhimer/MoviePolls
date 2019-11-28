@@ -83,19 +83,40 @@ func (s *Server) handler_Root(w http.ResponseWriter, r *http.Request) {
 		//http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
 	}
 }
-
 func (s *Server) handler_Movie(w http.ResponseWriter, r *http.Request) {
+	var movieId int
+	var command string
+	n, err := fmt.Sscanf(r.URL.String(), "/movie/%d/%s", &movieId, &command)
+	if err != nil && n == 0 {
+		dataError := dataMovieError{
+			dataPageBase: dataPageBase{PageTitle: "Error"},
+			ErrorMessage: "Missing movie ID",
+		}
+
+		if err := s.executeTemplate(w, "movieError", dataError); err != nil {
+			http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
+			fmt.Println(err)
+		}
+		return
+	}
+
+	movie, err := s.data.GetMovie(movieId)
+	if err != nil {
+		dataError := dataMovieError{
+			dataPageBase: dataPageBase{PageTitle: "Error"},
+			ErrorMessage: "Movie not found",
+		}
+
+		if err := s.executeTemplate(w, "movieError", dataError); err != nil {
+			http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
+			fmt.Println(err)
+		}
+		return
+	}
+
 	data := dataMovieInfo{
-		PageTitle:   "Movie Info - Some Movie, IDK",
-		Description: "A shitty movie about some sombies or something.  You figure it out.",
-		MovieTitle:  "Zombie Butts",
-		MoviePoster: "/data/poster.jpg",
-		AddedBy:     "Zorchenhimer",
-		Votes: []string{
-			"Zorchenhimer",
-			"Mia",
-			"Someone else",
-		},
+		dataPageBase: dataPageBase{PageTitle: movie.Name},
+		Movie: movie,
 	}
 
 	if err := s.executeTemplate(w, "movieinfo", data); err != nil {

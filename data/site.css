@@ -1,3 +1,19 @@
+html {
+    background-color:#0F0F11;
+    font-family: "Hack";
+    font-size: 14px;
+    font-style: normal;
+    color: #cfccd1;
+}
+
+a {
+    color: #cfccd1;
+}
+
+a:hover {
+    color: #f0edf2;
+}
+
 #root {
     display:flex;
     flex-direction: row;
@@ -11,12 +27,12 @@
 
 #movieCard {
     border: 1px solid black;
-    background: lightgrey;
+    background: darkblue;
 }
 
 #movieStats {
     border: 1px solid black;
-    background: lightblue;
+    background: darkblue;
 }
 
 .movieCol {
@@ -38,9 +54,11 @@
 
 .voteRoot {
     display:flex;
-    flex-direction:row;
-    width:30%;
+    flex-direction:column;
     padding:1em;
+    margin: 1em;
+    border-radius: 5px;
+    background-color: darkblue;
 }
 
 .voteNamePoster {
@@ -48,6 +66,18 @@
     flex-direction:column;
 }
 
+.votePosterList {
+    display:flex;
+    flex-direction:row;
+}
+
+.voteName {
+    font-weight:bold;
+    font-size:1.5em;
+    margin-bottom: 10px;
+}
+
 .votePoster img {
     width: 200px;
+    padding: 0px 10px 10px 10px;
 }

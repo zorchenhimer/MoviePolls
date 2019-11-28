@@ -16,6 +16,7 @@ const TEMPLATE_BASE = TEMPLATE_DIR + "base.html"
 var templateDefs map[string][]string = map[string][]string{
 	"movieinfo":  []string{"movie-info.html"},
 	"cyclevotes": []string{"cycle.html", "vote.html"},
+	"movieError": []string{"movie-error.html"},
 }
 
 func (s *Server) registerTemplates() error {
@@ -59,22 +60,22 @@ type dataPageBase struct {
 	PageTitle string
 }
 
-type dataMovieInfo struct {
-	PageTitle   string
-	Description string
-	MovieTitle  string
-	MoviePoster string
-	Watched     *Cycle // should prolly be a cycle
-	AddedBy     string
-	Votes       []string // list of names
-}
+//type dataMovieInfo struct {
+//	PageTitle   string
+//	Description string
+//	MovieTitle  string
+//	MoviePoster string
+//	Watched     *Cycle // should prolly be a cycle
+//	AddedBy     string
+//	Votes       []string // list of names
+//}
 
-type dataCycle struct {
-	PageTitle string
-	Active    bool
-	End       string
-	Movies    []dataMovie
-}
+//type dataCycle struct {
+//	PageTitle string
+//	Active    bool
+//	End       string
+//	Movies    []dataMovie
+//}
 
 type dataCycleOther struct {
 	dataPageBase
@@ -83,8 +84,13 @@ type dataCycleOther struct {
 	Movies []*Movie
 }
 
-type dataMovie struct {
-	Id    int
-	Name  string
-	Votes []string
+type dataMovieInfo struct {
+	dataPageBase
+
+	Movie *Movie
+}
+
+type dataMovieError struct {
+	dataPageBase
+	ErrorMessage string
 }
