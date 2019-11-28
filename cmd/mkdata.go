@@ -4,14 +4,23 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"path/filepath"
 
 	mp "github.com/zorchenhimer/MoviePolls"
 )
 
+const jsonFilename string = "db/data.json"
+
 func main() {
-	err := os.MkdirAll("db", 0777)
+	err := os.MkdirAll(filepath.Dir(jsonFilename), 0777)
 	if err != nil {
 		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	err = os.Remove(jsonFilename)
+	if err != nil {
+		fmt.Printf("Unable to remove data file: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -36,22 +45,18 @@ func main() {
 	}
 }
 
-const jsonFilename string = "db/data.json"
-
 func loadConfig() error {
 	jc, err := mp.LoadJson(jsonFilename)
 	if err != nil {
 		return fmt.Errorf("Error loading json: %v", err)
 	}
 
-	cfg := jc.GetConfig()
+	cfg, err := jc.GetConfig()
 	if err != nil {
 		return fmt.Errorf("Error getting config: %v", err)
 	}
 
-	for k, v := range cfg {
-		fmt.Printf("%q: %v\n", k, v)
-	}
+	cfg.DumpValues()
 
 	return nil
 }
@@ -62,7 +67,7 @@ func saveConfig() error {
 		return fmt.Errorf("Error loading json: %v", err)
 	}
 
-	cfg := jc.GetConfig()
+	cfg, err := jc.GetConfig()
 	if err != nil {
 		return fmt.Errorf("Error getting config: %v", err)
 	}
@@ -174,31 +179,34 @@ func writeData() error {
 		vdata{1, 2, 1},
 	}
 
-	jc := mp.NewJsonConnector()
+	jc, err := mp.NewJsonConnector(jsonFilename)
+	if err != nil {
+		return err
+	}
 
 	for _, c := range cycles {
-		jc.AddCycle(c)
+		jc.AddOldCycle(c)
 	}
 
 	for _, u := range users {
 		if err := jc.AddUser(u); err != nil {
-			return fmt.Errorf("Unable to add user %s: %v\n", err)
+			return fmt.Errorf("Unable to add user %s: %v\n", u, err)
 		}
 	}
 
 	for _, m := range movies {
 		if err := jc.AddMovie(m); err != nil {
-			return fmt.Errorf("Unable to add user %s: %v\n", err)
+			return fmt.Errorf("Unable to add movie %s: %v\n", m, err)
 		}
 	}
 
 	for _, v := range votes {
 		if err := jc.AddVote(v.User, v.Movie, v.Cycle); err != nil {
-			return fmt.Errorf("Unable to add vote %s: %v\n", err)
+			return fmt.Errorf("Unable to add vote %s: %v\n", v, err)
 		}
 	}
 
-	err = jc.Save(jsonFilename)
+	err = jc.Save()
 	if err != nil {
 		return err
 	}

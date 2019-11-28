@@ -76,6 +76,18 @@ type User struct {
 	Privilege           PrivilegeLevel
 }
 
+func (u User) String() string {
+	return fmt.Sprintf(
+		"User{Id:%d Name:%q Email:%q NotifyCycleEnd:%t NotifyVoteSelection:%t Privilege:%d}",
+		u.Id,
+		u.Name,
+		u.Email,
+		u.NotifyCycleEnd,
+		u.NotifyVoteSelection,
+		u.Privilege,
+	)
+}
+
 type Choice struct {
 	Id int
 	//MovieID int
@@ -196,3 +208,8 @@ func (c configMap) SetBool(key string, value bool) {
 	c[key] = configValue{CVT_BOOL, value}
 }
 
+func (c configMap) DumpValues() {
+	for k, v := range c {
+		fmt.Printf("%q: %v\n", k, v)
+	}
+}

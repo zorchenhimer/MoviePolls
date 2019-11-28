@@ -34,7 +34,8 @@ type jsonConnector struct {
 	Users []*User
 	Votes []jsonVote
 
-	Settings Configurator
+	//Settings Configurator
+	Settings configMap
 }
 
 func NewJsonConnector(filename string) (*jsonConnector, error) {
@@ -45,6 +46,9 @@ func NewJsonConnector(filename string) (*jsonConnector, error) {
 	return &jsonConnector{
 		filename: filename,
 		CurrentCycle: 0,
+		Settings: configMap{
+			"Active": configValue{CVT_BOOL, true},
+		},
 	}, nil
 }
 
@@ -282,7 +286,7 @@ func (j *jsonConnector) GetConfig() (Configurator, error) {
 }
 
 func (j *jsonConnector) SaveConfig(config Configurator) error {
-	j.Settings = config
+	j.Settings = config.(configMap)
 	return j.Save()
 }
 

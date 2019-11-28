@@ -17,6 +17,7 @@ type DataConnector interface {
 	GetPastCycles(start, end int) []*Cycle
 
 	AddCycle(end *time.Time) error
+	AddOldCycle(cycle *Cycle) error
 	AddMovie(movie *Movie) error
 	AddUser(user *User) error
 	AddVote(userId, movieId, cycleId int) error
@@ -34,6 +35,6 @@ type Configurator interface {
 	SetInt(key string, value int)
 	SetBool(key string, value bool)
 
-	//getValueMap() configMap
+	DumpValues()
 }
 
