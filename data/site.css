@@ -38,7 +38,16 @@
 
 .voteRoot {
     display:flex;
-    flex-direction:column;
+    flex-direction:row;
     width:30%;
     padding:1em;
+}
+
+.voteNamePoster {
+    display:flex;
+    flex-direction:column;
+}
+
+.votePoster img {
+    width: 200px;
 }

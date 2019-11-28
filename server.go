@@ -67,55 +67,16 @@ func (s *Server) handler_Data(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handler_Root(w http.ResponseWriter, r *http.Request) {
-	data := dataCycle{
-		PageTitle: "Current Cycle",
-		Active:    true,
-		End:       "Saturday, November 23",
-		Movies: []dataMovie{
-			dataMovie{
-				Id:   1,
-				Name: "Movie A",
-				Votes: []string{
-					"Person A",
-					"Person B",
-					"Person C",
-					"Person D",
-				},
-			},
-
-			dataMovie{
-				Id:   2,
-				Name: "Movie B",
-				Votes: []string{
-					"Person A",
-					"Person C",
-					"Person D",
-				},
-			},
-
-			dataMovie{
-				Id:   3,
-				Name: "Movie C",
-				Votes: []string{
-					"Person A",
-					"Person C",
-					"Person D",
-					"Person E",
-					"Person F",
-					"Person G",
-				},
-			},
-
-			//dataMovie{
-			//	Id:   4,
-			//	Name: "Movie D",
-			//	Votes: []string{
-			//		"Person G",
-			//	},
-			//},
+	data := dataCycleOther{
+		dataPageBase: dataPageBase{
+			PageTitle: "Current Cycle",
 		},
+
+		Cycle: &Cycle{},//s.data.GetCurrentCycle(),
+		Movies: s.data.GetActiveMovies(),
 	}
-	_ = data
+
+	fmt.Printf("cycle: %v\n", data.Cycle)
 
 	if err := s.executeTemplate(w, "cyclevotes", data); err != nil {
 		fmt.Printf("Error rendering template: %v\n", err)

@@ -1,9 +1,12 @@
 {{define "vote"}}
 <div class="voteRoot">
-    <div>{{.Name}}</div>
-    <div>Votes:
+    <div class="voteNamePoster">
+        <div class="voteName">{{.Name}}</div>
+        <div class="votePoster"><img src="data/{{.Poster}}" /></div>
+    </div>
+    <div class="voteList">Votes:
         <ul>
-            {{range .Votes}}<li>{{.}}</li>{{end}}
+            {{range .Votes}}<li>{{.User.Name}}</li>{{end}}
         </ul>
     </div>
 </div>

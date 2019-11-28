@@ -32,6 +32,8 @@ type Movie struct {
 	Watched *time.Time
 
 	Votes []*Vote
+
+	Poster string // TODO: make this procedural
 }
 
 func (m Movie) String() string {

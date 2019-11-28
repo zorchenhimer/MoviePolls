@@ -17,6 +17,7 @@ type jsonMovie struct {
 	Removed      bool
 	Approved     bool
 	Watched      *time.Time
+	Poster       string
 }
 
 type jsonVote struct {
@@ -153,6 +154,7 @@ func (j *jsonConnector) AddMovie(movie *Movie) error {
 		CycleAddedId: movie.CycleAdded.Id,
 		Removed: movie.Removed,
 		Approved: movie.Approved,
+		Poster: movie.Poster,
 	}
 
 	j.Movies = append(j.Movies, m)
@@ -238,6 +240,7 @@ func (j *jsonConnector) findMovie(id int) *Movie {
 				Approved:  m.Approved,
 				CycleAdded: j.findCycle(m.CycleAddedId),
 				Links: m.Links,
+				Poster: m.Poster,
 			}
 		}
 	}

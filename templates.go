@@ -55,6 +55,10 @@ func (s *Server) executeTemplate(w http.ResponseWriter, key string, data interfa
 	return t.Execute(w, data)
 }
 
+type dataPageBase struct {
+	PageTitle string
+}
+
 type dataMovieInfo struct {
 	PageTitle   string
 	Description string
@@ -70,6 +74,13 @@ type dataCycle struct {
 	Active    bool
 	End       string
 	Movies    []dataMovie
+}
+
+type dataCycleOther struct {
+	dataPageBase
+
+	Cycle *Cycle
+	Movies []*Movie
 }
 
 type dataMovie struct {

@@ -5,14 +5,14 @@
 {{define "body"}}
 <div class="cycleCard">
     <div class="cycleTitle">
-        Cycle ending {{.End}}
+        Cycle ending eventually.
     </div>
 
     <div class="cycleMovieHead">
         Movies this cycle
     </div>
 
-    {{if .Active}}
+    {{if .Cycle}}
     <div class="cycleVotes">
     {{range .Movies}}
         {{template "vote" . }}
