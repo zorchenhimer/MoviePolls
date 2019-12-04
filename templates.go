@@ -17,6 +17,7 @@ var templateDefs map[string][]string = map[string][]string{
 	"movieinfo":  []string{"movie-info.html"},
 	"cyclevotes": []string{"cycle.html", "vote.html"},
 	"movieError": []string{"movie-error.html"},
+	"simplelogin": []string{"plain-login.html"},
 }
 
 func (s *Server) registerTemplates() error {
@@ -41,12 +42,12 @@ func (s *Server) registerTemplates() error {
 
 func (s *Server) executeTemplate(w http.ResponseWriter, key string, data interface{}) error {
 	// for deugging only
-	if s.debug {
-		err := s.registerTemplates()
-		if err != nil {
-			return err
-		}
-	}
+	//if s.debug {
+	//	err := s.registerTemplates()
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
 	t, ok := s.templates[key]
 	if !ok {
@@ -91,6 +92,11 @@ type dataMovieInfo struct {
 }
 
 type dataMovieError struct {
+	dataPageBase
+	ErrorMessage string
+}
+
+type dataLoginForm struct {
 	dataPageBase
 	ErrorMessage string
 }

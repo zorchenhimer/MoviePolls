@@ -1,0 +1,18 @@
+{{/* Simple login form for mods and admins */}}
+
+{{define "header"}}{{end}}
+
+{{define "body"}}
+<form method="POST" action="/login">
+    {{if gt (len .ErrorMessage) 0}}
+    <div class="errorMessage">
+        {{.ErrorMessage}}
+    </div>
+    {{end}}
+    <div id="login">
+        <div><input type="text" name="Username" /></div>
+        <div><input type="password" name="Password" /></div>
+        <div><input type="submit" value="Login" /></div>
+    </div>
+</form>
+{{end}}

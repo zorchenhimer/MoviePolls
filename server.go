@@ -6,7 +6,11 @@ import (
 	"net/http"
 	"path/filepath"
 	//"time"
+
+	"github.com/gorilla/sessions"
 )
+
+var sstore *sessions.CookieStore
 
 type Options struct {
 	Listen string // eg, "127.0.0.1:8080" or ":8080" (defaults to 0.0.0.0:8080)
@@ -18,6 +22,10 @@ type Server struct {
 	s         *http.Server
 	debug     bool // turns on debug things (eg, reloading templates on each page request)
 	data      DataConnector
+
+	// TODO: do this better (connect it to a proper account)
+	adminUser string
+	adminPass string
 }
 
 func NewServer(options Options) (*Server, error) {
@@ -37,13 +45,19 @@ func NewServer(options Options) (*Server, error) {
 	server := &Server{
 		debug: options.Debug,
 		data: data,
+
+		// TODO: DON'T KEEP THIS HERE, LOL
+		adminUser: "zorch",
+		adminPass: "lol",
 	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiHandler{})
-	mux.HandleFunc("/", server.handler_Root)
 	mux.HandleFunc("/movie/", server.handler_Movie)
 	mux.HandleFunc("/data/", server.handler_Data)
+	mux.HandleFunc("/login", server.handler_Login)
+	mux.HandleFunc("/", server.handler_Root)
+	mux.HandleFunc("/favicon.ico", server.handler_Favicon)
 
 	hs.Handler = mux
 	server.s = hs
@@ -60,10 +74,46 @@ func (server *Server) Run() error {
 	return server.s.ListenAndServe()
 }
 
+func (s *Server) handler_Favicon(w http.ResponseWriter, r *http.Request) {
+	http.NotFound(w, r)
+}
+
 func (s *Server) handler_Data(w http.ResponseWriter, r *http.Request) {
 	file := "data/" + filepath.Base(r.URL.Path)
 	fmt.Printf("Attempting to serve file %q\n", file)
 	http.ServeFile(w, r, file)
+}
+
+func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
+	data := dataLoginForm {
+		dataPageBase: dataPageBase{"Login"},
+		ErrorMessage: "",
+	}
+
+	if r.Method == "POST" {
+		// do login
+		err := r.ParseForm()
+		if err != nil {
+			fmt.Printf("Error parsing login form: %v\n", err)
+		}
+
+		un := r.PostFormValue("Username")
+		pw := r.PostFormValue("Password")
+		if un == s.adminUser && pw == s.adminPass {
+			// do login (eg, session stuff)
+			data.ErrorMessage = "Login successfull!"
+			fmt.Println("Successful login")
+		} else {
+			data.ErrorMessage = "Missing or invalid login credentials"
+			fmt.Printf("Invalid login with: %q/%q\n", un, pw)
+		}
+	} else {
+		fmt.Printf("> no post: %s\n", r.Method)
+	}
+
+	if err := s.executeTemplate(w, "simplelogin", data); err != nil {
+		fmt.Printf("Error rendering template: %v\n", err)
+	}
 }
 
 func (s *Server) handler_Root(w http.ResponseWriter, r *http.Request) {
