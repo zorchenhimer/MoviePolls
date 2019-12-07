@@ -3,6 +3,12 @@
 {{define "header"}}{{end}}
 
 {{define "body"}}
+{{if .Authed}}
+    <!-- show logout button -->
+    <div id="login">
+        <a href="/login?logout=1">Logout</a>
+    <div>
+{{else}}
 <form method="POST" action="/login">
     {{if gt (len .ErrorMessage) 0}}
     <div class="errorMessage">
@@ -15,4 +21,5 @@
         <div><input type="submit" value="Login" /></div>
     </div>
 </form>
+{{end}}
 {{end}}

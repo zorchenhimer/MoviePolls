@@ -119,7 +119,7 @@ func (j *jsonConnector) AddCycle(end *time.Time) error {
 	}
 	j.Cycles = append(j.Cycles, c)
 
-	return nil
+	return j.Save()
 }
 
 func (j *jsonConnector) AddOldCycle(c *Cycle) error {
@@ -128,7 +128,7 @@ func (j *jsonConnector) AddOldCycle(c *Cycle) error {
 	}
 
 	j.Cycles = append(j.Cycles, c)
-	return nil
+	return j.Save()
 }
 
 func (j *jsonConnector) nextCycleId() int {
@@ -159,7 +159,7 @@ func (j *jsonConnector) AddMovie(movie *Movie) error {
 
 	j.Movies = append(j.Movies, m)
 
-	return nil
+	return j.Save()
 }
 
 func (j *jsonConnector) GetMovie(id int) (*Movie, error) {
@@ -206,7 +206,7 @@ func (j *jsonConnector) AddUser(user *User) error {
 	}
 
 	j.Users = append(j.Users, user)
-	return nil
+	return j.Save()
 }
 
 func (j *jsonConnector) AddVote(userId, movieId, cycleId int) error {
@@ -226,7 +226,7 @@ func (j *jsonConnector) AddVote(userId, movieId, cycleId int) error {
 	}
 
 	j.Votes = append(j.Votes, jsonVote{userId, movieId, cycleId})
-	return nil
+	return j.Save()
 }
 
 func (j *jsonConnector) findMovie(id int) *Movie {

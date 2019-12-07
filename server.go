@@ -1,16 +1,18 @@
 package moviepoll
 
 import (
+	"crypto/rand"
 	"fmt"
 	"html/template"
 	"net/http"
 	"path/filepath"
 	//"time"
+	"math/big"
 
 	"github.com/gorilla/sessions"
 )
 
-var sstore *sessions.CookieStore
+const SessionName string = "moviepoll-session"
 
 type Options struct {
 	Listen string // eg, "127.0.0.1:8080" or ":8080" (defaults to 0.0.0.0:8080)
@@ -26,6 +28,7 @@ type Server struct {
 	// TODO: do this better (connect it to a proper account)
 	adminUser string
 	adminPass string
+	cookies   *sessions.CookieStore
 }
 
 func NewServer(options Options) (*Server, error) {
@@ -42,13 +45,41 @@ func NewServer(options Options) (*Server, error) {
 		Addr: options.Listen,
 	}
 
+	cfg, err := data.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get config: %v", err)
+	}
+
+	un, err := cfg.GetString("AdminUsername")
+	if err != nil {
+		return nil, fmt.Errorf("Missing admin username in config!")
+	}
+
+	pw, err := cfg.GetString("AdminPassword")
+	if err != nil {
+		return nil, fmt.Errorf("Missing admin password in config!")
+	}
+
+	authKey, err := cfg.GetString("SessionAuth")
+	if err != nil {
+		authKey = getCryptRandKey(64)
+		cfg.SetString("SessionAuth", authKey)
+	}
+
+	encryptKey, err := cfg.GetString("SessionEncrypt")
+	if err != nil {
+		encryptKey = getCryptRandKey(32)
+		cfg.SetString("SessionEncrypt", encryptKey)
+	}
+
 	server := &Server{
 		debug: options.Debug,
 		data: data,
 
-		// TODO: DON'T KEEP THIS HERE, LOL
-		adminUser: "zorch",
-		adminPass: "lol",
+		adminUser: un,
+		adminPass: pw,
+
+		cookies: sessions.NewCookieStore([]byte(authKey), []byte(encryptKey)),
 	}
 
 	mux := http.NewServeMux()
@@ -66,6 +97,8 @@ func NewServer(options Options) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	server.data.SaveConfig(cfg)
 
 	return server, nil
 }
@@ -85,17 +118,44 @@ func (s *Server) handler_Data(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
-	data := dataLoginForm {
+	data := dataLoginForm{
 		dataPageBase: dataPageBase{"Login"},
 		ErrorMessage: "",
 	}
 
+	err := r.ParseForm()
+	if err != nil {
+		fmt.Printf("Error parsing login form: %v\n", err)
+	}
+
+	session, err := s.cookies.Get(r, SessionName)
+	if err != nil {
+		data.ErrorMessage = err.Error()
+		fmt.Printf("Unable to get session from store: %v\n", err)
+
+		if err := s.executeTemplate(w, "simplelogin", data); err != nil {
+			fmt.Printf("Error rendering template: %v\n", err)
+		}
+		return
+	}
+
+	val := session.Values["authed"]
+	var isAuthed bool
+	var ok bool
+	if isAuthed, ok = val.(bool); !ok {
+		isAuthed = false
+	}
+
+	if isAuthed {
+		fmt.Println("Auth'd")
+		if logout, ok := r.Form["logout"]; ok {
+			fmt.Println("logout: ", logout)
+			isAuthed = false
+		}
+	}
+
 	if r.Method == "POST" {
 		// do login
-		err := r.ParseForm()
-		if err != nil {
-			fmt.Printf("Error parsing login form: %v\n", err)
-		}
 
 		un := r.PostFormValue("Username")
 		pw := r.PostFormValue("Password")
@@ -103,12 +163,21 @@ func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
 			// do login (eg, session stuff)
 			data.ErrorMessage = "Login successfull!"
 			fmt.Println("Successful login")
+			isAuthed = true
 		} else {
 			data.ErrorMessage = "Missing or invalid login credentials"
 			fmt.Printf("Invalid login with: %q/%q\n", un, pw)
 		}
 	} else {
 		fmt.Printf("> no post: %s\n", r.Method)
+	}
+
+	data.Authed = isAuthed
+	session.Values["authed"] = isAuthed
+
+	err = session.Save(r, w)
+	if err != nil {
+		fmt.Printf("Unable to save cookie: %v\n", err)
 	}
 
 	if err := s.executeTemplate(w, "simplelogin", data); err != nil {
@@ -166,10 +235,28 @@ func (s *Server) handler_Movie(w http.ResponseWriter, r *http.Request) {
 
 	data := dataMovieInfo{
 		dataPageBase: dataPageBase{PageTitle: movie.Name},
-		Movie: movie,
+		Movie:        movie,
 	}
 
 	if err := s.executeTemplate(w, "movieinfo", data); err != nil {
 		http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
 	}
+}
+
+func getCryptRandKey(size int) string {
+	out := ""
+	large := big.NewInt(int64(1 << 60))
+	large = large.Add(large, large)
+	for len(out) < size {
+		num, err := rand.Int(rand.Reader, large)
+		if err != nil {
+			panic("Error generating session key: " + err.Error())
+		}
+		out = fmt.Sprintf("%s%X", out, num)
+	}
+
+	if len(out) > size {
+		out = out[:size]
+	}
+	return out
 }

@@ -99,4 +99,5 @@ type dataMovieError struct {
 type dataLoginForm struct {
 	dataPageBase
 	ErrorMessage string
+	Authed       bool
 }
