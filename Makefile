@@ -1,3 +1,7 @@
+EXE=
+ifeq ($(OS), Windows_NT)
+EXE=.exe
+endif
 
 SOURCES = api.go \
 		  data.go \
@@ -6,19 +10,25 @@ SOURCES = api.go \
 		  server.go \
 		  templates.go
 
-.PHONY: all data
+.PHONY: all data fmt
 
-all: cmd/server
-data: cmd/mkdata
+CMD_SERVER=cmd/server$(EXE)
+CMD_DATA=cmd/mkdata$(EXE)
+
+all: fmt $(CMD_SERVER)
+data: fmt $(CMD_DATA)
 
 clean:
-	rm -f cmd/mkdata cmd/server
+	rm -f $(CMD_SERVER) $(CMD_DATA)
 
-cmd/server: cmd/server.go $(SOURCES)
-	go build -o cmd/server cmd/server.go
+fmt:
+	gofmt -w .
 
-cmd/mkdata: cmd/mkdata.go $(SOURCES)
-	go build -o cmd/mkdata cmd/mkdata.go
+$(CMD_SERVER): cmd/server.go $(SOURCES)
+	go build -o $@ $<
+
+$(CMD_DATA): cmd/mkdata.go $(SOURCES)
+	go build -o $@ $<
 
 run: all
 	cmd/server
