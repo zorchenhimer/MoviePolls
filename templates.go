@@ -14,9 +14,9 @@ const TEMPLATE_BASE = TEMPLATE_DIR + "base.html"
 
 // templateDefs is static throughout the life of the server process
 var templateDefs map[string][]string = map[string][]string{
-	"movieinfo":  []string{"movie-info.html"},
-	"cyclevotes": []string{"cycle.html", "vote.html"},
-	"movieError": []string{"movie-error.html"},
+	"movieinfo":   []string{"movie-info.html"},
+	"cyclevotes":  []string{"cycle.html", "vote.html"},
+	"movieError":  []string{"movie-error.html"},
 	"simplelogin": []string{"plain-login.html"},
 }
 
@@ -81,7 +81,7 @@ type dataPageBase struct {
 type dataCycleOther struct {
 	dataPageBase
 
-	Cycle *Cycle
+	Cycle  *Cycle
 	Movies []*Movie
 }
 

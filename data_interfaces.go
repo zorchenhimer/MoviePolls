@@ -37,4 +37,3 @@ type Configurator interface {
 
 	DumpValues()
 }
-

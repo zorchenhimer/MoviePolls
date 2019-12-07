@@ -74,7 +74,7 @@ func NewServer(options Options) (*Server, error) {
 
 	server := &Server{
 		debug: options.Debug,
-		data: data,
+		data:  data,
 
 		adminUser: un,
 		adminPass: pw,
@@ -191,7 +191,7 @@ func (s *Server) handler_Root(w http.ResponseWriter, r *http.Request) {
 			PageTitle: "Current Cycle",
 		},
 
-		Cycle: &Cycle{},//s.data.GetCurrentCycle(),
+		Cycle:  &Cycle{}, //s.data.GetCurrentCycle(),
 		Movies: s.data.GetActiveMovies(),
 	}
 

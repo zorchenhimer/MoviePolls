@@ -1,8 +1,8 @@
 package moviepoll
 
 import (
-	"os"
 	"errors"
+	"os"
 )
 
 var NotImplementedError error = errors.New("Not implemented")

@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 	"path/filepath"
+	"time"
 
 	mp "github.com/zorchenhimer/MoviePolls"
 )
@@ -110,66 +110,66 @@ func writeData() error {
 
 	cycles := []*mp.Cycle{
 		&mp.Cycle{
-			Id: 1,
-			Start: time.Now().Add(dur),
-			End: time.Now(),
+			Id:        1,
+			Start:     time.Now().Add(dur),
+			End:       time.Now(),
 			EndingSet: false,
 		},
 	}
 
 	movies := []*mp.Movie{
 		&mp.Movie{
-			Id: 1,
-			Name: "Austin Powers",
-			Links: []string{"http://localhost:8080/"},
+			Id:          1,
+			Name:        "Austin Powers",
+			Links:       []string{"http://localhost:8080/"},
 			Description: "The first Austin Powers movie.  Idk.",
-			CycleAdded: cycles[0],
-			Removed: false,
-			Approved: true,
+			CycleAdded:  cycles[0],
+			Removed:     false,
+			Approved:    true,
 		},
 		&mp.Movie{
-			Id: 2,
-			Name: "Rubber",
-			Links: []string{"http://localhost:8080/"},
+			Id:          2,
+			Name:        "Rubber",
+			Links:       []string{"http://localhost:8080/"},
 			Description: "A movie about a tire.",
-			CycleAdded: cycles[0],
-			Removed: false,
-			Approved: true,
+			CycleAdded:  cycles[0],
+			Removed:     false,
+			Approved:    true,
 		},
 	}
 
 	users := []*mp.User{
 		&mp.User{
-			Id: 1,
-			Name: "Zorchenhimer",
-			OAuthToken: "123abc",
-			Email: "zorchenhimer@gmail.com",
-			NotifyCycleEnd: true,
+			Id:                  1,
+			Name:                "Zorchenhimer",
+			OAuthToken:          "123abc",
+			Email:               "zorchenhimer@gmail.com",
+			NotifyCycleEnd:      true,
 			NotifyVoteSelection: true,
-			Privilege: mp.PRIV_ADMIN,
+			Privilege:           mp.PRIV_ADMIN,
 		},
 		&mp.User{
-			Id: 2,
-			Name: "SleepyMia",
-			OAuthToken: "abc123",
-			Email: "SleepyMia@gmail.com",
-			NotifyCycleEnd: true,
+			Id:                  2,
+			Name:                "SleepyMia",
+			OAuthToken:          "abc123",
+			Email:               "SleepyMia@gmail.com",
+			NotifyCycleEnd:      true,
 			NotifyVoteSelection: true,
-			Privilege: mp.PRIV_MOD,
+			Privilege:           mp.PRIV_MOD,
 		},
 		&mp.User{
-			Id: 3,
-			Name: "jojoa1997",
-			OAuthToken: "",
-			Email: "",
-			NotifyCycleEnd: false,
+			Id:                  3,
+			Name:                "jojoa1997",
+			OAuthToken:          "",
+			Email:               "",
+			NotifyCycleEnd:      false,
 			NotifyVoteSelection: false,
-			Privilege: mp.PRIV_USER,
+			Privilege:           mp.PRIV_USER,
 		},
 	}
 
 	type vdata struct {
-		User int
+		User  int
 		Movie int
 		Cycle int
 	}

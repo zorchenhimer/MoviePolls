@@ -21,7 +21,7 @@ type jsonMovie struct {
 }
 
 type jsonVote struct {
-	UserId int
+	UserId  int
 	MovieId int
 	CycleId int
 }
@@ -32,8 +32,8 @@ type jsonConnector struct {
 
 	Cycles []*Cycle
 	Movies []jsonMovie
-	Users []*User
-	Votes []jsonVote
+	Users  []*User
+	Votes  []jsonVote
 
 	//Settings Configurator
 	Settings configMap
@@ -45,7 +45,7 @@ func NewJsonConnector(filename string) (*jsonConnector, error) {
 	}
 
 	return &jsonConnector{
-		filename: filename,
+		filename:     filename,
 		CurrentCycle: 0,
 		Settings: configMap{
 			"Active": configValue{CVT_BOOL, true},
@@ -147,14 +147,14 @@ func (j *jsonConnector) AddMovie(movie *Movie) error {
 	}
 
 	m := jsonMovie{
-		Id: movie.Id,
-		Name: movie.Name,
-		Links: movie.Links,
-		Description: movie.Description,
+		Id:           movie.Id,
+		Name:         movie.Name,
+		Links:        movie.Links,
+		Description:  movie.Description,
 		CycleAddedId: movie.CycleAdded.Id,
-		Removed: movie.Removed,
-		Approved: movie.Approved,
-		Poster: movie.Poster,
+		Removed:      movie.Removed,
+		Approved:     movie.Approved,
+		Poster:       movie.Poster,
 	}
 
 	j.Movies = append(j.Movies, m)
@@ -192,7 +192,7 @@ func (j *jsonConnector) GetPastCycles(start, end int) []*Cycle {
 
 func (j *jsonConnector) GetUser(userId int) (*User, error) {
 	u := j.findUser(userId)
-	if u ==  nil {
+	if u == nil {
 		return nil, fmt.Errorf("User not found with ID %s", userId)
 	}
 	return u, nil
@@ -233,14 +233,14 @@ func (j *jsonConnector) findMovie(id int) *Movie {
 	for _, m := range j.Movies {
 		if m.Id == id {
 			return &Movie{
-				Id:  id,
-				Name:  m.Name,
-				Description:  m.Description,
-				Removed:  m.Removed,
-				Approved:  m.Approved,
-				CycleAdded: j.findCycle(m.CycleAddedId),
-				Links: m.Links,
-				Poster: m.Poster,
+				Id:          id,
+				Name:        m.Name,
+				Description: m.Description,
+				Removed:     m.Removed,
+				Approved:    m.Approved,
+				CycleAdded:  j.findCycle(m.CycleAddedId),
+				Links:       m.Links,
+				Poster:      m.Poster,
 			}
 		}
 	}
@@ -262,9 +262,9 @@ func (j *jsonConnector) findVotes(movie *Movie) []*Vote {
 	for _, v := range j.Votes {
 		if v.MovieId == movie.Id {
 			votes = append(votes, &Vote{
-				Movie:  movie,
-				CycleAdded:  j.findCycle(v.CycleId),
-				User:  j.findUser(v.UserId),
+				Movie:      movie,
+				CycleAdded: j.findCycle(v.CycleId),
+				User:       j.findUser(v.UserId),
 			})
 		}
 	}
@@ -292,4 +292,3 @@ func (j *jsonConnector) SaveConfig(config Configurator) error {
 	j.Settings = config.(configMap)
 	return j.Save()
 }
-

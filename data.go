@@ -2,15 +2,15 @@ package moviepoll
 
 import (
 	"fmt"
-	"time"
 	"strconv"
+	"time"
 )
 
 type Cycle struct {
 	Id int
 
-	Start time.Time
-	End   time.Time
+	Start     time.Time
+	End       time.Time
 	EndingSet bool // has an end time been set? (ignore End value if false)
 }
 
@@ -25,11 +25,11 @@ type Movie struct {
 	Description string
 
 	//CycleAddedId int
-	CycleAdded   *Cycle
+	CycleAdded *Cycle
 
 	Removed  bool // Removed by a mod or admin
 	Approved bool // Approved by a mod or admin (if required by config)
-	Watched *time.Time
+	Watched  *time.Time
 
 	Votes []*Vote
 
@@ -53,7 +53,7 @@ func (m Movie) String() string {
 }
 
 type Vote struct {
-	User *User
+	User  *User
 	Movie *Movie
 	// Decay based on cycles active.
 	CycleAdded *Cycle
@@ -101,6 +101,7 @@ type Choice struct {
 type configMap map[string]configValue
 
 type cfgValType int
+
 const (
 	CVT_STRING cfgValType = iota
 	CVT_INT
@@ -108,7 +109,7 @@ const (
 )
 
 type configValue struct {
-	Type cfgValType
+	Type  cfgValType
 	Value interface{}
 }
 
@@ -117,13 +118,13 @@ func (v configValue) String() string {
 	switch v.Type {
 	case CVT_STRING:
 		t = "string"
-		break;
+		break
 	case CVT_INT:
 		t = "int"
-		break;
+		break
 	case CVT_BOOL:
 		t = "bool"
-		break;
+		break
 	}
 
 	return fmt.Sprintf("configValue{Type:%s Value:%v}", t, v.Value)
