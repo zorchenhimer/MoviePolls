@@ -5,6 +5,8 @@ import (
 )
 
 type DataConnector interface {
+	GetConnectionString() string
+
 	GetCurrentCycle() *Cycle // Return nil when no cycle is active.
 	GetMovie(id int) (*Movie, error)
 	GetUser(id int) (*User, error)
@@ -16,11 +18,14 @@ type DataConnector interface {
 	// would be at a start value of 0.
 	GetPastCycles(start, end int) []*Cycle
 
-	AddCycle(end *time.Time) error
-	AddOldCycle(cycle *Cycle) error
-	AddMovie(movie *Movie) error
-	AddUser(user *User) error
+	AddCycle(end *time.Time) (int, error)
+	AddOldCycle(cycle *Cycle) (int, error)
+	AddMovie(movie *Movie) (int, error)
+	AddUser(user *User) (int, error)
 	AddVote(userId, movieId, cycleId int) error
+
+	CheckMovieExists(title string) bool
+	CheckUserExists(name string) bool
 
 	GetConfig() (Configurator, error)
 	SaveConfig(config Configurator) error

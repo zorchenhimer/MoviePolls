@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	//"time"
 	"math/big"
+	"strings"
 
 	"github.com/gorilla/sessions"
 )
@@ -87,6 +88,7 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/movie/", server.handler_Movie)
 	mux.HandleFunc("/data/", server.handler_Data)
 	mux.HandleFunc("/login", server.handler_Login)
+	mux.HandleFunc("/add", server.handler_AddMovie)
 	mux.HandleFunc("/", server.handler_Root)
 	mux.HandleFunc("/favicon.ico", server.handler_Favicon)
 
@@ -108,7 +110,11 @@ func (server *Server) Run() error {
 }
 
 func (s *Server) handler_Favicon(w http.ResponseWriter, r *http.Request) {
-	http.NotFound(w, r)
+	if fileExists("data/favicon.ico") {
+		http.ServeFile(w, r, "data/favicon.ico")
+	} else {
+		http.NotFound(w, r)
+	}
 }
 
 func (s *Server) handler_Data(w http.ResponseWriter, r *http.Request) {
@@ -118,33 +124,12 @@ func (s *Server) handler_Data(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
-	data := dataLoginForm{
-		dataPageBase: dataPageBase{"Login"},
-		ErrorMessage: "",
-	}
-
 	err := r.ParseForm()
 	if err != nil {
 		fmt.Printf("Error parsing login form: %v\n", err)
 	}
 
-	session, err := s.cookies.Get(r, SessionName)
-	if err != nil {
-		data.ErrorMessage = err.Error()
-		fmt.Printf("Unable to get session from store: %v\n", err)
-
-		if err := s.executeTemplate(w, "simplelogin", data); err != nil {
-			fmt.Printf("Error rendering template: %v\n", err)
-		}
-		return
-	}
-
-	val := session.Values["authed"]
-	var isAuthed bool
-	var ok bool
-	if isAuthed, ok = val.(bool); !ok {
-		isAuthed = false
-	}
+	isAuthed := s.getSessionBool("authed", r)
 
 	if isAuthed {
 		fmt.Println("Auth'd")
@@ -154,6 +139,9 @@ func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	data := dataLoginForm{}
+	doRedirect := false
+
 	if r.Method == "POST" {
 		// do login
 
@@ -161,9 +149,10 @@ func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
 		pw := r.PostFormValue("Password")
 		if un == s.adminUser && pw == s.adminPass {
 			// do login (eg, session stuff)
-			data.ErrorMessage = "Login successfull!"
+			//data.ErrorMessage = "Login successfull!"
 			fmt.Println("Successful login")
 			isAuthed = true
+			doRedirect = true
 		} else {
 			data.ErrorMessage = "Missing or invalid login credentials"
 			fmt.Printf("Invalid login with: %q/%q\n", un, pw)
@@ -173,23 +162,98 @@ func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.Authed = isAuthed
-	session.Values["authed"] = isAuthed
+	s.setSessionValue("authed", isAuthed, w, r)
 
-	err = session.Save(r, w)
-	if err != nil {
-		fmt.Printf("Unable to save cookie: %v\n", err)
+	// Redirect to base page on successful login
+	if doRedirect {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
 	}
+
+	data.dataPageBase = s.newPageBase("Login", r) // set this last to get correct login status
 
 	if err := s.executeTemplate(w, "simplelogin", data); err != nil {
 		fmt.Printf("Error rendering template: %v\n", err)
 	}
 }
 
+func (s *Server) handler_AddMovie(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(s.data.GetConnectionString())
+	data := dataAddMovie{
+		dataPageBase: s.newPageBase("Add Movie", r),
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		fmt.Printf("Error parsing movie form: %v\n", err)
+	}
+
+	if r.Method == "POST" {
+		errText := []string{}
+
+		linktext := strings.ReplaceAll(r.PostFormValue("Links"), "\r", "")
+		fmt.Printf("linktext: %q\n", linktext)
+		data.ValLinks = linktext
+
+		links := strings.Split(linktext, "\n")
+		links, err = verifyLinks(links)
+		if err != nil {
+			fmt.Printf("bad link: %v\n", err)
+			data.ErrLinks = true
+			errText = append(errText, "Invalid link(s) given.")
+		}
+
+		data.ValTitle = strings.TrimSpace(r.PostFormValue("MovieName"))
+		if s.data.CheckMovieExists(r.PostFormValue("MovieName")) {
+			data.ErrTitle = true
+			fmt.Println("Movie exists")
+			errText = append(errText, "Movie already exists")
+		}
+
+		if data.ValTitle == "" {
+			errText = append(errText, "Missing movie title")
+			data.ErrTitle = true
+		}
+
+		descr := strings.TrimSpace(r.PostFormValue("Description"))
+		data.ValDescription = descr
+		if len(descr) == 0 {
+			data.ErrDescription = true
+			errText = append(errText, "Missing description")
+		}
+
+		movie := &Movie{
+			Name:        strings.TrimSpace(r.PostFormValue("MovieName")),
+			Description: strings.TrimSpace(r.PostFormValue("Description")),
+			Votes:       []*Vote{},
+			Links:       links,
+			Poster:      "data/unknown.jpg", // 165x250
+		}
+
+		var movieId int
+		if !data.isError() {
+			movieId, err = s.data.AddMovie(movie)
+		}
+
+		if err == nil && !data.isError() {
+			http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
+			return
+		}
+
+		//data.ErrorMessage = strings.Join(errText, "<br />")
+		data.ErrorMessage = errText
+		fmt.Printf("Movie not added. isError(): %t\nerr: %v\n", data.isError(), err)
+	}
+
+	if err := s.executeTemplate(w, "addmovie", data); err != nil {
+		fmt.Printf("Error rendering template: %v\n", err)
+	}
+}
+
+// TODO: 404 when URL isn't "/"
 func (s *Server) handler_Root(w http.ResponseWriter, r *http.Request) {
 	data := dataCycleOther{
-		dataPageBase: dataPageBase{
-			PageTitle: "Current Cycle",
-		},
+		dataPageBase: s.newPageBase("Current Cycle", r),
 
 		Cycle:  &Cycle{}, //s.data.GetCurrentCycle(),
 		Movies: s.data.GetActiveMovies(),
@@ -208,7 +272,7 @@ func (s *Server) handler_Movie(w http.ResponseWriter, r *http.Request) {
 	n, err := fmt.Sscanf(r.URL.String(), "/movie/%d/%s", &movieId, &command)
 	if err != nil && n == 0 {
 		dataError := dataMovieError{
-			dataPageBase: dataPageBase{PageTitle: "Error"},
+			dataPageBase: s.newPageBase("Error", r),
 			ErrorMessage: "Missing movie ID",
 		}
 
@@ -222,7 +286,7 @@ func (s *Server) handler_Movie(w http.ResponseWriter, r *http.Request) {
 	movie, err := s.data.GetMovie(movieId)
 	if err != nil {
 		dataError := dataMovieError{
-			dataPageBase: dataPageBase{PageTitle: "Error"},
+			dataPageBase: s.newPageBase("Error", r),
 			ErrorMessage: "Movie not found",
 		}
 
@@ -234,7 +298,7 @@ func (s *Server) handler_Movie(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := dataMovieInfo{
-		dataPageBase: dataPageBase{PageTitle: movie.Name},
+		dataPageBase: s.newPageBase(movie.Name, r),
 		Movie:        movie,
 	}
 
@@ -259,4 +323,34 @@ func getCryptRandKey(size int) string {
 		out = out[:size]
 	}
 	return out
+}
+
+func (s *Server) getSessionBool(key string, r *http.Request) bool {
+	session, err := s.cookies.Get(r, SessionName)
+	if err != nil {
+		fmt.Printf("Unable to get session from store: %v\n", err)
+		return false
+	}
+
+	val := session.Values[key]
+	var boolVal bool
+	var ok bool
+	if boolVal, ok = val.(bool); !ok {
+		boolVal = false
+	}
+
+	return boolVal
+}
+
+func (s *Server) setSessionValue(key string, val interface{}, w http.ResponseWriter, r *http.Request) {
+	session, err := s.cookies.Get(r, SessionName)
+	if err != nil {
+		fmt.Printf("Unable to get session from store: %v\n", err)
+	}
+	session.Values[key] = val
+
+	err = session.Save(r, w)
+	if err != nil {
+		fmt.Printf("Unable to save cookie: %v\n", err)
+	}
 }

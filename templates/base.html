@@ -7,6 +7,19 @@
         {{template "header" . }}
     </head>
     <body>
+        <div id="header">
+            <div id="headTitle"><a href="/" class="titleLink">MoviePolls</a></div>
+            <div id="userButtons">
+                {{if .IsAuthed}}
+                    {{if .IsAdmin}}<a href="/admin">Admin</a>{{end}}
+                <a href="/add">Add Movie</a>
+                <a href="/account">Account</a>
+                <a href="/login?logout">Logout</a>
+                {{else}}
+                <a href="/login">Login</a>
+                {{end}}
+            </div>
+        </div>
         <div id="root">
             {{template "body" . }}
         </div>

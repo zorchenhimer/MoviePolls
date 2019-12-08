@@ -1,0 +1,27 @@
+{{define "header"}}{{end}}
+
+{{define "body"}}
+<form method="POST" action="/add">
+    {{if .ErrorMessage}}<div class="errorMessage"><ul>{{range .ErrorMessage}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+    <div id="addMovieForm">
+        <div class="movieInput">
+            <div{{if .ErrTitle}} class="errorMessage"{{end}}><label for="MovieName">Movie Title<label></div>
+            <div><input type="text" name="MovieName" id="MovieName"{{if .ValTitle}} value="{{.ValTitle}}"{{end}} /></div>
+        </div>
+        <div class="movieInput">
+            <div{{if .ErrDescription}} class="errorMessage"{{end}}><label for="Description">Description<label></div>
+            <div><textarea name="Description" id="Description">{{if .ValDescription}}{{.ValDescription}}{{end}}</textarea></div>
+        <div class="movieInput">
+            <div{{if .ErrLinks}} class="errorMessage"{{end}}><label for="Links">Links<label></div>
+            <div><textarea name="Links" id="Links">{{if .ValLinks}}{{.ValLinks}}{{end}}</textarea></div>
+        </div>
+        <div class="movieInput">
+            <div{{if .ErrPoster}} class="errorMessage"{{end}}><label for="PosterFile">Poster Image<label></div>
+            <div><input type="file" name="PosterFile" id="PosterFile" /></div>
+        </div>
+        <div class="movieInput">
+            <div><input type="submit" value="Add Movie" /></div>
+        </div>
+    </div>
+</form>
+{{end}}

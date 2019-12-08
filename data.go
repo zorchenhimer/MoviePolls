@@ -90,14 +90,6 @@ func (u User) String() string {
 	)
 }
 
-type Choice struct {
-	Id int
-	//MovieID int
-	Movie *Movie
-	//CycleID int
-	Cycle *Cycle
-}
-
 type configMap map[string]configValue
 
 type cfgValType int

@@ -18,6 +18,8 @@ var templateDefs map[string][]string = map[string][]string{
 	"cyclevotes":  []string{"cycle.html", "vote.html"},
 	"movieError":  []string{"movie-error.html"},
 	"simplelogin": []string{"plain-login.html"},
+	"addmovie":    []string{"add-movie.html"},
+	"account":     []string{"account.html"},
 }
 
 func (s *Server) registerTemplates() error {
@@ -42,12 +44,12 @@ func (s *Server) registerTemplates() error {
 
 func (s *Server) executeTemplate(w http.ResponseWriter, key string, data interface{}) error {
 	// for deugging only
-	//if s.debug {
-	//	err := s.registerTemplates()
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
+	if s.debug {
+		err := s.registerTemplates()
+		if err != nil {
+			return err
+		}
+	}
 
 	t, ok := s.templates[key]
 	if !ok {
@@ -57,26 +59,19 @@ func (s *Server) executeTemplate(w http.ResponseWriter, key string, data interfa
 	return t.Execute(w, data)
 }
 
-type dataPageBase struct {
-	PageTitle string
+func (s *Server) newPageBase(title string, r *http.Request) dataPageBase {
+	return dataPageBase{
+		PageTitle: title,
+		IsAuthed:  s.getSessionBool("authed", r),
+		IsAdmin:   s.getSessionBool("admin", r),
+	}
 }
 
-//type dataMovieInfo struct {
-//	PageTitle   string
-//	Description string
-//	MovieTitle  string
-//	MoviePoster string
-//	Watched     *Cycle // should prolly be a cycle
-//	AddedBy     string
-//	Votes       []string // list of names
-//}
-
-//type dataCycle struct {
-//	PageTitle string
-//	Active    bool
-//	End       string
-//	Movies    []dataMovie
-//}
+type dataPageBase struct {
+	PageTitle string
+	IsAuthed  bool
+	IsAdmin   bool
+}
 
 type dataCycleOther struct {
 	dataPageBase
@@ -100,4 +95,25 @@ type dataLoginForm struct {
 	dataPageBase
 	ErrorMessage string
 	Authed       bool
+}
+
+type dataAddMovie struct {
+	dataPageBase
+	ErrorMessage []string
+
+	// Offending input
+	ErrTitle       bool
+	ErrDescription bool
+	ErrLinks       bool
+	ErrPoster      bool
+
+	// Values for input if error
+	ValTitle       string
+	ValDescription string
+	ValLinks       string
+	//ValPoster      bool
+}
+
+func (d dataAddMovie) isError() bool {
+	return d.ErrTitle || d.ErrDescription || d.ErrLinks || d.ErrPoster
 }

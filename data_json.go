@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"time"
 )
 
@@ -70,6 +71,10 @@ func LoadJson(filename string) (*jsonConnector, error) {
 	return data, nil
 }
 
+func (j jsonConnector) GetConnectionString() string {
+	return j.filename
+}
+
 func (j *jsonConnector) Save() error {
 	raw, err := json.MarshalIndent(j, "", " ")
 	if err != nil {
@@ -104,12 +109,15 @@ func (j *jsonConnector) GetCurrentCycle() *Cycle {
 	return nil
 }
 
-func (j *jsonConnector) AddCycle(end *time.Time) error {
+func (j *jsonConnector) AddCycle(end *time.Time) (int, error) {
 	if j.Cycles == nil {
 		j.Cycles = []*Cycle{}
 	}
 
-	c := &Cycle{Start: time.Now()}
+	c := &Cycle{
+		Id:    j.nextCycleId(),
+		Start: time.Now(),
+	}
 
 	if end != nil {
 		c.End = *end
@@ -119,16 +127,18 @@ func (j *jsonConnector) AddCycle(end *time.Time) error {
 	}
 	j.Cycles = append(j.Cycles, c)
 
-	return j.Save()
+	return c.Id, j.Save()
 }
 
-func (j *jsonConnector) AddOldCycle(c *Cycle) error {
+func (j *jsonConnector) AddOldCycle(c *Cycle) (int, error) {
 	if j.Cycles == nil {
 		j.Cycles = []*Cycle{}
 	}
 
+	c.Id = j.nextCycleId()
+
 	j.Cycles = append(j.Cycles, c)
-	return j.Save()
+	return c.Id, j.Save()
 }
 
 func (j *jsonConnector) nextCycleId() int {
@@ -141,17 +151,34 @@ func (j *jsonConnector) nextCycleId() int {
 	return highest + 1
 }
 
-func (j *jsonConnector) AddMovie(movie *Movie) error {
+func (j *jsonConnector) nextMovieId() int {
+	highest := 0
+	for _, m := range j.Movies {
+		if m.Id > highest {
+			highest = m.Id
+		}
+	}
+	return highest + 1
+}
+
+func (j *jsonConnector) AddMovie(movie *Movie) (int, error) {
+	fmt.Printf("Adding movie %s\n", movie.String())
 	if j.Movies == nil {
 		j.Movies = []jsonMovie{}
 	}
 
+	currentCycle := j.GetCurrentCycle()
+	cycleId := 0
+	if currentCycle != nil {
+		cycleId = currentCycle.Id
+	}
+
 	m := jsonMovie{
-		Id:           movie.Id,
+		Id:           j.nextMovieId(),
 		Name:         movie.Name,
 		Links:        movie.Links,
 		Description:  movie.Description,
-		CycleAddedId: movie.CycleAdded.Id,
+		CycleAddedId: cycleId,
 		Removed:      movie.Removed,
 		Approved:     movie.Approved,
 		Poster:       movie.Poster,
@@ -159,7 +186,7 @@ func (j *jsonConnector) AddMovie(movie *Movie) error {
 
 	j.Movies = append(j.Movies, m)
 
-	return j.Save()
+	return m.Id, j.Save()
 }
 
 func (j *jsonConnector) GetMovie(id int) (*Movie, error) {
@@ -198,15 +225,27 @@ func (j *jsonConnector) GetUser(userId int) (*User, error) {
 	return u, nil
 }
 
-func (j *jsonConnector) AddUser(user *User) error {
+func (j *jsonConnector) nextUserId() int {
+	highest := 0
+	for _, u := range j.Users {
+		if u.Id > highest {
+			highest = u.Id
+		}
+	}
+	return highest + 1
+}
+
+func (j *jsonConnector) AddUser(user *User) (int, error) {
 	for _, u := range j.Users {
 		if u.Id == user.Id {
-			return fmt.Errorf("User already exists with ID %d", user.Id)
+			return 0, fmt.Errorf("User already exists with ID %d", user.Id)
 		}
 	}
 
+	user.Id = j.nextUserId()
+
 	j.Users = append(j.Users, user)
-	return j.Save()
+	return user.Id, j.Save()
 }
 
 func (j *jsonConnector) AddVote(userId, movieId, cycleId int) error {
@@ -246,6 +285,26 @@ func (j *jsonConnector) findMovie(id int) *Movie {
 	}
 
 	return nil
+}
+
+func (j *jsonConnector) CheckMovieExists(title string) bool {
+	clean := cleanMovieName(title)
+	for _, m := range j.Movies {
+		if clean == cleanMovieName(m.Name) {
+			return true
+		}
+	}
+	return false
+}
+
+func (j *jsonConnector) CheckUserExists(name string) bool {
+	lc := strings.ToLower(name)
+	for _, user := range j.Users {
+		if lc == strings.ToLower(user.Name) {
+			return true
+		}
+	}
+	return false
 }
 
 func (j *jsonConnector) findCycle(id int) *Cycle {

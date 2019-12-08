@@ -85,3 +85,28 @@ a:hover {
 .errorMessage {
     background-color: red;
 }
+
+#addMovieForm {
+    display: flex;
+    flex-direction: column;
+}
+
+.movieInput {
+    display: flex;
+    flex-direction: column;
+}
+
+#header {
+    font-size: large;
+    padding: 10px;
+    margin: 0px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    background-color: #70707f;
+}
+
+.titleLink, .titleLink:hover {
+    text-decoration: none;
+}
