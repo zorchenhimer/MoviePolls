@@ -70,6 +70,7 @@ const (
 type User struct {
 	Id         int
 	Name       string
+	Password   string
 	OAuthToken string
 	Email      string // nil if user didn't opt-in.
 

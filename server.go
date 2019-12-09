@@ -2,6 +2,7 @@ package moviepoll
 
 import (
 	"crypto/rand"
+	"crypto/sha512"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -26,10 +27,8 @@ type Server struct {
 	debug     bool // turns on debug things (eg, reloading templates on each page request)
 	data      DataConnector
 
-	// TODO: do this better (connect it to a proper account)
-	adminUser string
-	adminPass string
-	cookies   *sessions.CookieStore
+	cookies      *sessions.CookieStore
+	passwordSalt string
 }
 
 func NewServer(options Options) (*Server, error) {
@@ -51,16 +50,6 @@ func NewServer(options Options) (*Server, error) {
 		return nil, fmt.Errorf("Unable to get config: %v", err)
 	}
 
-	un, err := cfg.GetString("AdminUsername")
-	if err != nil {
-		return nil, fmt.Errorf("Missing admin username in config!")
-	}
-
-	pw, err := cfg.GetString("AdminPassword")
-	if err != nil {
-		return nil, fmt.Errorf("Missing admin password in config!")
-	}
-
 	authKey, err := cfg.GetString("SessionAuth")
 	if err != nil {
 		authKey = getCryptRandKey(64)
@@ -77,10 +66,13 @@ func NewServer(options Options) (*Server, error) {
 		debug: options.Debug,
 		data:  data,
 
-		adminUser: un,
-		adminPass: pw,
-
 		cookies: sessions.NewCookieStore([]byte(authKey), []byte(encryptKey)),
+	}
+
+	server.passwordSalt, err = cfg.GetString("PassSalt")
+	if err != nil {
+		server.passwordSalt = getCryptRandKey(32)
+		cfg.SetString("PassSalt", server.passwordSalt)
 	}
 
 	mux := http.NewServeMux()
@@ -89,6 +81,8 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/data/", server.handler_Data)
 	mux.HandleFunc("/login", server.handler_Login)
 	mux.HandleFunc("/add", server.handler_AddMovie)
+	mux.HandleFunc("/account", server.handler_Account)
+	mux.HandleFunc("/account/new", server.handler_NewAccount)
 	mux.HandleFunc("/", server.handler_Root)
 	mux.HandleFunc("/favicon.ico", server.handler_Favicon)
 
@@ -129,13 +123,18 @@ func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Error parsing login form: %v\n", err)
 	}
 
-	isAuthed := s.getSessionBool("authed", r)
+	var user *User
 
-	if isAuthed {
+	//isAuthed := s.getSessionBool("authed", r)
+	_, ok := s.getSessionInt("userId", r)
+	if ok {
 		fmt.Println("Auth'd")
 		if logout, ok := r.Form["logout"]; ok {
 			fmt.Println("logout: ", logout)
-			isAuthed = false
+			s.deleteSessionValue("userId", w, r)
+		} else {
+			http.Redirect(w, r, "/account", http.StatusFound)
+			return
 		}
 	}
 
@@ -147,22 +146,19 @@ func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
 
 		un := r.PostFormValue("Username")
 		pw := r.PostFormValue("Password")
-		if un == s.adminUser && pw == s.adminPass {
-			// do login (eg, session stuff)
-			//data.ErrorMessage = "Login successfull!"
-			fmt.Println("Successful login")
-			isAuthed = true
-			doRedirect = true
-		} else {
-			data.ErrorMessage = "Missing or invalid login credentials"
-			fmt.Printf("Invalid login with: %q/%q\n", un, pw)
+		user, err = s.data.UserLogin(un, s.hashPassword(pw))
+		if err != nil {
+			data.ErrorMessage = err.Error()
 		}
+		doRedirect = true
+
 	} else {
 		fmt.Printf("> no post: %s\n", r.Method)
 	}
 
-	data.Authed = isAuthed
-	s.setSessionValue("authed", isAuthed, w, r)
+	if user != nil {
+		s.setSessionValue("userId", user.Id, w, r)
+	}
 
 	// Redirect to base page on successful login
 	if doRedirect {
@@ -170,9 +166,122 @@ func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data.dataPageBase = s.newPageBase("Login", r) // set this last to get correct login status
+	data.dataPageBase = s.newPageBase("Login", w, r) // set this last to get correct login status
 
 	if err := s.executeTemplate(w, "simplelogin", data); err != nil {
+		fmt.Printf("Error rendering template: %v\n", err)
+	}
+}
+
+func (s *Server) handler_NewAccount(w http.ResponseWriter, r *http.Request) {
+	_, ok := s.getSessionInt("userId", r)
+	if ok {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	data := dataNewAccount{
+		dataPageBase: s.newPageBase("Create Account", w, r),
+	}
+
+	doRedirect := false
+
+	if r.Method == "POST" {
+		err := r.ParseForm()
+		if err != nil {
+			fmt.Printf("Error parsing login form: %v\n", err)
+			data.ErrorMessage = append(data.ErrorMessage, err.Error())
+		}
+
+		un := strings.TrimSpace(r.PostFormValue("Username"))
+		// TODO: password requirements
+		pw1 := r.PostFormValue("Password1")
+		pw2 := r.PostFormValue("Password2")
+
+		data.ValName = un
+
+		if un == "" {
+			data.ErrorMessage = append(data.ErrorMessage, "Username cannot be blank!")
+			data.ErrName = true
+		}
+
+		if pw1 != pw2 {
+			data.ErrorMessage = append(data.ErrorMessage, "Passwords do not match!")
+			data.ErrPass = true
+
+		} else if pw1 == "" {
+			data.ErrorMessage = append(data.ErrorMessage, "Password cannot be blank!")
+			data.ErrPass = true
+		}
+
+		notifyEnd := r.PostFormValue("NotifyEnd")
+		notifySelected := r.PostFormValue("NotifySelected")
+		email := r.PostFormValue("Email")
+
+		data.ValEmail = email
+		if notifyEnd != "" {
+			data.ValNotifyEnd = true
+		}
+
+		if notifySelected != "" {
+			data.ValNotifySelected = true
+		}
+
+		if (notifyEnd != "" || notifySelected != "") && email == "" {
+			data.ErrEmail = true
+			data.ErrorMessage = append(data.ErrorMessage, "Email required for notifications")
+		}
+
+		newUser := &User{
+			Name:                un,
+			Password:            s.hashPassword(pw1),
+			Email:               email,
+			NotifyCycleEnd:      data.ValNotifyEnd,
+			NotifyVoteSelection: data.ValNotifySelected,
+		}
+
+		userId, err := s.data.AddUser(newUser)
+		if err != nil {
+			data.ErrorMessage = append(data.ErrorMessage, err.Error())
+		} else {
+			s.setSessionValue("userId", userId, w, r)
+			doRedirect = true
+		}
+	}
+
+	if doRedirect {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	if err := s.executeTemplate(w, "newaccount", data); err != nil {
+		fmt.Printf("Error rendering template: %v\n", err)
+	}
+}
+
+func (s *Server) handler_Account(w http.ResponseWriter, r *http.Request) {
+	data := dataAccount{
+		dataPageBase: s.newPageBase("Account", w, r),
+	}
+
+	userId, ok := s.getSessionInt("userId", r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	user, err := s.data.GetUser(userId)
+	if err != nil {
+		fmt.Printf("Unable to get user with ID %d\n", userId)
+		http.Redirect(w, r, "/login?logout", http.StatusFound)
+		return
+	}
+
+	_ = user
+	//user, err :=
+	//data.CurrentVotes = s.data.GetMovieVotes()
+
+	if err := s.executeTemplate(w, "account", data); err != nil {
 		fmt.Printf("Error rendering template: %v\n", err)
 	}
 }
@@ -180,7 +289,7 @@ func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handler_AddMovie(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(s.data.GetConnectionString())
 	data := dataAddMovie{
-		dataPageBase: s.newPageBase("Add Movie", r),
+		dataPageBase: s.newPageBase("Add Movie", w, r),
 	}
 
 	err := r.ParseForm()
@@ -253,7 +362,7 @@ func (s *Server) handler_AddMovie(w http.ResponseWriter, r *http.Request) {
 // TODO: 404 when URL isn't "/"
 func (s *Server) handler_Root(w http.ResponseWriter, r *http.Request) {
 	data := dataCycleOther{
-		dataPageBase: s.newPageBase("Current Cycle", r),
+		dataPageBase: s.newPageBase("Current Cycle", w, r),
 
 		Cycle:  &Cycle{}, //s.data.GetCurrentCycle(),
 		Movies: s.data.GetActiveMovies(),
@@ -272,7 +381,7 @@ func (s *Server) handler_Movie(w http.ResponseWriter, r *http.Request) {
 	n, err := fmt.Sscanf(r.URL.String(), "/movie/%d/%s", &movieId, &command)
 	if err != nil && n == 0 {
 		dataError := dataMovieError{
-			dataPageBase: s.newPageBase("Error", r),
+			dataPageBase: s.newPageBase("Error", w, r),
 			ErrorMessage: "Missing movie ID",
 		}
 
@@ -286,7 +395,7 @@ func (s *Server) handler_Movie(w http.ResponseWriter, r *http.Request) {
 	movie, err := s.data.GetMovie(movieId)
 	if err != nil {
 		dataError := dataMovieError{
-			dataPageBase: s.newPageBase("Error", r),
+			dataPageBase: s.newPageBase("Error", w, r),
 			ErrorMessage: "Movie not found",
 		}
 
@@ -298,7 +407,7 @@ func (s *Server) handler_Movie(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := dataMovieInfo{
-		dataPageBase: s.newPageBase(movie.Name, r),
+		dataPageBase: s.newPageBase(movie.Name, w, r),
 		Movie:        movie,
 	}
 
@@ -342,6 +451,23 @@ func (s *Server) getSessionBool(key string, r *http.Request) bool {
 	return boolVal
 }
 
+func (s *Server) getSessionInt(key string, r *http.Request) (int, bool) {
+	session, err := s.cookies.Get(r, SessionName)
+	if err != nil {
+		fmt.Printf("Unable to get session from store: %v\n", err)
+		return 0, false
+	}
+
+	val := session.Values[key]
+	var intVal int
+	var ok bool
+	if intVal, ok = val.(int); !ok {
+		return 0, false
+	}
+
+	return intVal, true
+}
+
 func (s *Server) setSessionValue(key string, val interface{}, w http.ResponseWriter, r *http.Request) {
 	session, err := s.cookies.Get(r, SessionName)
 	if err != nil {
@@ -353,4 +479,22 @@ func (s *Server) setSessionValue(key string, val interface{}, w http.ResponseWri
 	if err != nil {
 		fmt.Printf("Unable to save cookie: %v\n", err)
 	}
+}
+
+func (s *Server) deleteSessionValue(key string, w http.ResponseWriter, r *http.Request) {
+	session, err := s.cookies.Get(r, SessionName)
+	if err != nil {
+		fmt.Printf("Unable to get session from store: %v\n", err)
+	}
+
+	delete(session.Values, key)
+
+	err = session.Save(r, w)
+	if err != nil {
+		fmt.Printf("Unable to save cookie: %v\n", err)
+	}
+}
+
+func (s *Server) hashPassword(pass string) string {
+	return fmt.Sprintf("%x", sha512.Sum512([]byte(s.passwordSalt+pass)))
 }

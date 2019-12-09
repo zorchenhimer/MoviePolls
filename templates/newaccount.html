@@ -1,0 +1,40 @@
+{{define "header"}}{{end}}
+
+{{define "body"}}
+<form method="POST" action="/account/new">
+    {{if .ErrorMessage}}
+    <div class="errorMessage">
+        <ul>
+            {{range .ErrorMessage}}<li>{{.}}</li>{{end}}
+        </ul>
+    </div>
+    {{end}}
+    <div id="login">
+        <div>
+            <div{{if .ErrName}} class="errorMessage"{{end}}><label for="Username">Username<label></div>
+            <div><input type="text" name="Username" id="Username" required /></div>
+        </div>
+        <div>
+            <div{{if .ErrPass}} class="errorMessage"{{end}}><label for="Password1">Password<label></div>
+            <div><input type="password" name="Password1" id="Password1" required /></div>
+        </div>
+        <div>
+            <div{{if .ErrPass}} class="errorMessage"{{end}}><label for="Password2">Retype password<label></div>
+            <div><input type="password" name="Password2" id="Password2" required /></div>
+        </div>
+        <div>
+            <div{{if .ErrEmail}} class="errorMessage"{{end}}><label for="Email">Email<label></div>
+            <div><input type="email" name="Email" id="Email" /></div>
+        </div>
+        <div>
+            <div><label for="NotifyEnd">Notify on cycle end<label></div>
+            <div><input type="checkbox" name="NotifyEnd" id="NotifyEnd"{{if .ValNotifyEnd}} checked{{end}} /></div>
+        </div>
+        <div>
+            <div><label for="NotifySelected">Notify on vote selected<label></div>
+            <div><input type="checkbox" name="NotifySelected" id="NotifySelected"{{if .ValNotifySelected}} checked{{end}} /></div>
+        </div>
+        <div><input type="submit" value="Create Account" /></div>
+    </div>
+</form>
+{{end}}

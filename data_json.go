@@ -217,6 +217,22 @@ func (j *jsonConnector) GetPastCycles(start, end int) []*Cycle {
 	return []*Cycle{}
 }
 
+// UserLogin returns a user if the given username and password match a user.
+func (j *jsonConnector) UserLogin(name, hashedPw string) (*User, error) {
+	name = strings.ToLower(name)
+	for _, user := range j.Users {
+		if strings.ToLower(user.Name) == name {
+			if hashedPw == user.Password {
+				return user, nil
+			}
+			fmt.Printf("Bad password for user %s\n", name)
+			return nil, fmt.Errorf("Invalid login credentials")
+		}
+	}
+	fmt.Printf("User with name %s not found\n", name)
+	return nil, fmt.Errorf("Invalid login credentials")
+}
+
 func (j *jsonConnector) GetUser(userId int) (*User, error) {
 	u := j.findUser(userId)
 	if u == nil {
@@ -236,9 +252,13 @@ func (j *jsonConnector) nextUserId() int {
 }
 
 func (j *jsonConnector) AddUser(user *User) (int, error) {
+	name := strings.ToLower(user.Name)
 	for _, u := range j.Users {
 		if u.Id == user.Id {
 			return 0, fmt.Errorf("User already exists with ID %d", user.Id)
+		}
+		if strings.ToLower(u.Name) == name {
+			return 0, fmt.Errorf("User already exists with name %s", user.Name)
 		}
 	}
 

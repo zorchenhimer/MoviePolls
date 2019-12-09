@@ -12,6 +12,9 @@ type DataConnector interface {
 	GetUser(id int) (*User, error)
 	GetActiveMovies() []*Movie
 
+	//GetMovieVotes(userId int) []*Movie
+	UserLogin(name, hashedPw string) (*User, error)
+
 	// Return a list of past cycles.  Start and end are an offset from
 	// the current.  Ie, a start of 1 and an end of 5 will get the last
 	// finished cycle and the four preceding it.  The currently active cycle

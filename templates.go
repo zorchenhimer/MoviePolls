@@ -20,6 +20,7 @@ var templateDefs map[string][]string = map[string][]string{
 	"simplelogin": []string{"plain-login.html"},
 	"addmovie":    []string{"add-movie.html"},
 	"account":     []string{"account.html"},
+	"newaccount":  []string{"newaccount.html"},
 }
 
 func (s *Server) registerTemplates() error {
@@ -59,12 +60,26 @@ func (s *Server) executeTemplate(w http.ResponseWriter, key string, data interfa
 	return t.Execute(w, data)
 }
 
-func (s *Server) newPageBase(title string, r *http.Request) dataPageBase {
-	return dataPageBase{
-		PageTitle: title,
-		IsAuthed:  s.getSessionBool("authed", r),
-		IsAdmin:   s.getSessionBool("admin", r),
+func (s *Server) newPageBase(title string, w http.ResponseWriter, r *http.Request) dataPageBase {
+	data := dataPageBase{PageTitle: title}
+
+	userId, ok := s.getSessionInt("userId", r)
+	var user *User
+	var err error
+	if ok {
+		user, err = s.data.GetUser(userId)
+		if err != nil {
+			fmt.Printf("Unabel to find user with ID %d\n", userId)
+			s.deleteSessionValue("userId", w, r)
+		} else {
+			data.IsAuthed = true
+			if user.Privilege == PRIV_ADMIN {
+				data.IsAdmin = true
+			}
+		}
 	}
+
+	return data
 }
 
 type dataPageBase struct {
@@ -116,4 +131,29 @@ type dataAddMovie struct {
 
 func (d dataAddMovie) isError() bool {
 	return d.ErrTitle || d.ErrDescription || d.ErrLinks || d.ErrPoster
+}
+
+type dataAccount struct {
+	dataPageBase
+
+	// Movies currently voting for
+	CurrentVotes []*Movie
+	// Total allotment of votes
+	TotalVotes int
+	// Votes left
+	AvailableVotes int
+}
+
+type dataNewAccount struct {
+	dataPageBase
+
+	ErrorMessage []string
+	ErrName      bool
+	ErrPass      bool
+	ErrEmail     bool
+
+	ValName           string
+	ValEmail          string
+	ValNotifyEnd      bool
+	ValNotifySelected bool
 }
