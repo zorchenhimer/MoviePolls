@@ -149,8 +149,9 @@ func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
 		user, err = s.data.UserLogin(un, s.hashPassword(pw))
 		if err != nil {
 			data.ErrorMessage = err.Error()
+		} else {
+			doRedirect = true
 		}
-		doRedirect = true
 
 	} else {
 		fmt.Printf("> no post: %s\n", r.Method)
