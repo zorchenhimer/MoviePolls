@@ -8,7 +8,7 @@
     </head>
     <body>
         <div id="header">
-            <div id="headTitle"><a href="/" class="titleLink">MoviePolls</a></div>
+            <div id="headTitle"><a href="/" class="titleLink">MoviePolls</a>{{if .PageTitle}} - {{.PageTitle}}{{end}}</div>
             <div id="userButtons">
                 {{if .IsAuthed}}
                     {{if .IsAdmin}}<a href="/admin">Admin</a>{{end}}

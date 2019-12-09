@@ -1,5 +1,52 @@
 {{define "header"}}{{end}}
 
 {{define "body"}}
-<div>account stuff goes here...</div>
+<div>
+    <div>
+        <div>Change password</div>
+        {{if .PassError}}<div class="errorMessage">{{.PassError}}</div>{{end}}
+        <div><label for="PasswordNew1">New Password</label></div>
+        <div><input type="password" name="PasswordNew1" id="PasswordNew1" /></div>
+        <div><label for="PasswordNew2">New Password</label></div>
+        <div><input type="password" name="PasswordNew2" id="PasswordNew2" /></div>
+
+        <div><label for="PasswordCurrent">Current Password</label></div>
+        <div><input type="password" name="PasswordCurrent" id="PasswordCurrent" /></div>
+        <div><input type="submit" value="Change Password" /></div>
+    </div>
+
+    <div>
+        <div>Notifications</div>
+        {{if .NotifyError}}<div class="errorMessage">{{.NotifyError}}</div>{{end}}
+        <div><label for="Email">Email Address</label></div>
+        <div><input type="email" name="Email" id="Email" /></div>
+
+        <div>
+            <input type="checkbox" name="NotifyEnd" id="NotifyEnd" />
+            <label for="NotifyEnd">Notify on cycle end</label>
+        </div>
+
+        <div>
+            <input type="checkbox" name="NotifySelected" id="NotifySelected" />
+            <label for="NotifySelected">Notify on vote selected</label>
+        </div>
+
+        <div><input type="submit" value="Update Notifications" /></div>
+    </div>
+
+    <div>
+        <div>Available votes: {{.AvailableVotes}} (total: {{.TotalVotes}})</div>
+        <div>Your current votes</div>
+        <div>
+            {{/*
+                Should this be a list of <div>'s instead?  To make it look all
+                pretty?  Ideally there would be a little "remove vote" button
+                next to each entry here to easily remove votes.
+            */}}
+            <ul>
+                {{if .CurrentVotes}}{{range .CurrentVotes}}<li><a href="/movie/{{.Id}}">{{.Name}}</a></li>{{end}}
+                {{else}}<li>No votes :c</li>{{end}}
+            </ul>
+        </div>
+</div>
 {{end}}

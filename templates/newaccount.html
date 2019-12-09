@@ -27,12 +27,12 @@
             <div><input type="email" name="Email" id="Email" /></div>
         </div>
         <div>
-            <div><label for="NotifyEnd">Notify on cycle end<label></div>
-            <div><input type="checkbox" name="NotifyEnd" id="NotifyEnd"{{if .ValNotifyEnd}} checked{{end}} /></div>
+            <input type="checkbox" name="NotifyEnd" id="NotifyEnd"{{if .ValNotifyEnd}} checked{{end}} />
+            <label for="NotifyEnd">Notify on cycle end<label>
         </div>
         <div>
-            <div><label for="NotifySelected">Notify on vote selected<label></div>
-            <div><input type="checkbox" name="NotifySelected" id="NotifySelected"{{if .ValNotifySelected}} checked{{end}} /></div>
+            <input type="checkbox" name="NotifySelected" id="NotifySelected"{{if .ValNotifySelected}} checked{{end}} />
+            <label for="NotifySelected">Notify on vote selected<label>
         </div>
         <div><input type="submit" value="Create Account" /></div>
     </div>

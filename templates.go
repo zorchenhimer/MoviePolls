@@ -21,6 +21,7 @@ var templateDefs map[string][]string = map[string][]string{
 	"addmovie":    []string{"add-movie.html"},
 	"account":     []string{"account.html"},
 	"newaccount":  []string{"newaccount.html"},
+	"error":       []string{"error.html"},
 }
 
 func (s *Server) registerTemplates() error {
@@ -136,12 +137,12 @@ func (d dataAddMovie) isError() bool {
 type dataAccount struct {
 	dataPageBase
 
-	// Movies currently voting for
-	CurrentVotes []*Movie
-	// Total allotment of votes
-	TotalVotes int
-	// Votes left
+	CurrentVotes   []*Movie
+	TotalVotes     int
 	AvailableVotes int
+
+	PassError   string
+	NotifyError string
 }
 
 type dataNewAccount struct {
@@ -156,4 +157,11 @@ type dataNewAccount struct {
 	ValEmail          string
 	ValNotifyEnd      bool
 	ValNotifySelected bool
+}
+
+type dataError struct {
+	dataPageBase
+
+	Message string
+	Code    int
 }

@@ -77,14 +77,14 @@ func NewServer(options Options) (*Server, error) {
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiHandler{})
-	mux.HandleFunc("/movie/", server.handler_Movie)
-	mux.HandleFunc("/data/", server.handler_Data)
-	mux.HandleFunc("/login", server.handler_Login)
-	mux.HandleFunc("/add", server.handler_AddMovie)
-	mux.HandleFunc("/account", server.handler_Account)
-	mux.HandleFunc("/account/new", server.handler_NewAccount)
-	mux.HandleFunc("/", server.handler_Root)
-	mux.HandleFunc("/favicon.ico", server.handler_Favicon)
+	mux.HandleFunc("/movie/", server.handlerMovie)
+	mux.HandleFunc("/data/", server.handlerData)
+	mux.HandleFunc("/login", server.handlerLogin)
+	mux.HandleFunc("/add", server.handlerAddMovie)
+	mux.HandleFunc("/account", server.handlerAccount)
+	mux.HandleFunc("/account/new", server.handlerNewAccount)
+	mux.HandleFunc("/", server.handlerRoot)
+	mux.HandleFunc("/favicon.ico", server.handlerFavicon)
 
 	hs.Handler = mux
 	server.s = hs
@@ -103,7 +103,7 @@ func (server *Server) Run() error {
 	return server.s.ListenAndServe()
 }
 
-func (s *Server) handler_Favicon(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handlerFavicon(w http.ResponseWriter, r *http.Request) {
 	if fileExists("data/favicon.ico") {
 		http.ServeFile(w, r, "data/favicon.ico")
 	} else {
@@ -111,13 +111,13 @@ func (s *Server) handler_Favicon(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handler_Data(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handlerData(w http.ResponseWriter, r *http.Request) {
 	file := "data/" + filepath.Base(r.URL.Path)
 	fmt.Printf("Attempting to serve file %q\n", file)
 	http.ServeFile(w, r, file)
 }
 
-func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		fmt.Printf("Error parsing login form: %v\n", err)
@@ -174,7 +174,7 @@ func (s *Server) handler_Login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handler_NewAccount(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handlerNewAccount(w http.ResponseWriter, r *http.Request) {
 	_, ok := s.getSessionInt("userId", r)
 	if ok {
 		http.Redirect(w, r, "/", http.StatusFound)
@@ -260,7 +260,7 @@ func (s *Server) handler_NewAccount(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handler_Account(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handlerAccount(w http.ResponseWriter, r *http.Request) {
 	data := dataAccount{
 		dataPageBase: s.newPageBase("Account", w, r),
 	}
@@ -287,7 +287,7 @@ func (s *Server) handler_Account(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handler_AddMovie(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(s.data.GetConnectionString())
 	data := dataAddMovie{
 		dataPageBase: s.newPageBase("Add Movie", w, r),
@@ -360,8 +360,27 @@ func (s *Server) handler_AddMovie(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Server) do404(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("404 for %q\n", r.URL.Path)
+	dataErr := dataError{
+		dataPageBase: s.newPageBase("Error", w, r),
+		Message:      fmt.Sprintf("%q not found", r.URL.Path),
+		Code:         http.StatusNotFound,
+	}
+
+	w.WriteHeader(http.StatusNotFound)
+	if err := s.executeTemplate(w, "error", dataErr); err != nil {
+		fmt.Printf("Error rendering template: %v\n", err)
+	}
+}
+
 // TODO: 404 when URL isn't "/"
-func (s *Server) handler_Root(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		s.do404(w, r)
+		return
+	}
+
 	data := dataCycleOther{
 		dataPageBase: s.newPageBase("Current Cycle", w, r),
 
@@ -376,7 +395,7 @@ func (s *Server) handler_Root(w http.ResponseWriter, r *http.Request) {
 		//http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
 	}
 }
-func (s *Server) handler_Movie(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handlerMovie(w http.ResponseWriter, r *http.Request) {
 	var movieId int
 	var command string
 	n, err := fmt.Sscanf(r.URL.String(), "/movie/%d/%s", &movieId, &command)
