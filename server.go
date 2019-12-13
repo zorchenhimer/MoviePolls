@@ -261,10 +261,6 @@ func (s *Server) handlerNewAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlerAccount(w http.ResponseWriter, r *http.Request) {
-	data := dataAccount{
-		dataPageBase: s.newPageBase("Account", w, r),
-	}
-
 	userId, ok := s.getSessionInt("userId", r)
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusFound)
@@ -278,9 +274,72 @@ func (s *Server) handlerAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = user
-	//user, err :=
-	//data.CurrentVotes = s.data.GetMovieVotes()
+	config, err := s.data.GetConfig()
+	if err != nil {
+		fmt.Println("Unable to get config:", err)
+		s.doError(http.StatusInternalServerError, "Config error", w, r)
+		return
+	}
+
+	totalVotes, err := config.GetInt("MaxUserVotes")
+	if err != nil {
+		fmt.Printf("Error getting MaxUserVotes config setting: %v\n", err)
+		totalVotes = 5 // FIXME: define a default somewhere?
+	}
+
+	data := dataAccount{
+		dataPageBase: s.newPageBase("Account", w, r),
+
+		CurrentVotes: s.data.GetUserVotes(user.Id),
+		TotalVotes:   totalVotes,
+	}
+	data.AvailableVotes = totalVotes - len(data.CurrentVotes)
+
+	if r.Method == "POST" {
+		err := r.ParseForm()
+		if err != nil {
+			fmt.Printf("ParseForm() error: %v\n", err)
+			s.doError(http.StatusInternalServerError, "Form error", w, r)
+			return
+		}
+
+		formVal := r.PostFormValue("Form")
+		if formVal == "ChangePassword" {
+			// Do password stuff
+			currentPass := s.hashPassword(r.PostFormValue("PasswordCurrent"))
+			newPass1_raw := r.PostFormValue("PasswordNew1")
+			newPass2_raw := r.PostFormValue("PasswordNew2")
+
+			if currentPass != user.Password {
+				data.ErrCurrentPass = true
+				data.PassError = append(data.PassError, "Invalid current password")
+			}
+
+			if newPass1_raw == "" {
+				data.ErrNewPass = true
+				data.PassError = append(data.PassError, "New password cannot be blank")
+			}
+
+			if newPass1_raw != newPass2_raw {
+				data.ErrNewPass = true
+				data.PassError = append(data.PassError, "Passwords do not match")
+			}
+
+			if !data.IsErrored() {
+				// Change pass
+				data.SuccessMessage = "Password successfully changed"
+				user.Password = s.hashPassword(newPass1_raw)
+				if err = s.data.UpdateUser(user); err != nil {
+					fmt.Println("Unable to save User with new password:", err)
+					s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
+					return
+				}
+			}
+
+		} else if formVal == "Notifications" {
+			// Update notifications
+		}
+	}
 
 	if err := s.executeTemplate(w, "account", data); err != nil {
 		fmt.Printf("Error rendering template: %v\n", err)
@@ -360,12 +419,12 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) do404(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("404 for %q\n", r.URL.Path)
+func (s *Server) doError(code int, message string, w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("%d for %q\n", code, r.URL.Path)
 	dataErr := dataError{
 		dataPageBase: s.newPageBase("Error", w, r),
-		Message:      fmt.Sprintf("%q not found", r.URL.Path),
-		Code:         http.StatusNotFound,
+		Message:      message,
+		Code:         code,
 	}
 
 	w.WriteHeader(http.StatusNotFound)
@@ -374,10 +433,9 @@ func (s *Server) do404(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// TODO: 404 when URL isn't "/"
 func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		s.do404(w, r)
+		s.doError(http.StatusNotFound, fmt.Sprintf("%q not found", r.URL.Path), w, r)
 		return
 	}
 

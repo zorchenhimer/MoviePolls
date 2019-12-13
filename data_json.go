@@ -21,6 +21,25 @@ type jsonMovie struct {
 	Poster       string
 }
 
+func (j *jsonConnector) newJsonMovie(movie *Movie) jsonMovie {
+	currentCycle := j.GetCurrentCycle()
+	cycleId := 0
+	if currentCycle != nil {
+		cycleId = currentCycle.Id
+	}
+
+	return jsonMovie{
+		Id:           j.nextMovieId(),
+		Name:         movie.Name,
+		Links:        movie.Links,
+		Description:  movie.Description,
+		CycleAddedId: cycleId,
+		Removed:      movie.Removed,
+		Approved:     movie.Approved,
+		Poster:       movie.Poster,
+	}
+}
+
 type jsonVote struct {
 	UserId  int
 	MovieId int
@@ -167,23 +186,7 @@ func (j *jsonConnector) AddMovie(movie *Movie) (int, error) {
 		j.Movies = []jsonMovie{}
 	}
 
-	currentCycle := j.GetCurrentCycle()
-	cycleId := 0
-	if currentCycle != nil {
-		cycleId = currentCycle.Id
-	}
-
-	m := jsonMovie{
-		Id:           j.nextMovieId(),
-		Name:         movie.Name,
-		Links:        movie.Links,
-		Description:  movie.Description,
-		CycleAddedId: cycleId,
-		Removed:      movie.Removed,
-		Approved:     movie.Approved,
-		Poster:       movie.Poster,
-	}
-
+	m := j.newJsonMovie(movie)
 	j.Movies = append(j.Movies, m)
 
 	return m.Id, j.Save()
@@ -239,6 +242,19 @@ func (j *jsonConnector) GetUser(userId int) (*User, error) {
 		return nil, fmt.Errorf("User not found with ID %s", userId)
 	}
 	return u, nil
+}
+
+func (j *jsonConnector) GetUserVotes(userId int) []*Movie {
+	votes := []*Movie{}
+	for _, v := range j.Votes {
+		if v.UserId == userId {
+			mov := j.findMovie(v.MovieId)
+			if mov != nil {
+				votes = append(votes, mov)
+			}
+		}
+	}
+	return votes
 }
 
 func (j *jsonConnector) nextUserId() int {
@@ -369,5 +385,41 @@ func (j *jsonConnector) GetConfig() (Configurator, error) {
 
 func (j *jsonConnector) SaveConfig(config Configurator) error {
 	j.Settings = config.(configMap)
+	return j.Save()
+}
+
+func (j *jsonConnector) UpdateUser(user *User) error {
+	newLst := []*User{}
+	for _, u := range j.Users {
+		if u.Id == user.Id {
+			newLst = append(newLst, user)
+		} else {
+			newLst = append(newLst, u)
+		}
+	}
+	return j.Save()
+}
+
+func (j *jsonConnector) UpdateMovie(movie *Movie) error {
+	newLst := []jsonMovie{}
+	for _, m := range j.Movies {
+		if m.Id == movie.Id {
+			newLst = append(newLst, j.newJsonMovie(movie))
+		} else {
+			newLst = append(newLst, m)
+		}
+	}
+	return j.Save()
+}
+
+func (j *jsonConnector) UpdateCycle(cycle *Cycle) error {
+	newLst := []*Cycle{}
+	for _, c := range j.Cycles {
+		if c.Id == cycle.Id {
+			newLst = append(newLst, cycle)
+		} else {
+			newLst = append(newLst, c)
+		}
+	}
 	return j.Save()
 }

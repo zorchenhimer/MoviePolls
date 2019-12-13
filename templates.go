@@ -141,8 +141,19 @@ type dataAccount struct {
 	TotalVotes     int
 	AvailableVotes int
 
-	PassError   string
-	NotifyError string
+	SuccessMessage string
+
+	PassError   []string
+	NotifyError []string
+	EmailError  []string
+
+	ErrCurrentPass bool
+	ErrNewPass     bool
+	ErrEmail       bool
+}
+
+func (a dataAccount) IsErrored() bool {
+	return a.ErrCurrentPass || a.ErrNewPass || a.ErrEmail
 }
 
 type dataNewAccount struct {

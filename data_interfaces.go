@@ -12,6 +12,8 @@ type DataConnector interface {
 	GetUser(id int) (*User, error)
 	GetActiveMovies() []*Movie
 
+	GetUserVotes(userId int) []*Movie
+
 	//GetMovieVotes(userId int) []*Movie
 	UserLogin(name, hashedPw string) (*User, error)
 
@@ -26,6 +28,10 @@ type DataConnector interface {
 	AddMovie(movie *Movie) (int, error)
 	AddUser(user *User) (int, error)
 	AddVote(userId, movieId, cycleId int) error
+
+	UpdateUser(user *User) error
+	UpdateMovie(movie *Movie) error
+	UpdateCycle(cycle *Cycle) error
 
 	CheckMovieExists(title string) bool
 	CheckUserExists(name string) bool

@@ -3,35 +3,42 @@
 {{define "body"}}
 <div>
     <div>
-        <div>Change password</div>
-        {{if .PassError}}<div class="errorMessage">{{.PassError}}</div>{{end}}
-        <div><label for="PasswordNew1">New Password</label></div>
-        <div><input type="password" name="PasswordNew1" id="PasswordNew1" /></div>
-        <div><label for="PasswordNew2">New Password</label></div>
-        <div><input type="password" name="PasswordNew2" id="PasswordNew2" /></div>
+        <form method="POST" action="/account">
+            <input type="hidden" name="Form" value="ChangePassword" />
 
-        <div><label for="PasswordCurrent">Current Password</label></div>
-        <div><input type="password" name="PasswordCurrent" id="PasswordCurrent" /></div>
-        <div><input type="submit" value="Change Password" /></div>
+            <div>Change password</div>
+            {{if .PassError}}<div class="errorMessage"><ul>{{range .PassError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+            <div><label for="PasswordNew1">New Password</label></div>
+            <div><input type="password" name="PasswordNew1" id="PasswordNew1" /></div>
+            <div><label for="PasswordNew2">New Password</label></div>
+            <div><input type="password" name="PasswordNew2" id="PasswordNew2" /></div>
+
+            <div><label for="PasswordCurrent">Current Password</label></div>
+            <div><input type="password" name="PasswordCurrent" id="PasswordCurrent" /></div>
+            <div><input type="submit" value="Change Password" /></div>
+        </form>
     </div>
 
     <div>
-        <div>Notifications</div>
-        {{if .NotifyError}}<div class="errorMessage">{{.NotifyError}}</div>{{end}}
-        <div><label for="Email">Email Address</label></div>
-        <div><input type="email" name="Email" id="Email" /></div>
+        <form method="POST" action="/account">
+            <input type="hidden" name="Form" value="Notifications" />
+            <div>Notifications</div>
+            {{if .NotifyError}}<div class="errorMessage"><ul>{{range .NotifyError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+            <div><label for="Email">Email Address</label></div>
+            <div><input type="email" name="Email" id="Email" /></div>
 
-        <div>
-            <input type="checkbox" name="NotifyEnd" id="NotifyEnd" />
-            <label for="NotifyEnd">Notify on cycle end</label>
-        </div>
+            <div>
+                <input type="checkbox" name="NotifyEnd" id="NotifyEnd" />
+                <label for="NotifyEnd">Notify on cycle end</label>
+            </div>
 
-        <div>
-            <input type="checkbox" name="NotifySelected" id="NotifySelected" />
-            <label for="NotifySelected">Notify on vote selected</label>
-        </div>
+            <div>
+                <input type="checkbox" name="NotifySelected" id="NotifySelected" />
+                <label for="NotifySelected">Notify on vote selected</label>
+            </div>
 
-        <div><input type="submit" value="Update Notifications" /></div>
+            <div><input type="submit" value="Update Notifications" /></div>
+        </form>
     </div>
 
     <div>
