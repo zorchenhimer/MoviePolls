@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -47,7 +48,9 @@ type jsonVote struct {
 }
 
 type jsonConnector struct {
-	filename     string `json:"-"`
+	filename string `json:"-"`
+	lock     *sync.RWMutex
+
 	CurrentCycle int
 
 	Cycles []*Cycle
@@ -66,6 +69,7 @@ func NewJsonConnector(filename string) (*jsonConnector, error) {
 
 	return &jsonConnector{
 		filename:     filename,
+		lock:         &sync.RWMutex{},
 		CurrentCycle: 0,
 		Settings: configMap{
 			"Active": configValue{CVT_BOOL, true},
@@ -86,6 +90,7 @@ func LoadJson(filename string) (*jsonConnector, error) {
 	}
 
 	data.filename = filename
+	data.lock = &sync.RWMutex{}
 
 	return data, nil
 }
@@ -94,7 +99,10 @@ func (j jsonConnector) GetConnectionString() string {
 	return j.filename
 }
 
-func (j *jsonConnector) Save() error {
+func (j *jsonConnector) save() error {
+	//j.lock.Lock()
+	//defer j.lock.Unlock()
+
 	raw, err := json.MarshalIndent(j, "", " ")
 	if err != nil {
 		return fmt.Errorf("Unable to marshal JSON data: %v", err)
@@ -120,6 +128,9 @@ func (j *jsonConnector) Save() error {
    functionality).
 */
 func (j *jsonConnector) GetCurrentCycle() *Cycle {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
 	for _, c := range j.Cycles {
 		if j.CurrentCycle == c.Id {
 			return c
@@ -129,6 +140,9 @@ func (j *jsonConnector) GetCurrentCycle() *Cycle {
 }
 
 func (j *jsonConnector) AddCycle(end *time.Time) (int, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
 	if j.Cycles == nil {
 		j.Cycles = []*Cycle{}
 	}
@@ -146,10 +160,13 @@ func (j *jsonConnector) AddCycle(end *time.Time) (int, error) {
 	}
 	j.Cycles = append(j.Cycles, c)
 
-	return c.Id, j.Save()
+	return c.Id, j.save()
 }
 
 func (j *jsonConnector) AddOldCycle(c *Cycle) (int, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
 	if j.Cycles == nil {
 		j.Cycles = []*Cycle{}
 	}
@@ -157,7 +174,7 @@ func (j *jsonConnector) AddOldCycle(c *Cycle) (int, error) {
 	c.Id = j.nextCycleId()
 
 	j.Cycles = append(j.Cycles, c)
-	return c.Id, j.Save()
+	return c.Id, j.save()
 }
 
 func (j *jsonConnector) nextCycleId() int {
@@ -181,6 +198,9 @@ func (j *jsonConnector) nextMovieId() int {
 }
 
 func (j *jsonConnector) AddMovie(movie *Movie) (int, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
 	fmt.Printf("Adding movie %s\n", movie.String())
 	if j.Movies == nil {
 		j.Movies = []jsonMovie{}
@@ -189,10 +209,13 @@ func (j *jsonConnector) AddMovie(movie *Movie) (int, error) {
 	m := j.newJsonMovie(movie)
 	j.Movies = append(j.Movies, m)
 
-	return m.Id, j.Save()
+	return m.Id, j.save()
 }
 
 func (j *jsonConnector) GetMovie(id int) (*Movie, error) {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
 	movie := j.findMovie(id)
 	if movie == nil {
 		return nil, fmt.Errorf("Movie with ID %d not found.", id)
@@ -203,6 +226,9 @@ func (j *jsonConnector) GetMovie(id int) (*Movie, error) {
 }
 
 func (j *jsonConnector) GetActiveMovies() []*Movie {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
 	movies := []*Movie{}
 
 	for _, m := range j.Movies {
@@ -222,6 +248,9 @@ func (j *jsonConnector) GetPastCycles(start, end int) []*Cycle {
 
 // UserLogin returns a user if the given username and password match a user.
 func (j *jsonConnector) UserLogin(name, hashedPw string) (*User, error) {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
 	name = strings.ToLower(name)
 	for _, user := range j.Users {
 		if strings.ToLower(user.Name) == name {
@@ -237,6 +266,9 @@ func (j *jsonConnector) UserLogin(name, hashedPw string) (*User, error) {
 }
 
 func (j *jsonConnector) GetUser(userId int) (*User, error) {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
 	u := j.findUser(userId)
 	if u == nil {
 		return nil, fmt.Errorf("User not found with ID %s", userId)
@@ -245,6 +277,9 @@ func (j *jsonConnector) GetUser(userId int) (*User, error) {
 }
 
 func (j *jsonConnector) GetUserVotes(userId int) []*Movie {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
 	votes := []*Movie{}
 	for _, v := range j.Votes {
 		if v.UserId == userId {
@@ -268,6 +303,9 @@ func (j *jsonConnector) nextUserId() int {
 }
 
 func (j *jsonConnector) AddUser(user *User) (int, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
 	name := strings.ToLower(user.Name)
 	for _, u := range j.Users {
 		if u.Id == user.Id {
@@ -281,10 +319,13 @@ func (j *jsonConnector) AddUser(user *User) (int, error) {
 	user.Id = j.nextUserId()
 
 	j.Users = append(j.Users, user)
-	return user.Id, j.Save()
+	return user.Id, j.save()
 }
 
 func (j *jsonConnector) AddVote(userId, movieId, cycleId int) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
 	user := j.findUser(userId)
 	if user == nil {
 		return fmt.Errorf("User not found with ID %d", userId)
@@ -301,10 +342,13 @@ func (j *jsonConnector) AddVote(userId, movieId, cycleId int) error {
 	}
 
 	j.Votes = append(j.Votes, jsonVote{userId, movieId, cycleId})
-	return j.Save()
+	return j.save()
 }
 
 func (j *jsonConnector) findMovie(id int) *Movie {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
 	for _, m := range j.Movies {
 		if m.Id == id {
 			return &Movie{
@@ -324,6 +368,9 @@ func (j *jsonConnector) findMovie(id int) *Movie {
 }
 
 func (j *jsonConnector) CheckMovieExists(title string) bool {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
 	clean := cleanMovieName(title)
 	for _, m := range j.Movies {
 		if clean == cleanMovieName(m.Name) {
@@ -334,6 +381,9 @@ func (j *jsonConnector) CheckMovieExists(title string) bool {
 }
 
 func (j *jsonConnector) CheckUserExists(name string) bool {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
 	lc := strings.ToLower(name)
 	for _, user := range j.Users {
 		if lc == strings.ToLower(user.Name) {
@@ -384,11 +434,17 @@ func (j *jsonConnector) GetConfig() (Configurator, error) {
 }
 
 func (j *jsonConnector) SaveConfig(config Configurator) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
 	j.Settings = config.(configMap)
-	return j.Save()
+	return j.save()
 }
 
 func (j *jsonConnector) UpdateUser(user *User) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
 	newLst := []*User{}
 	for _, u := range j.Users {
 		if u.Id == user.Id {
@@ -397,10 +453,13 @@ func (j *jsonConnector) UpdateUser(user *User) error {
 			newLst = append(newLst, u)
 		}
 	}
-	return j.Save()
+	return j.save()
 }
 
 func (j *jsonConnector) UpdateMovie(movie *Movie) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
 	newLst := []jsonMovie{}
 	for _, m := range j.Movies {
 		if m.Id == movie.Id {
@@ -409,10 +468,13 @@ func (j *jsonConnector) UpdateMovie(movie *Movie) error {
 			newLst = append(newLst, m)
 		}
 	}
-	return j.Save()
+	return j.save()
 }
 
 func (j *jsonConnector) UpdateCycle(cycle *Cycle) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
 	newLst := []*Cycle{}
 	for _, c := range j.Cycles {
 		if c.Id == cycle.Id {
@@ -421,5 +483,5 @@ func (j *jsonConnector) UpdateCycle(cycle *Cycle) error {
 			newLst = append(newLst, c)
 		}
 	}
-	return j.Save()
+	return j.save()
 }
