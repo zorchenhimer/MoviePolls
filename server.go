@@ -114,7 +114,9 @@ func (s *Server) handlerFavicon(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handlerData(w http.ResponseWriter, r *http.Request) {
 	file := "data/" + filepath.Base(r.URL.Path)
-	fmt.Printf("Attempting to serve file %q\n", file)
+	if s.debug {
+		fmt.Printf("Attempting to serve file %q\n", file)
+	}
 	http.ServeFile(w, r, file)
 }
 
@@ -447,8 +449,6 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		Movies: s.data.GetActiveMovies(),
 	}
 
-	fmt.Printf("cycle: %v\n", data.Cycle)
-
 	if err := s.executeTemplate(w, "cyclevotes", data); err != nil {
 		fmt.Printf("Error rendering template: %v\n", err)
 		//http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
@@ -555,7 +555,7 @@ func getCryptRandKey(size int) string {
 func (s *Server) getSessionBool(key string, r *http.Request) bool {
 	session, err := s.cookies.Get(r, SessionName)
 	if err != nil {
-		fmt.Printf("Unable to get session from store: %v\n", err)
+		fmt.Printf("[getbool] Unable to get session from store: %v\n", err)
 		return false
 	}
 
@@ -572,7 +572,7 @@ func (s *Server) getSessionBool(key string, r *http.Request) bool {
 func (s *Server) getSessionInt(key string, r *http.Request) (int, bool) {
 	session, err := s.cookies.Get(r, SessionName)
 	if err != nil {
-		fmt.Printf("Unable to get session from store: %v\n", err)
+		fmt.Printf("[getint] Unable to get session from store: %v\n", err)
 		return 0, false
 	}
 
@@ -589,7 +589,7 @@ func (s *Server) getSessionInt(key string, r *http.Request) (int, bool) {
 func (s *Server) setSessionValue(key string, val interface{}, w http.ResponseWriter, r *http.Request) {
 	session, err := s.cookies.Get(r, SessionName)
 	if err != nil {
-		fmt.Printf("Unable to get session from store: %v\n", err)
+		fmt.Printf("[set] Unable to get session from store: %v\n", err)
 	}
 	session.Values[key] = val
 
@@ -602,7 +602,7 @@ func (s *Server) setSessionValue(key string, val interface{}, w http.ResponseWri
 func (s *Server) deleteSessionValue(key string, w http.ResponseWriter, r *http.Request) {
 	session, err := s.cookies.Get(r, SessionName)
 	if err != nil {
-		fmt.Printf("Unable to get session from store: %v\n", err)
+		fmt.Printf("[del] Unable to get session from store: %v\n", err)
 	}
 
 	delete(session.Values, key)

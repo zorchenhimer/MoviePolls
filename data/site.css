@@ -77,7 +77,7 @@ a:hover {
     margin-bottom: 10px;
 }
 
-.votePoster img {
+.votePoster img, #moviePoster img {
     width: 200px;
     padding: 0px 10px 10px 10px;
 }
