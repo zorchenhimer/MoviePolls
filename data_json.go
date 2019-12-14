@@ -322,7 +322,7 @@ func (j *jsonConnector) AddUser(user *User) (int, error) {
 	return user.Id, j.save()
 }
 
-func (j *jsonConnector) AddVote(userId, movieId, cycleId int) error {
+func (j *jsonConnector) AddVote(userId, movieId int) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -336,12 +336,13 @@ func (j *jsonConnector) AddVote(userId, movieId, cycleId int) error {
 		return fmt.Errorf("Movie not found with ID %d", movieId)
 	}
 
-	cycle := j.findCycle(cycleId)
-	if cycle == nil {
-		return fmt.Errorf("Cycle not found with ID %d", cycleId)
+	cc := j.GetCurrentCycle()
+	cId := 0
+	if cc != nil {
+		cId = cc.Id
 	}
 
-	j.Votes = append(j.Votes, jsonVote{userId, movieId, cycleId})
+	j.Votes = append(j.Votes, jsonVote{userId, movieId, cId})
 	return j.save()
 }
 
@@ -484,4 +485,17 @@ func (j *jsonConnector) UpdateCycle(cycle *Cycle) error {
 		}
 	}
 	return j.save()
+}
+
+func (j *jsonConnector) UserVotedForMovie(userId, movieId int) bool {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
+	for _, v := range j.Votes {
+		if v.MovieId == movieId && v.UserId == userId {
+			return true
+		}
+	}
+
+	return false
 }

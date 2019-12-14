@@ -3,6 +3,8 @@
 {{define "header"}}{{end}}
 
 {{define "body"}}
+{{ $voteListSize := 10 }}
+{{ $user := .User }}
 <div class="cycleCard">
     <div class="cycleTitle">
         Cycle ending eventually.
@@ -14,8 +16,33 @@
 
     {{if .Cycle}}
     <div class="cycleVotes">
-    {{range .Movies}}
-        {{template "vote" . }}
+        {{range .Movies}}
+        <div class="voteRoot">
+            <div class="voteName"><a href="/movie/{{.Id}}">{{.Name}}</a></div>
+            <div class="votePosterList">
+                <div class="votePoster"><img src="data/{{.Poster}}" /></div>
+                <div class="voteRight">
+                    <div class="voteList">
+                        <b>Votes: {{len .Votes}}</b>
+                        <ul>{{ $votes := .Votes }}{{ $vl := len $votes}}
+                            {{if gt $vl $voteListSize}}{{$votes = slice $votes 0 $voteListSize}}{{end}}
+                            {{range $votes}}<li>{{.User.Name}}</li>{{else}}<li>No Votes</li>{{end}}
+                            {{if gt $vl $voteListSize}}<li><a href="#">[...]</a></li>{{end}}
+                        </ul>
+                    </div>
+                    {{if $user}}
+                    <div class="voteButton">
+                        {{if .UserVoted $user.Id }}
+                            Voted!
+                        {{else}}
+                        <a href="/vote/{{.Id}}">Vote</a>
+                        {{end}}
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+
     {{end}}
     </div>
     {{else}}

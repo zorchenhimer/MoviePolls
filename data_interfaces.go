@@ -27,7 +27,7 @@ type DataConnector interface {
 	AddOldCycle(cycle *Cycle) (int, error)
 	AddMovie(movie *Movie) (int, error)
 	AddUser(user *User) (int, error)
-	AddVote(userId, movieId, cycleId int) error
+	AddVote(userId, movieId int) error
 
 	UpdateUser(user *User) error
 	UpdateMovie(movie *Movie) error
@@ -35,6 +35,8 @@ type DataConnector interface {
 
 	CheckMovieExists(title string) bool
 	CheckUserExists(name string) bool
+
+	UserVotedForMovie(userId, movieId int) bool
 
 	GetConfig() (Configurator, error)
 	SaveConfig(config Configurator) error

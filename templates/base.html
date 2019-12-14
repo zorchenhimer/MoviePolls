@@ -10,8 +10,8 @@
         <div id="header">
             <div id="headTitle"><a href="/" class="titleLink">MoviePolls</a>{{if .PageTitle}} - {{.PageTitle}}{{end}}</div>
             <div id="userButtons">
-                {{if .IsAuthed}}
-                    {{if .IsAdmin}}<a href="/admin">Admin</a>{{end}}
+                {{if .User}}
+                    {{if .User.CheckPriv "ADMIN"}}<a href="/admin">Admin</a>{{end}}
                 <a href="/add">Add Movie</a>
                 <a href="/account">Account</a>
                 <a href="/login?logout">Logout</a>

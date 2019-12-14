@@ -47,3 +47,12 @@ func cleanMovieName(input string) string {
 	input = re_cleanNameA.ReplaceAllString(input, "")
 	return re_cleanNameB.ReplaceAllString(input, " ")
 }
+
+func intSliceContains(needle int, haystack []int) bool {
+	for _, i := range haystack {
+		if i == needle {
+			return true
+		}
+	}
+	return false
+}

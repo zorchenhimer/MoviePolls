@@ -36,6 +36,15 @@ type Movie struct {
 	Poster string // TODO: make this procedural
 }
 
+func (m Movie) UserVoted(userId int) bool {
+	for _, v := range m.Votes {
+		if v.User.Id == userId {
+			return true
+		}
+	}
+	return false
+}
+
 func (m Movie) String() string {
 	votes := []string{}
 	for _, v := range m.Votes {
@@ -77,6 +86,17 @@ type User struct {
 	NotifyCycleEnd      bool
 	NotifyVoteSelection bool
 	Privilege           PrivilegeLevel
+}
+
+func (u User) CheckPriv(lvl string) bool {
+	switch lvl {
+	case "ADMIN":
+		return u.Privilege >= PRIV_ADMIN
+	case "MOD":
+		return u.Privilege >= PRIV_MOD
+	}
+
+	return false
 }
 
 func (u User) String() string {

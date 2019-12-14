@@ -439,7 +439,7 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := dataCycleOther{
+	data := dataCycle{
 		dataPageBase: s.newPageBase("Current Cycle", w, r),
 
 		Cycle:  &Cycle{}, //s.data.GetCurrentCycle(),

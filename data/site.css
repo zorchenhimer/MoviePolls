@@ -86,6 +86,16 @@ a:hover {
     background-color: red;
 }
 
+.voteButton {
+    text-align: right;
+}
+
+.voteRight {
+    display:flex;
+    flex-direction:column;
+    justify-content: space-between;
+}
+
 #addMovieForm {
     display: flex;
     flex-direction: column;
