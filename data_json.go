@@ -100,9 +100,6 @@ func (j jsonConnector) GetConnectionString() string {
 }
 
 func (j *jsonConnector) save() error {
-	//j.lock.Lock()
-	//defer j.lock.Unlock()
-
 	raw, err := json.MarshalIndent(j, "", " ")
 	if err != nil {
 		return fmt.Errorf("Unable to marshal JSON data: %v", err)
@@ -127,9 +124,7 @@ func (j *jsonConnector) save() error {
    Otherwise, just store the current cycle's ID somewhere (current
    functionality).
 */
-func (j *jsonConnector) GetCurrentCycle() *Cycle {
-	j.lock.RLock()
-	defer j.lock.RUnlock()
+func (j *jsonConnector) currentCycle() *Cycle {
 
 	for _, c := range j.Cycles {
 		if j.CurrentCycle == c.Id {
@@ -137,6 +132,13 @@ func (j *jsonConnector) GetCurrentCycle() *Cycle {
 		}
 	}
 	return nil
+}
+
+func (j *jsonConnector) GetCurrentCycle() *Cycle {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
+	return j.currentCycle()
 }
 
 func (j *jsonConnector) AddCycle(end *time.Time) (int, error) {
@@ -336,7 +338,17 @@ func (j *jsonConnector) AddVote(userId, movieId int) error {
 		return fmt.Errorf("Movie not found with ID %d", movieId)
 	}
 
-	cc := j.GetCurrentCycle()
+	if movie.Watched != nil {
+		return fmt.Errorf("Movie has already been watched")
+	}
+
+	if movie.Removed {
+		return fmt.Errorf("Movie has been removed by a mod or admin")
+	}
+
+	// TODO: check for movie approval
+
+	cc := j.currentCycle()
 	cId := 0
 	if cc != nil {
 		cId = cc.Id
@@ -347,9 +359,6 @@ func (j *jsonConnector) AddVote(userId, movieId int) error {
 }
 
 func (j *jsonConnector) findMovie(id int) *Movie {
-	j.lock.RLock()
-	defer j.lock.RUnlock()
-
 	for _, m := range j.Movies {
 		if m.Id == id {
 			return &Movie{
