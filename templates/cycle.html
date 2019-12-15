@@ -16,6 +16,7 @@
 
     {{if .Cycle}}
     <div class="cycleVotes">
+        {{if .Movies}}
         {{range .Movies}}
         <div class="voteRoot">
             <div class="voteName"><a href="/movie/{{.Id}}">{{.Name}}</a></div>
@@ -42,8 +43,11 @@
                 </div>
             </div>
         </div>
+        {{end}}
+        {{else}}
+        <div>No movies :C</div>
+        {{end}}
 
-    {{end}}
     </div>
     {{else}}
     We watched something, idk.
