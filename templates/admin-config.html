@@ -1,0 +1,15 @@
+{{define "adminbody"}}
+<h2>Configuration</h2>
+<div class="configlist">
+{{range .Values}}
+    <div class="configItem">
+        <div class="cName">{{.Key}}</div>
+        <div class="cVal">
+            {{if .IsString}}<input type="text" name="{{.Key}}" value="{{.StrVal}}" />{{end}}
+            {{if .IsBool}}<input type="checkbox" name="{{.Key}}" {{if .BoolVal}}checked {{end}} />{{end}}
+            {{if .IsNum}}<input type="number" name="{{.Key}}" value="{{.NumVal}}" />{{end}}
+        </div>
+    </div>
+{{end}}
+</div>
+{{end}}

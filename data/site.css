@@ -120,3 +120,17 @@ a:hover {
 .titleLink, .titleLink:hover {
     text-decoration: none;
 }
+
+.flexColumn {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+#adminHeader {
+    font-size: large;
+    padding: 10px;
+    margin: 0px;
+    margin-bottom: 10px;
+    background-color: #70707f;
+}

@@ -22,6 +22,9 @@ var templateDefs map[string][]string = map[string][]string{
 	"account":     []string{"account.html"},
 	"newaccount":  []string{"newaccount.html"},
 	"error":       []string{"error.html"},
+
+	"adminHome":   []string{"admin.html", "admin-home.html"},
+	"adminConfig": []string{"admin.html", "admin-config.html"},
 }
 
 func (s *Server) registerTemplates() error {
@@ -172,4 +175,26 @@ type dataError struct {
 
 	Message string
 	Code    int
+}
+
+type dataAdminHome struct {
+	dataPageBase
+}
+
+type dataAdminConfigVal struct {
+	Key string
+
+	StrVal  string
+	NumVal  int
+	BoolVal bool
+
+	IsString bool
+	IsBool   bool
+	IsNum    bool
+}
+
+type dataAdminConfig struct {
+	dataPageBase
+
+	Values []dataAdminConfigVal
 }

@@ -1,0 +1,48 @@
+{{/*
+Admin page.
+
+- list out users
+- list out movies
+    - filter for awaiting approval
+- list out settings
+
+- ability to edit movies
+- ability to force-add movies
+- ability to edit users
+- ability to remove movies
+- ability to remove users (ban too?)
+
+- end a cycle and start a new one
+
+/admin
+    overview of admin thnigs
+    - total active movies
+    - entries awaiting approval, if any
+    - general stats?
+/admin/users
+    user list
+    ability to remove users and set bans
+/admin/movies
+    list current movies
+    if approval is required, accpet/reject will be here
+    remove entries
+    override re-adding movies
+/admin/config
+    settings and configuration for various things
+
+
+*/}}
+
+{{define "header"}}{{end}}
+
+{{define "body"}}
+<div class="flexColumn">
+    <div id="adminHeader">
+        <a href="/admin/">Admin Home</a>
+        <a href="/admin/users">Users</a>
+        <a href="/admin/movies">Movies</a>
+        <a href="/admin/config">Config</a>
+    </div>
+    {{template "adminbody" .}}
+</div>
+{{end}}
