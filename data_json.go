@@ -23,7 +23,7 @@ type jsonMovie struct {
 }
 
 func (j *jsonConnector) newJsonMovie(movie *Movie) jsonMovie {
-	currentCycle := j.GetCurrentCycle()
+	currentCycle := j.currentCycle()
 	cycleId := 0
 	if currentCycle != nil {
 		cycleId = currentCycle.Id
