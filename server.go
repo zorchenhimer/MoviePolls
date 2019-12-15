@@ -1,14 +1,11 @@
 package moviepoll
 
 import (
-	"crypto/rand"
-	"crypto/sha512"
 	"fmt"
 	"html/template"
 	"net/http"
 	"path/filepath"
 	//"time"
-	"math/big"
 	"strings"
 
 	"github.com/gorilla/sessions"
@@ -123,98 +120,6 @@ func (s *Server) handlerData(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Attempting to serve file %q\n", file)
 	}
 	http.ServeFile(w, r, file)
-}
-
-func (s *Server) handlerAdmin(w http.ResponseWriter, r *http.Request) {
-	userId, ok := s.getSessionInt("userId", r)
-	if ok {
-		user, err := s.data.GetUser(userId)
-		if err != nil {
-			ok = false
-			fmt.Printf("Unable to get user: %v", err)
-		}
-
-		if user.Privilege < PRIV_MOD {
-			ok = false
-		}
-	}
-
-	if !ok {
-		if s.debug {
-			s.doError(http.StatusUnauthorized, "You are not an admin.", w, r)
-			return
-		}
-		s.doError(http.StatusNotFound, fmt.Sprintf("%q not found", r.URL.Path), w, r)
-		return
-	}
-
-	var page string
-	if r.URL.Path != "/admin/" {
-		_, err := fmt.Sscanf(r.URL.Path, "/admin/%s", &page)
-		if err != nil {
-			s.doError(
-				http.StatusBadRequest,
-				fmt.Sprintf("Unable to parse %q: %v", r.URL.Path, err),
-				w, r)
-			return
-		}
-	}
-
-	var data interface{}
-	var pageName string
-	switch page {
-	case "config":
-		pageName = "adminConfig"
-		dataCfg := dataAdminConfig{
-			dataPageBase: s.newPageBase("Admin", w, r),
-			Values:       []dataAdminConfigVal{},
-		}
-		config, err := s.data.GetConfig()
-		if err != nil {
-			s.doError(
-				http.StatusInternalServerError,
-				fmt.Sprintf("Unable to get config values: %v", err),
-				w, r)
-			return
-		}
-
-		// TODO: get rid of this type cast
-		for key, val := range config.(configMap) {
-			d := dataAdminConfigVal{Key: key}
-			switch val.Type {
-			case CVT_STRING:
-				d.IsString = true
-				d.StrVal = val.Value.(string)
-			case CVT_INT:
-				d.IsNum = true
-				d.NumVal = int(val.Value.(float64))
-			case CVT_BOOL:
-				d.IsBool = true
-				d.BoolVal = val.Value.(bool)
-			default:
-				fmt.Printf("Unsupported config value type for %s: %v\n", key, val)
-				continue
-			}
-
-			dataCfg.Values = append(dataCfg.Values, d)
-		}
-
-		data = dataCfg
-
-	case "":
-		pageName = "adminHome"
-		data = dataAdminHome{
-			dataPageBase: s.newPageBase("Admin", w, r),
-		}
-
-	default:
-		s.doError(http.StatusNotFound, "%q doesn't exist", w, r)
-		return
-	}
-
-	if err := s.executeTemplate(w, pageName, data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
-	}
 }
 
 func (s *Server) handlerLogin(w http.ResponseWriter, r *http.Request) {
@@ -629,87 +534,4 @@ func (s *Server) handlerMovie(w http.ResponseWriter, r *http.Request) {
 	if err := s.executeTemplate(w, "movieinfo", data); err != nil {
 		http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
 	}
-}
-
-func getCryptRandKey(size int) string {
-	out := ""
-	large := big.NewInt(int64(1 << 60))
-	large = large.Add(large, large)
-	for len(out) < size {
-		num, err := rand.Int(rand.Reader, large)
-		if err != nil {
-			panic("Error generating session key: " + err.Error())
-		}
-		out = fmt.Sprintf("%s%X", out, num)
-	}
-
-	if len(out) > size {
-		out = out[:size]
-	}
-	return out
-}
-
-func (s *Server) getSessionBool(key string, r *http.Request) bool {
-	session, err := s.cookies.Get(r, SessionName)
-	if err != nil {
-		fmt.Printf("[getbool] Unable to get session from store: %v\n", err)
-		return false
-	}
-
-	val := session.Values[key]
-	var boolVal bool
-	var ok bool
-	if boolVal, ok = val.(bool); !ok {
-		boolVal = false
-	}
-
-	return boolVal
-}
-
-func (s *Server) getSessionInt(key string, r *http.Request) (int, bool) {
-	session, err := s.cookies.Get(r, SessionName)
-	if err != nil {
-		fmt.Printf("[getint] Unable to get session from store: %v\n", err)
-		return 0, false
-	}
-
-	val := session.Values[key]
-	var intVal int
-	var ok bool
-	if intVal, ok = val.(int); !ok {
-		return 0, false
-	}
-
-	return intVal, true
-}
-
-func (s *Server) setSessionValue(key string, val interface{}, w http.ResponseWriter, r *http.Request) {
-	session, err := s.cookies.Get(r, SessionName)
-	if err != nil {
-		fmt.Printf("[set] Unable to get session from store: %v\n", err)
-	}
-	session.Values[key] = val
-
-	err = session.Save(r, w)
-	if err != nil {
-		fmt.Printf("Unable to save cookie: %v\n", err)
-	}
-}
-
-func (s *Server) deleteSessionValue(key string, w http.ResponseWriter, r *http.Request) {
-	session, err := s.cookies.Get(r, SessionName)
-	if err != nil {
-		fmt.Printf("[del] Unable to get session from store: %v\n", err)
-	}
-
-	delete(session.Values, key)
-
-	err = session.Save(r, w)
-	if err != nil {
-		fmt.Printf("Unable to save cookie: %v\n", err)
-	}
-}
-
-func (s *Server) hashPassword(pass string) string {
-	return fmt.Sprintf("%x", sha512.Sum512([]byte(s.passwordSalt+pass)))
 }

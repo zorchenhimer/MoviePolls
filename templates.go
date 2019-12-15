@@ -176,25 +176,3 @@ type dataError struct {
 	Message string
 	Code    int
 }
-
-type dataAdminHome struct {
-	dataPageBase
-}
-
-type dataAdminConfigVal struct {
-	Key string
-
-	StrVal  string
-	NumVal  int
-	BoolVal bool
-
-	IsString bool
-	IsBool   bool
-	IsNum    bool
-}
-
-type dataAdminConfig struct {
-	dataPageBase
-
-	Values []dataAdminConfigVal
-}

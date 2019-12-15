@@ -3,11 +3,14 @@ ifeq ($(OS), Windows_NT)
 EXE=.exe
 endif
 
-SOURCES = api.go \
+SOURCES = \
+		  admin.go \
+		  api.go \
 		  data.go \
 		  data_interfaces.go \
 		  data_json.go \
 		  server.go \
+		  session.go \
 		  templates.go
 
 .PHONY: all data fmt
