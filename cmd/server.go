@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -8,7 +9,11 @@ import (
 )
 
 func main() {
-	s, err := moviepoll.NewServer(moviepoll.Options{Debug: true})
+	var debug bool
+	flag.BoolVar(&debug, "debug", false, "Turn on debug mode")
+	flag.Parse()
+
+	s, err := moviepoll.NewServer(moviepoll.Options{Debug: debug})
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
