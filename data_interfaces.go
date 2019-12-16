@@ -38,6 +38,9 @@ type DataConnector interface {
 
 	GetConfig() (Configurator, error)
 	SaveConfig(config Configurator) error
+
+	// Admin stuff
+	GetUsers(start, count int) ([]*User, error)
 }
 
 type Configurator interface {

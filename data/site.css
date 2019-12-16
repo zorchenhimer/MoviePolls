@@ -147,3 +147,10 @@ a:hover {
 .rowAlt {
     background-color: #363637;
 }
+
+.sectionTitle {
+    text-align: right;
+    font-weight: bold;
+    font-size: 125%;
+    padding-top: 10px;
+}

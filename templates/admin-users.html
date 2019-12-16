@@ -1,0 +1,21 @@
+{{define "adminbody"}}
+{{if .Users}}
+{{range .Users}}
+<div class="configItem">
+    <a href="/admin/user/{{.Id}}">{{.Name}}</a>
+    {{if .CheckPriv "ADMIN"}}
+        <b>Admin</b>
+    {{else}}
+        {{if .CheckPriv "MOD"}}
+        <i>Mod</i>
+        {{else}}
+        User
+        {{end}}
+    {{end}}
+</div>
+{{end}}
+{{else}}
+<div>No users. Wait...</div>
+{{end}}
+{{end}}
+

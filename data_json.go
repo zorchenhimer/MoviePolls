@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -261,6 +262,41 @@ func (j *jsonConnector) UserLogin(name, hashedPw string) (*User, error) {
 	}
 	fmt.Printf("User with name %s not found\n", name)
 	return nil, fmt.Errorf("Invalid login credentials")
+}
+
+// Get the total number of users
+func (j *jsonConnector) GetUserCount() int {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
+	return len(j.Users)
+}
+
+func (j *jsonConnector) GetUsers(start, count int) ([]*User, error) {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
+	uids := []int{}
+	for _, u := range j.Users {
+		uids = append(uids, u.Id)
+	}
+
+	sort.Ints(uids)
+
+	ulist := []*User{}
+	for i := 0; i < len(uids) && len(ulist) <= count; i++ {
+		id := uids[i]
+		if id < start {
+			continue
+		}
+
+		u := j.findUser(id)
+		if u != nil {
+			ulist = append(ulist, u)
+		}
+	}
+
+	return ulist, nil
 }
 
 func (j *jsonConnector) GetUser(userId int) (*User, error) {

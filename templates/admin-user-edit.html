@@ -1,0 +1,59 @@
+{{define "adminbody"}}
+<div style="margin: 0 auto">
+    <div>
+        <form method="POST" action="/admin/user/{{.User.Id}}">
+            <input type="hidden" name="Form" value="ChangePassword" />
+
+            <div class="sectionTitle">Change password</div>
+            {{if .PassError}}<div class="errorMessage"><ul>{{range .PassError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+
+            <div><label for="PasswordNew1">New Password</label></div>
+            <div><input type="password" name="PasswordNew1" id="PasswordNew1" /></div>
+            <div><label for="PasswordNew2">New Password</label></div>
+            <div><input type="password" name="PasswordNew2" id="PasswordNew2" /></div>
+
+            <div><input type="submit" value="Change Password" /></div>
+        </form>
+    </div>
+
+    <div>
+        <form method="POST" action="/account">
+            <input type="hidden" name="Form" value="Notifications" />
+            <div class="sectionTitle">Notifications</div>
+            {{if .NotifyError}}<div class="errorMessage"><ul>{{range .NotifyError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+
+            <div><label for="Email">Email Address</label></div>
+            <div><input type="email" name="Email" id="Email" value="{{.User.Email}}" /></div>
+
+            <div>
+                <input type="checkbox" name="NotifyEnd"
+                    id="NotifyEnd" {{if .User.NotifyCycleEnd}}checked {{end}}/>
+                <label for="NotifyEnd">Notify on cycle end</label>
+            </div>
+
+            <div>
+                <input type="checkbox" name="NotifySelected"
+                    id="NotifySelected" {{if .User.NotifyVoteSelection}}checked {{end}}/>
+                <label for="NotifySelected">Notify on vote selected</label>
+            </div>
+
+            <div><input type="submit" value="Update Notifications" /></div>
+        </form>
+    </div>
+
+    <div>
+        <div>Available votes: {{.AvailableVotes}}</div>
+        <div>Current votes</div>
+        <div>
+            {{/*
+                Should this be a list of <div>'s instead?  To make it look all
+                pretty?  Ideally there would be a little "remove vote" button
+                next to each entry here to easily remove votes.
+            */}}
+            <ul>
+                {{if .CurrentVotes}}{{range .CurrentVotes}}<li><a href="/movie/{{.Id}}">{{.Name}}</a></li>{{end}}
+                {{else}}<li>No votes :c</li>{{end}}
+            </ul>
+        </div>
+</div>
+{{end}}

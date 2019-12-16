@@ -87,8 +87,11 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/vote/", server.handlerVote)
 	mux.HandleFunc("/", server.handlerRoot)
 	mux.HandleFunc("/favicon.ico", server.handlerFavicon)
+
 	mux.HandleFunc("/admin/", server.handlerAdmin)
 	mux.HandleFunc("/admin/config", server.handlerAdminConfig)
+	mux.HandleFunc("/admin/users", server.handlerAdminUsers)
+	mux.HandleFunc("/admin/user/", server.handlerAdminUserEdit)
 
 	hs.Handler = mux
 	server.s = hs
