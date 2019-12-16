@@ -1,67 +1,86 @@
 package moviepoll
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"net/http"
+
+	"github.com/gorilla/sessions"
 )
 
-func (s *Server) getSessionBool(key string, r *http.Request) bool {
+func (s *Server) logout(w http.ResponseWriter, r *http.Request) error {
 	session, err := s.cookies.Get(r, SessionName)
 	if err != nil {
-		fmt.Printf("[getbool] Unable to get session from store: %v\n", err)
-		return false
+		return fmt.Errorf("Unable to get session from store: %v\n", err)
 	}
 
-	val := session.Values[key]
-	var boolVal bool
+	return delSession(session, w, r)
+}
+
+func (s *Server) login(user *User, w http.ResponseWriter, r *http.Request) error {
+	session, err := s.cookies.Get(r, SessionName)
+	if err != nil {
+		return fmt.Errorf("Unable to get session from store: %v\n", err)
+	}
+
+	gobbed, err := user.PassDate.GobEncode()
+	if err != nil {
+		return fmt.Errorf("Unable to gob PassDate")
+	}
+
+	session.Values["UserId"] = user.Id
+	session.Values["PassDate"] = fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed)))
+
+	return session.Save(r, w)
+}
+
+func delSession(session *sessions.Session, w http.ResponseWriter, r *http.Request) error {
+	delete(session.Values, "UserId")
+	delete(session.Values, "PassDate")
+
+	return session.Save(r, w)
+}
+
+func (s *Server) getSessionUser(w http.ResponseWriter, r *http.Request) *User {
+	session, err := s.cookies.Get(r, SessionName)
+	if err != nil {
+		fmt.Printf("Unable to get session from store: %v\n", err)
+		return nil
+	}
+
+	val := session.Values["UserId"]
+	var userId int
 	var ok bool
-	if boolVal, ok = val.(bool); !ok {
-		boolVal = false
+
+	if userId, ok = val.(int); !ok {
+		err = delSession(session, w, r)
+		if err != nil {
+			fmt.Printf("Unable to delete cookie: %v\n", err)
+		}
+		return nil
 	}
 
-	return boolVal
-}
-
-func (s *Server) getSessionInt(key string, r *http.Request) (int, bool) {
-	session, err := s.cookies.Get(r, SessionName)
+	user, err := s.data.GetUser(userId)
 	if err != nil {
-		fmt.Printf("[getint] Unable to get session from store: %v\n", err)
-		return 0, false
+		fmt.Printf("Unable to get user with ID %d: %v\n", userId, err)
+		err = delSession(session, w, r)
+		if err != nil {
+			fmt.Printf("Unable to delete cookie: %v\n", err)
+		}
+		return nil
 	}
 
-	val := session.Values[key]
-	var intVal int
-	var ok bool
-	if intVal, ok = val.(int); !ok {
-		return 0, false
+	passDate, _ := session.Values["PassDate"].(string)
+	gobbed, err := user.PassDate.GobEncode()
+
+	if err != nil || fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed))) != passDate {
+		fmt.Println("User's PassDate did not match stored value")
+		err = delSession(session, w, r)
+		if err != nil {
+			fmt.Printf("Unable to delete cookie: %v\n", err)
+		}
+		return nil
 	}
 
-	return intVal, true
-}
-
-func (s *Server) setSessionValue(key string, val interface{}, w http.ResponseWriter, r *http.Request) {
-	session, err := s.cookies.Get(r, SessionName)
-	if err != nil {
-		fmt.Printf("[set] Unable to get session from store: %v\n", err)
-	}
-	session.Values[key] = val
-
-	err = session.Save(r, w)
-	if err != nil {
-		fmt.Printf("Unable to save cookie: %v\n", err)
-	}
-}
-
-func (s *Server) deleteSessionValue(key string, w http.ResponseWriter, r *http.Request) {
-	session, err := s.cookies.Get(r, SessionName)
-	if err != nil {
-		fmt.Printf("[del] Unable to get session from store: %v\n", err)
-	}
-
-	delete(session.Values, key)
-
-	err = session.Save(r, w)
-	if err != nil {
-		fmt.Printf("Unable to save cookie: %v\n", err)
-	}
+	return user
 }

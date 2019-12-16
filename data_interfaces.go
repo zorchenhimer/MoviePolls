@@ -5,8 +5,6 @@ import (
 )
 
 type DataConnector interface {
-	GetConnectionString() string
-
 	GetCurrentCycle() *Cycle // Return nil when no cycle is active.
 	GetMovie(id int) (*Movie, error)
 	GetUser(id int) (*User, error)
@@ -50,6 +48,8 @@ type Configurator interface {
 	SetString(key, value string)
 	SetInt(key string, value int)
 	SetBool(key string, value bool)
+
+	Delete(key string)
 
 	DumpValues()
 }

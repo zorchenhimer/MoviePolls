@@ -65,22 +65,10 @@ func (s *Server) executeTemplate(w http.ResponseWriter, key string, data interfa
 }
 
 func (s *Server) newPageBase(title string, w http.ResponseWriter, r *http.Request) dataPageBase {
-	data := dataPageBase{PageTitle: title}
-
-	userId, ok := s.getSessionInt("userId", r)
-	var user *User
-	var err error
-	if ok {
-		user, err = s.data.GetUser(userId)
-		if err != nil {
-			fmt.Printf("Unabel to find user with ID %d\n", userId)
-			s.deleteSessionValue("userId", w, r)
-		} else {
-			data.User = user
-		}
+	return dataPageBase{
+		PageTitle: title,
+		User:      s.getSessionUser(w, r),
 	}
-
-	return data
 }
 
 type dataPageBase struct {

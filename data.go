@@ -86,6 +86,8 @@ type User struct {
 	NotifyCycleEnd      bool
 	NotifyVoteSelection bool
 	Privilege           PrivilegeLevel
+
+	PassDate time.Time
 }
 
 func (u User) CheckPriv(lvl string) bool {
@@ -176,7 +178,13 @@ func (c configMap) GetInt(key string) (int, error) {
 
 		return int(ival), nil
 	case CVT_INT:
-		return val.Value.(int), nil
+		if val, ok := val.Value.(int); ok {
+			return val, nil
+		}
+		if val, ok := val.Value.(float64); ok {
+			return int(val), nil
+		}
+		return 0, fmt.Errorf("Unknown number type for %s", key)
 	case CVT_BOOL:
 		if val.Value.(bool) == true {
 			return 1, nil
@@ -222,6 +230,10 @@ func (c configMap) SetInt(key string, value int) {
 
 func (c configMap) SetBool(key string, value bool) {
 	c[key] = configValue{CVT_BOOL, value}
+}
+
+func (c configMap) Delete(key string) {
+	delete(c, key)
 }
 
 func (c configMap) DumpValues() {

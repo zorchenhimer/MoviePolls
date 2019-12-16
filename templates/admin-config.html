@@ -1,15 +1,44 @@
 {{define "adminbody"}}
 <h2>Configuration</h2>
 <div class="configlist">
-{{range .Values}}
-    <div class="configItem">
-        <div class="cName">{{.Key}}</div>
-        <div class="cVal">
-            {{if .IsString}}<input type="text" name="{{.Key}}" value="{{.StrVal}}" />{{end}}
-            {{if .IsBool}}<input type="checkbox" name="{{.Key}}" {{if .BoolVal}}checked {{end}} />{{end}}
-            {{if .IsNum}}<input type="number" name="{{.Key}}" value="{{.NumVal}}" />{{end}}
-        </div>
+<form method="POST" action="/admin/config">
+
+    {{if .ErrorMessage}}<div class="errorMessage"><ul>{{range .ErrorMessage}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+
+    <div class="configItem{{if .ErrMaxUserVotes}} errorMessage{{end}}">
+        <label for="MaxUserVotes">MaxUserVotes</label>
+        <input type="number" id="MaxUserVotes" name="MaxUserVotes" value="{{.MaxUserVotes}}" />
     </div>
-{{end}}
+
+    <div class="configItem rowAlt">
+        <label for="EntriesRequireApproval">EntriesRequireApproval</label>
+        <input type="checkbox" id="EntriesRequireApproval" name="EntriesRequireApproval" {{if .EntriesRequireApproval}}checked {{end}}/>
+    </div>
+
+    <div class="configItem">
+        <label for="VotingOpen">VotingOpen</label>
+        <input type="checkbox" id="VotingOpen" name="VotingOpen" {{if .VotingOpen}}checked {{end}}/>
+    </div>
+
+    <div class="configItem">
+        <hr style="width:100%" />
+    </div>
+
+    {{/* TODO: confirmation for stuff below */}}
+    <div class="configItem rowAlt">
+        <label for="ClearPassSalt">Clear Password Salt</label>
+        <input type="checkbox" id="ClearPassSalt" name="ClearPassSalt" />
+    </div>
+
+    <div class="configItem">
+        <label for="ClearCookies">Clear Cookie Hashes</label>
+        <input type="checkbox" id="ClearCookies" name="ClearCookies" />
+    </div>
+
+    <div class="configItem">
+        <input type="submit" value="Save" />
+    </div>
+
+</form>
 </div>
 {{end}}

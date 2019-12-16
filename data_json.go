@@ -95,10 +95,6 @@ func LoadJson(filename string) (*jsonConnector, error) {
 	return data, nil
 }
 
-func (j jsonConnector) GetConnectionString() string {
-	return j.filename
-}
-
 func (j *jsonConnector) save() error {
 	raw, err := json.MarshalIndent(j, "", " ")
 	if err != nil {

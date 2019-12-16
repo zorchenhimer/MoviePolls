@@ -84,6 +84,7 @@ a:hover {
 
 .errorMessage {
     background-color: red;
+    color: black;
 }
 
 .voteButton {
@@ -133,4 +134,16 @@ a:hover {
     margin: 0px;
     margin-bottom: 10px;
     background-color: #70707f;
+}
+
+.configItem {
+    display: flex;
+    justify-content: space-between;
+    width: 50%;
+    margin: 0 auto;
+    padding: 5px;
+}
+
+.rowAlt {
+    background-color: #363637;
 }

@@ -5,8 +5,8 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
-	//"time"
 	"strings"
+	"time"
 
 	"github.com/gorilla/sessions"
 )
@@ -88,6 +88,7 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/", server.handlerRoot)
 	mux.HandleFunc("/favicon.ico", server.handlerFavicon)
 	mux.HandleFunc("/admin/", server.handlerAdmin)
+	mux.HandleFunc("/admin/config", server.handlerAdminConfig)
 
 	hs.Handler = mux
 	server.s = hs
@@ -128,15 +129,15 @@ func (s *Server) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Error parsing login form: %v\n", err)
 	}
 
-	var user *User
-
-	//isAuthed := s.getSessionBool("authed", r)
-	_, ok := s.getSessionInt("userId", r)
-	if ok {
+	user := s.getSessionUser(w, r)
+	if user != nil {
 		fmt.Println("Auth'd")
 		if logout, ok := r.Form["logout"]; ok {
 			fmt.Println("logout: ", logout)
-			s.deleteSessionValue("userId", w, r)
+			err = s.logout(w, r)
+			if err != nil {
+				fmt.Printf("Error logging out: %v", err)
+			}
 		} else {
 			http.Redirect(w, r, "/account", http.StatusFound)
 			return
@@ -163,7 +164,12 @@ func (s *Server) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user != nil {
-		s.setSessionValue("userId", user.Id, w, r)
+		err = s.login(user, w, r)
+		if err != nil {
+			fmt.Printf("Unable to login: %v", err)
+			s.doError(http.StatusInternalServerError, "Unable to login", w, r)
+			return
+		}
 	}
 
 	// Redirect to base page on successful login
@@ -180,9 +186,9 @@ func (s *Server) handlerLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlerNewAccount(w http.ResponseWriter, r *http.Request) {
-	_, ok := s.getSessionInt("userId", r)
-	if ok {
-		http.Redirect(w, r, "/", http.StatusFound)
+	user := s.getSessionUser(w, r)
+	if user != nil {
+		http.Redirect(w, r, "/account", http.StatusFound)
 		return
 	}
 
@@ -244,13 +250,19 @@ func (s *Server) handlerNewAccount(w http.ResponseWriter, r *http.Request) {
 			Email:               email,
 			NotifyCycleEnd:      data.ValNotifyEnd,
 			NotifyVoteSelection: data.ValNotifySelected,
+			PassDate:            time.Now(),
 		}
 
-		userId, err := s.data.AddUser(newUser)
+		_, err = s.data.AddUser(newUser)
 		if err != nil {
 			data.ErrorMessage = append(data.ErrorMessage, err.Error())
 		} else {
-			s.setSessionValue("userId", userId, w, r)
+			err = s.login(newUser, w, r)
+			if err != nil {
+				fmt.Printf("Unable to login to session: %v\n", err)
+				s.doError(http.StatusInternalServerError, "Login error", w, r)
+				return
+			}
 			doRedirect = true
 		}
 	}
@@ -266,16 +278,9 @@ func (s *Server) handlerNewAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlerAccount(w http.ResponseWriter, r *http.Request) {
-	userId, ok := s.getSessionInt("userId", r)
-	if !ok {
+	user := s.getSessionUser(w, r)
+	if user == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	user, err := s.data.GetUser(userId)
-	if err != nil {
-		fmt.Printf("Unable to get user with ID %d\n", userId)
-		http.Redirect(w, r, "/login?logout", http.StatusFound)
 		return
 	}
 
@@ -334,6 +339,17 @@ func (s *Server) handlerAccount(w http.ResponseWriter, r *http.Request) {
 				// Change pass
 				data.SuccessMessage = "Password successfully changed"
 				user.Password = s.hashPassword(newPass1_raw)
+				user.PassDate = time.Now()
+
+				fmt.Printf("new PassDate: %s\n", user.PassDate)
+
+				err = s.login(user, w, r)
+				if err != nil {
+					fmt.Println("Unable to login to session: %v", err)
+					s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
+					return
+				}
+
 				if err = s.data.UpdateUser(user); err != nil {
 					fmt.Println("Unable to save User with new password:", err)
 					s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
@@ -352,7 +368,6 @@ func (s *Server) handlerAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(s.data.GetConnectionString())
 	data := dataAddMovie{
 		dataPageBase: s.newPageBase("Add Movie", w, r),
 	}
@@ -458,8 +473,8 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
-	userId, ok := s.getSessionInt("userId", r)
-	if !ok {
+	user := s.getSessionUser(w, r)
+	if user == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
@@ -477,12 +492,12 @@ func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if s.data.UserVotedForMovie(userId, movieId) {
+	if s.data.UserVotedForMovie(user.Id, movieId) {
 		s.doError(http.StatusBadRequest, "You already voted for that movie!", w, r)
 		return
 	}
 
-	if err := s.data.AddVote(userId, movieId); err != nil {
+	if err := s.data.AddVote(user.Id, movieId); err != nil {
 		s.doError(http.StatusBadRequest, "Something went wrong :c", w, r)
 		fmt.Printf("Unable to cast vote: %v\n", err)
 		return
