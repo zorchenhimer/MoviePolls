@@ -62,3 +62,20 @@ assigned and re-add a vote point to the user that cast the vote.
 - PostgreSQL
 - Flat file (JSON or something?)
 - SQLite (this is gonna be a pain cross-compiling b/c cgo)
+
+## Mod/Admin differences
+
+Mod and Admin abilities:
+- Approve/Deny pending entries
+- Ban/Unban users
+- Re-add existing/duplicate entry
+- End cycle
+- Ignore rate limit
+- Trigger cycle notifications
+
+Admin only:
+- Add new user
+- Edit existing user (eg, change password, change privilage level)
+- Change server configuraton settings
+- Dedicated login at /admin/login (available even when the simple login method is disabled)
+- Test notifications
