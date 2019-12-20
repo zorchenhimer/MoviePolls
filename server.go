@@ -42,21 +42,16 @@ func NewServer(options Options) (*Server, error) {
 		Addr: options.Listen,
 	}
 
-	cfg, err := data.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("Unable to get config: %v", err)
-	}
-
-	authKey, err := cfg.GetString("SessionAuth")
+	authKey, err := data.GetCfgString("SessionAuth")
 	if err != nil {
 		authKey = getCryptRandKey(64)
-		cfg.SetString("SessionAuth", authKey)
+		data.SetCfgString("SessionAuth", authKey)
 	}
 
-	encryptKey, err := cfg.GetString("SessionEncrypt")
+	encryptKey, err := data.GetCfgString("SessionEncrypt")
 	if err != nil {
 		encryptKey = getCryptRandKey(32)
-		cfg.SetString("SessionEncrypt", encryptKey)
+		data.SetCfgString("SessionEncrypt", encryptKey)
 	}
 
 	if options.Debug {
@@ -70,10 +65,10 @@ func NewServer(options Options) (*Server, error) {
 		cookies: sessions.NewCookieStore([]byte(authKey), []byte(encryptKey)),
 	}
 
-	server.passwordSalt, err = cfg.GetString("PassSalt")
+	server.passwordSalt, err = server.data.GetCfgString("PassSalt")
 	if err != nil {
 		server.passwordSalt = getCryptRandKey(32)
-		cfg.SetString("PassSalt", server.passwordSalt)
+		server.data.SetCfgString("PassSalt", server.passwordSalt)
 	}
 
 	mux := http.NewServeMux()
@@ -100,8 +95,6 @@ func NewServer(options Options) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	server.data.SaveConfig(cfg)
 
 	return server, nil
 }
@@ -287,14 +280,7 @@ func (s *Server) handlerAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config, err := s.data.GetConfig()
-	if err != nil {
-		fmt.Println("Unable to get config:", err)
-		s.doError(http.StatusInternalServerError, "Config error", w, r)
-		return
-	}
-
-	totalVotes, err := config.GetInt("MaxUserVotes")
+	totalVotes, err := s.data.GetCfgInt("MaxUserVotes")
 	if err != nil {
 		fmt.Printf("Error getting MaxUserVotes config setting: %v\n", err)
 		totalVotes = 5 // FIXME: define a default somewhere?

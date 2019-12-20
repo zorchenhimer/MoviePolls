@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -60,7 +61,7 @@ type jsonConnector struct {
 	Votes  []jsonVote
 
 	//Settings Configurator
-	Settings configMap
+	Settings map[string]configValue
 }
 
 func NewJsonConnector(filename string) (*jsonConnector, error) {
@@ -72,7 +73,7 @@ func NewJsonConnector(filename string) (*jsonConnector, error) {
 		filename:     filename,
 		lock:         &sync.RWMutex{},
 		CurrentCycle: 0,
-		Settings: configMap{
+		Settings: map[string]configValue{
 			"Active": configValue{CVT_BOOL, true},
 		},
 	}, nil
@@ -468,21 +469,6 @@ func (j *jsonConnector) findUser(id int) *User {
 	return nil
 }
 
-func (j *jsonConnector) GetConfig() (Configurator, error) {
-	if j.Settings == nil {
-		return configMap{}, nil
-	}
-	return j.Settings, nil
-}
-
-func (j *jsonConnector) SaveConfig(config Configurator) error {
-	j.lock.Lock()
-	defer j.lock.Unlock()
-
-	j.Settings = config.(configMap)
-	return j.save()
-}
-
 func (j *jsonConnector) UpdateUser(user *User) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
@@ -539,4 +525,155 @@ func (j *jsonConnector) UserVotedForMovie(userId, movieId int) bool {
 	}
 
 	return false
+}
+
+// Configuration stuff
+type cfgValType int
+
+const (
+	CVT_STRING cfgValType = iota
+	CVT_INT
+	CVT_BOOL
+)
+
+type configValue struct {
+	Type  cfgValType
+	Value interface{}
+}
+
+func (v configValue) String() string {
+	t := ""
+	switch v.Type {
+	case CVT_STRING:
+		t = "string"
+		break
+	case CVT_INT:
+		t = "int"
+		break
+	case CVT_BOOL:
+		t = "bool"
+		break
+	}
+
+	return fmt.Sprintf("configValue{Type:%s Value:%v}", t, v.Value)
+}
+
+func (j *jsonConnector) GetCfgString(key string) (string, error) {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
+	val, ok := j.Settings[key]
+	if !ok {
+		return "", fmt.Errorf("Setting with key %q does not exist", key)
+	}
+
+	switch val.Type {
+	case CVT_STRING:
+		return val.Value.(string), nil
+	case CVT_INT:
+		return fmt.Sprintf("%d", val.Value.(int)), nil
+	case CVT_BOOL:
+		return fmt.Sprintf("%t", val.Value.(bool)), nil
+	default:
+		return "", fmt.Errorf("Unknown type %d", val.Type)
+	}
+}
+
+func (j *jsonConnector) GetCfgInt(key string) (int, error) {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
+	val, ok := j.Settings[key]
+	if !ok {
+		return 0, fmt.Errorf("Setting with key %q does not exist", key)
+	}
+
+	switch val.Type {
+	case CVT_STRING:
+		ival, err := strconv.ParseInt(val.Value.(string), 10, 32)
+		if err != nil {
+			return 0, fmt.Errorf("Int parse error: %s", err)
+		}
+
+		return int(ival), nil
+	case CVT_INT:
+		if val, ok := val.Value.(int); ok {
+			return val, nil
+		}
+		if val, ok := val.Value.(float64); ok {
+			return int(val), nil
+		}
+		return 0, fmt.Errorf("Unknown number type for %s", key)
+	case CVT_BOOL:
+		if val.Value.(bool) == true {
+			return 1, nil
+		}
+		return 0, nil
+	default:
+		return 0, fmt.Errorf("Unknown type %d", val.Type)
+	}
+}
+
+func (j *jsonConnector) GetCfgBool(key string) (bool, error) {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
+	val, ok := j.Settings[key]
+	if !ok {
+		return false, fmt.Errorf("Setting with key %q does not exist", key)
+	}
+
+	switch val.Type {
+	case CVT_STRING:
+		bval, err := strconv.ParseBool(val.Value.(string))
+		if err != nil {
+			return false, fmt.Errorf("Bool parse error: %s", err)
+		}
+		return bval, nil
+	case CVT_INT:
+		if val.Value.(int) == 0 {
+			return false, nil
+		}
+		return true, nil
+	case CVT_BOOL:
+		return val.Value.(bool), nil
+	default:
+		return false, fmt.Errorf("Unknown type %d", val.Type)
+	}
+}
+
+func (j *jsonConnector) SetCfgString(key, value string) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	j.Settings[key] = configValue{CVT_STRING, value}
+
+	return j.save()
+}
+
+func (j *jsonConnector) SetCfgInt(key string, value int) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	j.Settings[key] = configValue{CVT_INT, value}
+
+	return j.save()
+}
+
+func (j *jsonConnector) SetCfgBool(key string, value bool) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	j.Settings[key] = configValue{CVT_BOOL, value}
+
+	return j.save()
+}
+
+func (j *jsonConnector) DeleteCfgKey(key string) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	delete(j.Settings, key)
+
+	return j.save()
 }

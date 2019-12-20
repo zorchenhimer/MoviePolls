@@ -36,23 +36,17 @@ type DataConnector interface {
 
 	UserVotedForMovie(userId, movieId int) bool
 
-	GetConfig() (Configurator, error)
-	SaveConfig(config Configurator) error
-
 	// Admin stuff
 	GetUsers(start, count int) ([]*User, error)
-}
 
-type Configurator interface {
-	GetString(key string) (string, error)
-	GetInt(key string) (int, error)
-	GetBool(key string) (bool, error)
+	// Configuration stuff
+	GetCfgString(key string) (string, error)
+	GetCfgInt(key string) (int, error)
+	GetCfgBool(key string) (bool, error)
 
-	SetString(key, value string)
-	SetInt(key string, value int)
-	SetBool(key string, value bool)
+	SetCfgString(key, value string) error
+	SetCfgInt(key string, value int) error
+	SetCfgBool(key string, value bool) error
 
-	Delete(key string)
-
-	DumpValues()
+	DeleteCfgKey(key string) error
 }

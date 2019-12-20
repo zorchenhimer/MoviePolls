@@ -125,16 +125,7 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config, err := s.data.GetConfig()
-	if err != nil {
-		s.doError(
-			http.StatusBadRequest,
-			fmt.Sprintf("Cannot get config: %v", err),
-			w, r)
-		return
-	}
-
-	totalVotes, err := config.GetInt("MaxUserVotes")
+	totalVotes, err := s.data.GetCfgInt("MaxUserVotes")
 	if err != nil {
 		fmt.Printf("Error getting MaxUserVotes config setting: %v\n", err)
 		totalVotes = 5 // FIXME: define a default somewhere?
@@ -162,19 +153,12 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config, err := s.data.GetConfig()
-	if err != nil {
-		s.doError(
-			http.StatusInternalServerError,
-			fmt.Sprintf("Unable to get config values: %v", err),
-			w, r)
-		return
-	}
-
 	data := dataAdminConfig{
 		dataPageBase: s.newPageBase("Admin - Config", w, r),
 		ErrorMessage: []string{},
 	}
+
+	var err error
 
 	if r.Method == "POST" {
 		if err = r.ParseForm(); err != nil {
@@ -194,39 +178,32 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 				fmt.Sprintf("MaxUserVotes invalid: %v", err))
 			data.ErrMaxUserVotes = true
 		} else {
-			config.SetInt("MaxUserVotes", int(maxVotes))
+			s.data.SetCfgInt("MaxUserVotes", int(maxVotes))
 		}
 
 		appReqStr := r.PostFormValue("EntriesRequireApproval")
 		if appReqStr != "" {
-			config.SetInt("EntriesRequireApproval", int(maxVotes))
+			s.data.SetCfgInt("EntriesRequireApproval", int(maxVotes))
 		}
 
 		clearPass := r.PostFormValue("ClearPassSalt")
 		if clearPass != "" {
-			config.Delete("PassSalt")
+			s.data.DeleteCfgKey("PassSalt")
 		}
 
 		clearCookies := r.PostFormValue("ClearCookies")
 		if clearCookies != "" {
-			config.Delete("SessionAuth")
-			config.Delete("SessionEncrypt")
-		}
-
-		err = s.data.SaveConfig(config)
-		if err != nil {
-			data.ErrorMessage = append(
-				data.ErrorMessage,
-				fmt.Sprintf("Unable to save config: %v", err))
+			s.data.DeleteCfgKey("SessionAuth")
+			s.data.DeleteCfgKey("SessionEncrypt")
 		}
 	}
 
-	data.MaxUserVotes, err = config.GetInt("MaxUserVotes")
+	data.MaxUserVotes, err = s.data.GetCfgInt("MaxUserVotes")
 	if err != nil {
 		data.MaxUserVotes = 5 // FIXME: define defaults elsewhere
 	}
 
-	data.EntriesRequireApproval, err = config.GetBool("EntriesRequireApproval")
+	data.EntriesRequireApproval, err = s.data.GetCfgBool("EntriesRequireApproval")
 	if err != nil {
 		data.EntriesRequireApproval = false
 	}

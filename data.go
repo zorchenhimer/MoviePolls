@@ -2,7 +2,6 @@ package moviepoll
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 )
 
@@ -88,6 +87,10 @@ type User struct {
 	Privilege           PrivilegeLevel
 
 	PassDate time.Time
+
+	// Does this user ignore rate limit? (default true for mod/admin)
+	RateLimitOverride bool
+	LastMovieAdd      time.Time
 }
 
 func (u User) CheckPriv(lvl string) bool {
@@ -111,133 +114,4 @@ func (u User) String() string {
 		u.NotifyVoteSelection,
 		u.Privilege,
 	)
-}
-
-type configMap map[string]configValue
-
-type cfgValType int
-
-const (
-	CVT_STRING cfgValType = iota
-	CVT_INT
-	CVT_BOOL
-)
-
-type configValue struct {
-	Type  cfgValType
-	Value interface{}
-}
-
-func (v configValue) String() string {
-	t := ""
-	switch v.Type {
-	case CVT_STRING:
-		t = "string"
-		break
-	case CVT_INT:
-		t = "int"
-		break
-	case CVT_BOOL:
-		t = "bool"
-		break
-	}
-
-	return fmt.Sprintf("configValue{Type:%s Value:%v}", t, v.Value)
-}
-
-func (c configMap) GetString(key string) (string, error) {
-	val, ok := c[key]
-	if !ok {
-		return "", fmt.Errorf("Setting with key %q does not exist", key)
-	}
-
-	switch val.Type {
-	case CVT_STRING:
-		return val.Value.(string), nil
-	case CVT_INT:
-		return fmt.Sprintf("%d", val.Value.(int)), nil
-	case CVT_BOOL:
-		return fmt.Sprintf("%t", val.Value.(bool)), nil
-	default:
-		return "", fmt.Errorf("Unknown type %d", val.Type)
-	}
-}
-
-func (c configMap) GetInt(key string) (int, error) {
-	val, ok := c[key]
-	if !ok {
-		return 0, fmt.Errorf("Setting with key %q does not exist", key)
-	}
-
-	switch val.Type {
-	case CVT_STRING:
-		ival, err := strconv.ParseInt(val.Value.(string), 10, 32)
-		if err != nil {
-			return 0, fmt.Errorf("Int parse error: %s", err)
-		}
-
-		return int(ival), nil
-	case CVT_INT:
-		if val, ok := val.Value.(int); ok {
-			return val, nil
-		}
-		if val, ok := val.Value.(float64); ok {
-			return int(val), nil
-		}
-		return 0, fmt.Errorf("Unknown number type for %s", key)
-	case CVT_BOOL:
-		if val.Value.(bool) == true {
-			return 1, nil
-		}
-		return 0, nil
-	default:
-		return 0, fmt.Errorf("Unknown type %d", val.Type)
-	}
-}
-
-func (c configMap) GetBool(key string) (bool, error) {
-	val, ok := c[key]
-	if !ok {
-		return false, fmt.Errorf("Setting with key %q does not exist", key)
-	}
-
-	switch val.Type {
-	case CVT_STRING:
-		bval, err := strconv.ParseBool(val.Value.(string))
-		if err != nil {
-			return false, fmt.Errorf("Bool parse error: %s", err)
-		}
-		return bval, nil
-	case CVT_INT:
-		if val.Value.(int) == 0 {
-			return false, nil
-		}
-		return true, nil
-	case CVT_BOOL:
-		return val.Value.(bool), nil
-	default:
-		return false, fmt.Errorf("Unknown type %d", val.Type)
-	}
-}
-
-func (c configMap) SetString(key, value string) {
-	c[key] = configValue{CVT_STRING, value}
-}
-
-func (c configMap) SetInt(key string, value int) {
-	c[key] = configValue{CVT_INT, value}
-}
-
-func (c configMap) SetBool(key string, value bool) {
-	c[key] = configValue{CVT_BOOL, value}
-}
-
-func (c configMap) Delete(key string) {
-	delete(c, key)
-}
-
-func (c configMap) DumpValues() {
-	for k, v := range c {
-		fmt.Printf("%q: %v\n", k, v)
-	}
 }
