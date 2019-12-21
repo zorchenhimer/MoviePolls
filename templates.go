@@ -25,10 +25,10 @@ var templateDefs map[string][]string = map[string][]string{
 	"newaccount":  []string{"newaccount.html"},
 	"error":       []string{"error.html"},
 
-	"adminHome":     []string{"admin.html", "admin-home.html"},
-	"adminConfig":   []string{"admin.html", "admin-config.html"},
-	"adminUsers":    []string{"admin.html", "admin-users.html"},
-	"adminUserEdit": []string{"admin.html", "admin-user-edit.html"},
+	"adminHome":     []string{"admin/base.html", "admin/home.html"},
+	"adminConfig":   []string{"admin/base.html", "admin/config.html"},
+	"adminUsers":    []string{"admin/base.html", "admin/users.html"},
+	"adminUserEdit": []string{"admin/base.html", "admin/user-edit.html"},
 }
 
 func (s *Server) registerTemplates() error {
