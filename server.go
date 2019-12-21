@@ -35,7 +35,7 @@ func NewServer(options Options) (*Server, error) {
 		options.Listen = ":8080"
 	}
 
-	data, err := mpd.NewJsonConnector("db/data.json")
+	data, err := mpd.GetDataConnector("json", "db/data.json")
 	if err != nil {
 		return nil, fmt.Errorf("Unable to load json data: %v", err)
 	}

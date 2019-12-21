@@ -66,9 +66,13 @@ type jsonConnector struct {
 	Settings map[string]configValue
 }
 
-func NewJsonConnector(filename string) (*jsonConnector, error) {
+func init() {
+	register("json", newJsonConnector)
+}
+
+func newJsonConnector(filename string) (common.DataConnector, error) {
 	if common.FileExists(filename) {
-		return LoadJson(filename)
+		return loadJson(filename)
 	}
 
 	return &jsonConnector{
@@ -81,7 +85,7 @@ func NewJsonConnector(filename string) (*jsonConnector, error) {
 	}, nil
 }
 
-func LoadJson(filename string) (*jsonConnector, error) {
+func loadJson(filename string) (*jsonConnector, error) {
 	raw, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
