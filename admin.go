@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/zorchenhimer/MoviePolls/common"
 )
 
 type dataAdminHome struct {
@@ -29,14 +31,14 @@ func (d dataAdminConfig) IsErrored() bool {
 type dataAdminUsers struct {
 	dataPageBase
 
-	Users []*User
+	Users []*common.User
 }
 
 type dataAdminUserEdit struct {
 	dataPageBase
 
-	User           *User
-	CurrentVotes   []*Movie
+	User           *common.User
+	CurrentVotes   []*common.Movie
 	AvailableVotes int
 
 	PassError   []string
@@ -47,7 +49,7 @@ func (s *Server) checkAdminRights(w http.ResponseWriter, r *http.Request) bool {
 	user := s.getSessionUser(w, r)
 
 	ok := true
-	if user == nil || user.Privilege < PRIV_MOD {
+	if user == nil || user.Privilege < common.PRIV_MOD {
 		ok = false
 	}
 

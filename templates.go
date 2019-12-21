@@ -5,6 +5,8 @@ import (
 	"html/template"
 	"net/http"
 	//"time"
+
+	"github.com/zorchenhimer/MoviePolls/common"
 )
 
 const TEMPLATE_DIR = "templates/"
@@ -76,20 +78,20 @@ func (s *Server) newPageBase(title string, w http.ResponseWriter, r *http.Reques
 type dataPageBase struct {
 	PageTitle string
 
-	User *User
+	User *common.User
 }
 
 type dataCycle struct {
 	dataPageBase
 
-	Cycle  *Cycle
-	Movies []*Movie
+	Cycle  *common.Cycle
+	Movies []*common.Movie
 }
 
 type dataMovieInfo struct {
 	dataPageBase
 
-	Movie *Movie
+	Movie *common.Movie
 }
 
 type dataMovieError struct {
@@ -127,7 +129,7 @@ func (d dataAddMovie) isError() bool {
 type dataAccount struct {
 	dataPageBase
 
-	CurrentVotes   []*Movie
+	CurrentVotes   []*common.Movie
 	TotalVotes     int
 	AvailableVotes int
 

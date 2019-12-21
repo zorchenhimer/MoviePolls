@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/sessions"
+	"github.com/zorchenhimer/MoviePolls/common"
 )
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) error {
@@ -17,7 +18,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) error {
 	return delSession(session, w, r)
 }
 
-func (s *Server) login(user *User, w http.ResponseWriter, r *http.Request) error {
+func (s *Server) login(user *common.User, w http.ResponseWriter, r *http.Request) error {
 	session, err := s.cookies.Get(r, SessionName)
 	if err != nil {
 		return fmt.Errorf("Unable to get session from store: %v\n", err)
@@ -41,7 +42,7 @@ func delSession(session *sessions.Session, w http.ResponseWriter, r *http.Reques
 	return session.Save(r, w)
 }
 
-func (s *Server) getSessionUser(w http.ResponseWriter, r *http.Request) *User {
+func (s *Server) getSessionUser(w http.ResponseWriter, r *http.Request) *common.User {
 	session, err := s.cookies.Get(r, SessionName)
 	if err != nil {
 		fmt.Printf("Unable to get session from store: %v\n", err)

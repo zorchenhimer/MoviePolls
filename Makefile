@@ -6,9 +6,13 @@ endif
 SOURCES = \
 		  admin.go \
 		  api.go \
-		  data.go \
-		  data_interfaces.go \
-		  data_json.go \
+		  common/cycle.go \
+		  common/data.go \
+		  common/movie.go \
+		  common/user.go \
+		  common/util.go \
+		  common/vote.go \
+		  data/json.go \
 		  server.go \
 		  session.go \
 		  templates.go

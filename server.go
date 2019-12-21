@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/gorilla/sessions"
+	"github.com/zorchenhimer/MoviePolls/common"
+	mpd "github.com/zorchenhimer/MoviePolls/data"
 )
 
 const SessionName string = "moviepoll-session"
@@ -22,7 +24,7 @@ type Server struct {
 	templates map[string]*template.Template
 	s         *http.Server
 	debug     bool // turns on debug things (eg, reloading templates on each page request)
-	data      DataConnector
+	data      common.DataConnector
 
 	cookies      *sessions.CookieStore
 	passwordSalt string
@@ -33,7 +35,7 @@ func NewServer(options Options) (*Server, error) {
 		options.Listen = ":8080"
 	}
 
-	data, err := NewJsonConnector("db/data.json")
+	data, err := mpd.NewJsonConnector("db/data.json")
 	if err != nil {
 		return nil, fmt.Errorf("Unable to load json data: %v", err)
 	}
@@ -74,7 +76,8 @@ func NewServer(options Options) (*Server, error) {
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiHandler{})
 	mux.HandleFunc("/movie/", server.handlerMovie)
-	mux.HandleFunc("/data/", server.handlerData)
+	mux.HandleFunc("/static/", server.handlerStatic)
+	mux.HandleFunc("/poster/", server.handlerPoster)
 	mux.HandleFunc("/login", server.handlerLogin)
 	mux.HandleFunc("/add", server.handlerAddMovie)
 	mux.HandleFunc("/account", server.handlerAccount)
@@ -104,15 +107,23 @@ func (server *Server) Run() error {
 }
 
 func (s *Server) handlerFavicon(w http.ResponseWriter, r *http.Request) {
-	if fileExists("data/favicon.ico") {
+	if common.FileExists("data/favicon.ico") {
 		http.ServeFile(w, r, "data/favicon.ico")
 	} else {
 		http.NotFound(w, r)
 	}
 }
 
-func (s *Server) handlerData(w http.ResponseWriter, r *http.Request) {
-	file := "data/" + filepath.Base(r.URL.Path)
+func (s *Server) handlerStatic(w http.ResponseWriter, r *http.Request) {
+	file := "static/" + filepath.Base(r.URL.Path)
+	if s.debug {
+		fmt.Printf("Attempting to serve file %q\n", file)
+	}
+	http.ServeFile(w, r, file)
+}
+
+func (s *Server) handlerPoster(w http.ResponseWriter, r *http.Request) {
+	file := "posters/" + filepath.Base(r.URL.Path)
 	if s.debug {
 		fmt.Printf("Attempting to serve file %q\n", file)
 	}
@@ -240,7 +251,7 @@ func (s *Server) handlerNewAccount(w http.ResponseWriter, r *http.Request) {
 			data.ErrorMessage = append(data.ErrorMessage, "Email required for notifications")
 		}
 
-		newUser := &User{
+		newUser := &common.User{
 			Name:                un,
 			Password:            s.hashPassword(pw1),
 			Email:               email,
@@ -374,7 +385,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		data.ValLinks = linktext
 
 		links := strings.Split(linktext, "\n")
-		links, err = verifyLinks(links)
+		links, err = common.VerifyLinks(links)
 		if err != nil {
 			fmt.Printf("bad link: %v\n", err)
 			data.ErrLinks = true
@@ -400,10 +411,10 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			errText = append(errText, "Missing description")
 		}
 
-		movie := &Movie{
+		movie := &common.Movie{
 			Name:        strings.TrimSpace(r.PostFormValue("MovieName")),
 			Description: strings.TrimSpace(r.PostFormValue("Description")),
-			Votes:       []*Vote{},
+			Votes:       []*common.Vote{},
 			Links:       links,
 			Poster:      "data/unknown.jpg", // 165x250
 		}
@@ -451,7 +462,7 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 	data := dataCycle{
 		dataPageBase: s.newPageBase("Current Cycle", w, r),
 
-		Cycle:  &Cycle{}, //s.data.GetCurrentCycle(),
+		Cycle:  &common.Cycle{}, //s.data.GetCurrentCycle(),
 		Movies: s.data.GetActiveMovies(),
 	}
 
