@@ -6,10 +6,10 @@
 {{if .Authed}}
     <!-- show logout button -->
     <div id="login">
-        <a href="/login?logout=1">Logout</a>
+        <a href="/user/logout">Logout</a>
     <div>
 {{else}}
-<form method="POST" action="/login">
+<form method="POST" action="/user/login">
     {{if gt (len .ErrorMessage) 0}}
     <div class="errorMessage">
         {{.ErrorMessage}}
@@ -18,7 +18,7 @@
     <div id="login">
         <div><input type="text" name="Username" /></div>
         <div><input type="password" name="Password" /></div>
-        <div><input type="submit" value="Login" /> <a href="/account/new">Create Account</a></div>
+        <div><input type="submit" value="Login" /> <a href="/user/new">Create Account</a></div>
     </div>
 </form>
 {{end}}

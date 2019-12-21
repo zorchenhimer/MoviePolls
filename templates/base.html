@@ -13,10 +13,10 @@
                 {{if .User}}
                     {{if .User.CheckPriv "ADMIN"}}<a href="/admin">Admin</a>{{end}}
                 <a href="/add">Add Movie</a>
-                <a href="/account">Account</a>
-                <a href="/login?logout">Logout</a>
+                <a href="/user">Account</a>
+                <a href="/user/logout">Logout</a>
                 {{else}}
-                <a href="/login">Login</a>
+                <a href="/user/login">Login</a>
                 {{end}}
             </div>
         </div>

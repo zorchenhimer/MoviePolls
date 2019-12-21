@@ -3,7 +3,7 @@
 {{define "body"}}
 <div>
     <div>
-        <form method="POST" action="/account">
+        <form method="POST" action="/user">
             <input type="hidden" name="Form" value="ChangePassword" />
 
             <div>Change password</div>
@@ -20,7 +20,7 @@
     </div>
 
     <div>
-        <form method="POST" action="/account">
+        <form method="POST" action="/user">
             <input type="hidden" name="Form" value="Notifications" />
             <div>Notifications</div>
             {{if .NotifyError}}<div class="errorMessage"><ul>{{range .NotifyError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
