@@ -44,12 +44,13 @@ func (u User) CheckPriv(lvl string) bool {
 
 func (u User) String() string {
 	return fmt.Sprintf(
-		"User{Id:%d Name:%q Email:%q NotifyCycleEnd:%t NotifyVoteSelection:%t Privilege:%d}",
+		"User{Id:%d Name:%q Email:%q NotifyCycleEnd:%t NotifyVoteSelection:%t Privilege:%d PassDate:%s}",
 		u.Id,
 		u.Name,
 		u.Email,
 		u.NotifyCycleEnd,
 		u.NotifyVoteSelection,
 		u.Privilege,
+		u.PassDate,
 	)
 }

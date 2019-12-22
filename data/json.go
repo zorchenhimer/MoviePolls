@@ -313,7 +313,7 @@ func (j *jsonConnector) GetUser(userId int) (*common.User, error) {
 
 	u := j.findUser(userId)
 	if u == nil {
-		return nil, fmt.Errorf("User not found with ID %s", userId)
+		return nil, fmt.Errorf("User not found with ID %d", userId)
 	}
 	return u, nil
 }
