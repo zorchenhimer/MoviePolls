@@ -70,7 +70,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 
 				err = s.login(user, w, r)
 				if err != nil {
-					fmt.Println("Unable to login to session: %v", err)
+					fmt.Println("Unable to login to session:", err)
 					s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
 					return
 				}
