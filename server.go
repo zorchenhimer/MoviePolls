@@ -23,7 +23,7 @@ type Server struct {
 	templates map[string]*template.Template
 	s         *http.Server
 	debug     bool // turns on debug things (eg, reloading templates on each page request)
-	data      common.DataConnector
+	data      mpd.DataConnector
 
 	cookies      *sessions.CookieStore
 	passwordSalt string
@@ -158,7 +158,16 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		}
 
 		data.ValTitle = strings.TrimSpace(r.PostFormValue("MovieName"))
-		if s.data.CheckMovieExists(r.PostFormValue("MovieName")) {
+		movieExists, err := s.data.CheckMovieExists(r.PostFormValue("MovieName"))
+		if err != nil {
+			s.doError(
+				http.StatusInternalServerError,
+				fmt.Sprintf("Unable to check if movie exists: %v", err),
+				w, r)
+			return
+		}
+
+		if movieExists {
 			data.ErrTitle = true
 			fmt.Println("Movie exists")
 			errText = append(errText, "Movie already exists")
@@ -224,11 +233,20 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	activeMovies, err := s.data.GetActiveMovies()
+	if err != nil {
+		s.doError(
+			http.StatusBadRequest,
+			fmt.Sprintf("Cannot get active movies: %v", err),
+			w, r)
+		return
+	}
+
 	data := dataCycle{
 		dataPageBase: s.newPageBase("Current Cycle", w, r),
 
 		Cycle:  &common.Cycle{}, //s.data.GetCurrentCycle(),
-		Movies: s.data.GetActiveMovies(),
+		Movies: activeMovies,
 	}
 
 	if err := s.executeTemplate(w, "cyclevotes", data); err != nil {
@@ -257,7 +275,16 @@ func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if s.data.UserVotedForMovie(user.Id, movieId) {
+	userVoted, err := s.data.UserVotedForMovie(user.Id, movieId)
+	if err != nil {
+		s.doError(
+			http.StatusBadRequest,
+			fmt.Sprintf("Cannot get user vote: %v", err),
+			w, r)
+		return
+	}
+
+	if userVoted {
 		s.doError(http.StatusBadRequest, "You already voted for that movie!", w, r)
 		return
 	}

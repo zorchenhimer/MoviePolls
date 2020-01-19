@@ -70,7 +70,7 @@ func init() {
 	register("json", newJsonConnector)
 }
 
-func newJsonConnector(filename string) (common.DataConnector, error) {
+func newJsonConnector(filename string) (DataConnector, error) {
 	if common.FileExists(filename) {
 		return loadJson(filename)
 	}
@@ -138,11 +138,11 @@ func (j *jsonConnector) currentCycle() *common.Cycle {
 	return nil
 }
 
-func (j *jsonConnector) GetCurrentCycle() *common.Cycle {
+func (j *jsonConnector) GetCurrentCycle() (*common.Cycle, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
-	return j.currentCycle()
+	return j.currentCycle(), nil
 }
 
 func (j *jsonConnector) AddCycle(end *time.Time) (int, error) {
@@ -231,7 +231,7 @@ func (j *jsonConnector) GetMovie(id int) (*common.Movie, error) {
 	return movie, nil
 }
 
-func (j *jsonConnector) GetActiveMovies() []*common.Movie {
+func (j *jsonConnector) GetActiveMovies() ([]*common.Movie, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
@@ -244,12 +244,13 @@ func (j *jsonConnector) GetActiveMovies() []*common.Movie {
 		}
 	}
 
-	return movies
+	return movies, nil
 }
 
-func (j *jsonConnector) GetPastCycles(start, end int) []*common.Cycle {
+func (j *jsonConnector) GetPastCycles(start, end int) ([]*common.Cycle, error) {
 	// TODO: implement this
-	return []*common.Cycle{}
+	//return []*common.Cycle{}
+	return nil, fmt.Errorf("GetPastCycles() not implemented for JSON")
 }
 
 // UserLogin returns a user if the given username and password match a user.
@@ -317,7 +318,7 @@ func (j *jsonConnector) GetUser(userId int) (*common.User, error) {
 	return u, nil
 }
 
-func (j *jsonConnector) GetUserVotes(userId int) []*common.Movie {
+func (j *jsonConnector) GetUserVotes(userId int) ([]*common.Movie, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
@@ -330,7 +331,7 @@ func (j *jsonConnector) GetUserVotes(userId int) []*common.Movie {
 			}
 		}
 	}
-	return votes
+	return votes, nil
 }
 
 func (j *jsonConnector) nextUserId() int {
@@ -416,30 +417,30 @@ func (j *jsonConnector) findMovie(id int) *common.Movie {
 	return nil
 }
 
-func (j *jsonConnector) CheckMovieExists(title string) bool {
+func (j *jsonConnector) CheckMovieExists(title string) (bool, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
 	clean := common.CleanMovieName(title)
 	for _, m := range j.Movies {
 		if clean == common.CleanMovieName(m.Name) {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
-func (j *jsonConnector) CheckUserExists(name string) bool {
+func (j *jsonConnector) CheckUserExists(name string) (bool, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
 	lc := strings.ToLower(name)
 	for _, user := range j.Users {
 		if lc == strings.ToLower(user.Name) {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 func (j *jsonConnector) findCycle(id int) *common.Cycle {
@@ -520,17 +521,17 @@ func (j *jsonConnector) UpdateCycle(cycle *common.Cycle) error {
 	return j.save()
 }
 
-func (j *jsonConnector) UserVotedForMovie(userId, movieId int) bool {
+func (j *jsonConnector) UserVotedForMovie(userId, movieId int) (bool, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
 	for _, v := range j.Votes {
 		if v.MovieId == movieId && v.UserId == userId {
-			return true
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 // Configuration stuff

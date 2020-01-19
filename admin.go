@@ -133,11 +133,20 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 		totalVotes = 5 // FIXME: define a default somewhere?
 	}
 
+	votes, err := s.data.GetUserVotes(uid)
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			fmt.Sprintf("Unable to get user votes: %v", err),
+			w, r)
+		return
+	}
+
 	data := dataAdminUserEdit{
 		dataPageBase: s.newPageBase("Admin - User Edit", w, r),
 
 		User:         user,
-		CurrentVotes: s.data.GetUserVotes(uid),
+		CurrentVotes: votes,
 	}
 	data.AvailableVotes = totalVotes - len(data.CurrentVotes)
 

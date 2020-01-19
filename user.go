@@ -22,10 +22,19 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 		totalVotes = 5 // FIXME: define a default somewhere?
 	}
 
+	currentVotes, err := s.data.GetUserVotes(user.Id)
+	if err != nil {
+		s.doError(
+			http.StatusBadRequest,
+			fmt.Sprintf("Cannot get user votes: %v", err),
+			w, r)
+		return
+	}
+
 	data := dataAccount{
 		dataPageBase: s.newPageBase("Account", w, r),
 
-		CurrentVotes: s.data.GetUserVotes(user.Id),
+		CurrentVotes: currentVotes,
 		TotalVotes:   totalVotes,
 	}
 	data.AvailableVotes = totalVotes - len(data.CurrentVotes)
