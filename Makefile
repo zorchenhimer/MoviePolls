@@ -13,6 +13,7 @@ SOURCES = \
 		  common/vote.go \
 		  data/connector.go \
 		  data/json.go \
+		  data/mysql.go \
 		  server.go \
 		  session.go \
 		  templates.go
