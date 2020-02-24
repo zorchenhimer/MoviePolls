@@ -18,16 +18,19 @@ SOURCES = \
 		  session.go \
 		  templates.go
 
-.PHONY: all data fmt
+.PHONY: all data fmt server
 
 CMD_SERVER=cmd/server$(EXE)
 CMD_DATA=cmd/mkdata$(EXE)
 
-all: fmt $(CMD_SERVER)
+all: fmt $(CMD_SERVER) server
 data: fmt $(CMD_DATA)
 
+server: cmd/server.go fmt $(SOURCES)
+	GOOS=linux GOARCH=386 go build -o cmd/MoviePolls $<
+
 clean:
-	rm -f $(CMD_SERVER) $(CMD_DATA)
+	rm -f $(CMD_SERVER) $(CMD_DATA) cmd/MoviePolls
 
 fmt:
 	gofmt -w .
