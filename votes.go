@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// Toggle votes?
 func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
 	user := s.getSessionUser(w, r)
 	if user == nil {
@@ -35,14 +36,18 @@ func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if userVoted {
-		s.doError(http.StatusBadRequest, "You already voted for that movie!", w, r)
-		return
-	}
-
-	if err := s.data.AddVote(user.Id, movieId); err != nil {
-		s.doError(http.StatusBadRequest, "Something went wrong :c", w, r)
-		fmt.Printf("Unable to cast vote: %v\n", err)
-		return
+		//s.doError(http.StatusBadRequest, "You already voted for that movie!", w, r)
+		if err := s.data.DeleteVote(user.Id, movieId); err != nil {
+			s.doError(http.StatusBadRequest, "Something went wrong :c", w, r)
+			fmt.Printf("Unable to remove vote: %v\n", err)
+			return
+		}
+	} else {
+		if err := s.data.AddVote(user.Id, movieId); err != nil {
+			s.doError(http.StatusBadRequest, "Something went wrong :c", w, r)
+			fmt.Printf("Unable to cast vote: %v\n", err)
+			return
+		}
 	}
 
 	ref := r.Header.Get("Referer")
