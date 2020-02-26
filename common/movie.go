@@ -20,7 +20,8 @@ type Movie struct {
 
 	Votes []*Vote
 
-	Poster string // TODO: make this procedural
+	Poster  string // TODO: make this procedural
+	AddedBy *User
 }
 
 func (m Movie) UserVoted(userId int) bool {

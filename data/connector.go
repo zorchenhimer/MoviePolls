@@ -49,7 +49,9 @@ type DataConnector interface {
 	AddOldCycle(cycle *common.Cycle) (int, error)
 	AddMovie(movie *common.Movie) (int, error)
 	AddUser(user *common.User) (int, error)
+
 	AddVote(userId, movieId int) error
+	DeleteVote(userId, movieId int) error
 
 	UpdateUser(user *common.User) error
 	UpdateMovie(movie *common.Movie) error
@@ -73,4 +75,12 @@ type DataConnector interface {
 	SetCfgBool(key string, value bool) error
 
 	DeleteCfgKey(key string) error
+}
+
+type TestableDataConnector interface {
+	DataConnector
+
+	DeleteUser(userId int) error
+	DeleteMovie(userId int) error
+	DeleteCycle(userId int) error
 }

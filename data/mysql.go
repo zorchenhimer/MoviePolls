@@ -12,7 +12,10 @@ import (
 )
 
 func init() {
-	register("mysql", newMySqlConnector)
+	register("mysql", func(connStr string) (DataConnector, error) {
+		dc, err := newMySqlConnector(connStr)
+		return DataConnector(dc), err
+	})
 }
 
 type resultError struct {
@@ -32,6 +35,15 @@ func (re resultError) RowsAffected() (int64, error) {
 	return 0, re.err
 }
 
+type mysqlBool []uint8
+
+func (mb mysqlBool) Value() bool {
+	if len(mb) == 0 {
+		return false
+	}
+	return mb[0] == 1
+}
+
 func (m *mysqlConnector) executeStatement(query string, args ...interface{}) (sql.Result, error) {
 	ctx, _ := context.WithCancel(context.Background())
 
@@ -48,6 +60,32 @@ func (m *mysqlConnector) executeStatement(query string, args ...interface{}) (sq
 	defer stmt.Close()
 
 	return stmt.ExecContext(ctx, args...)
+}
+
+func (m *mysqlConnector) executeInsert(query string, args ...interface{}) (int, error) {
+	ctx, _ := context.WithCancel(context.Background())
+
+	conn, err := m.db.Conn(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer conn.Close()
+
+	stmt, err := conn.PrepareContext(ctx, query)
+	if err != nil {
+		return 0, err
+	}
+	defer stmt.Close()
+	row := stmt.QueryRowContext(ctx, args...)
+
+	var lastId int
+	err = row.Scan(&lastId)
+
+	if err == sql.ErrNoRows {
+		return 0, fmt.Errorf("LastRowID wasn't returned")
+	}
+
+	return lastId, err
 }
 
 func (m *mysqlConnector) executeQueryRow(query string, args ...interface{}) (*sql.Conn, *sql.Stmt, *sql.Row, error) {
@@ -90,30 +128,30 @@ func (m *mysqlConnector) executeQueryRows(query string, args ...interface{}) (*s
 	return conn, stmt, rows, nil
 }
 
-func (m *mysqlConnector) executeQueryScalar(query string, args ...interface{}) (interface{}, error) {
+func (m *mysqlConnector) executeQueryScalar(query string, dest interface{}, args ...interface{}) error {
 	ctx, _ := context.WithCancel(context.Background())
 
 	conn, err := m.db.Conn(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer conn.Close()
 
 	stmt, err := conn.PrepareContext(ctx, query)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer stmt.Close()
 
 	row := stmt.QueryRowContext(ctx, args...)
 
-	var value interface{}
-	err = row.Scan(&value)
+	//var value interface{}
+	err = row.Scan(dest)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return value, err
+	return err
 }
 
 type mysqlConnector struct {
@@ -121,8 +159,8 @@ type mysqlConnector struct {
 	db      *sql.DB
 }
 
-//func newMySqlConnector(connectionString string) (*mysqlConnector, error) {
-func newMySqlConnector(connectionString string) (DataConnector, error) {
+func newMySqlConnector(connectionString string) (*mysqlConnector, error) {
+	//func newMySqlConnector(connectionString string) (DataConnector, error) {
 	db, err := sql.Open("mysql", connectionString)
 	if err != nil {
 		return nil, err
@@ -142,19 +180,157 @@ func newMySqlConnector(connectionString string) (DataConnector, error) {
 }
 
 func (m *mysqlConnector) GetCurrentCycle() (*common.Cycle, error) {
-	return nil, fmt.Errorf("GetCurrentCycle() not implemented for MySql")
+	conn, stmt, row, err := m.executeQueryRow("call cycle_GetCurrent()")
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	defer stmt.Close()
+
+	return scanCycle(row)
 }
 
 func (m *mysqlConnector) GetMovie(id int) (*common.Movie, error) {
-	return nil, fmt.Errorf("GetMovie() not implemented for MySql")
+	conn, stmt, row, err := m.executeQueryRow("call movie_GetById(?)", id)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	defer stmt.Close()
+
+	return scanMovie(row)
 }
 
 func (m *mysqlConnector) GetUser(id int) (*common.User, error) {
-	return nil, fmt.Errorf("GetUser() not implemented for MySql")
+	conn, stmt, row, err := m.executeQueryRow("call user_GetById(?)", id)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	defer stmt.Close()
+
+	user := &common.User{}
+	var notifyEnd mysqlBool
+	var notifySelected mysqlBool
+
+	err = row.Scan(
+		&user.Id,
+		&user.Name,
+		&user.Email,
+		&notifyEnd,
+		&notifySelected,
+		&user.Privilege,
+		&user.PassDate,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	user.NotifyCycleEnd = notifyEnd.Value()
+	user.NotifyVoteSelection = notifySelected.Value()
+
+	return user, nil
 }
 
 func (m *mysqlConnector) GetActiveMovies() ([]*common.Movie, error) {
-	return nil, fmt.Errorf("GetActiveMovies() not implemented for MySql")
+	conn, stmt, rows, err := m.executeQueryRows("call movie_GetActive")
+	if err != nil {
+		return nil, err
+	}
+
+	defer conn.Close()
+	defer stmt.Close()
+	defer rows.Close()
+
+	movies := []*common.Movie{}
+
+	for rows.Next() {
+		mov, err := scanMovie(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		movies = append(movies, mov)
+	}
+	return movies, nil
+}
+
+// database/sql has a Scanner interface, but it takes a single
+// argument, not a list of arguments.  This means that the Scan()
+// method of sql.Row and sql.Rows do not implement the *correct*
+// scan method.
+type rowScanner interface {
+	Scan(...interface{}) error
+}
+
+func scanCycle(s rowScanner) (*common.Cycle, error) {
+	cyc := &common.Cycle{}
+
+	var start time.Time
+	var end sql.NullTime
+
+	err := s.Scan(
+		&cyc.Id,
+		&start,
+		&end,
+	)
+
+	cyc.Start = start.Local().Round(time.Second)
+	if end.Valid {
+		t := end.Time.Local().Round(time.Second)
+		cyc.End = &t
+	}
+
+	return cyc, err
+}
+
+func scanMovie(s rowScanner) (*common.Movie, error) {
+
+	mov := &common.Movie{}
+	cyc := &common.Cycle{}
+
+	var links sql.NullString
+
+	var removed mysqlBool
+	var approved mysqlBool
+
+	var start time.Time
+	var end sql.NullTime
+
+	err := s.Scan(
+		&mov.Id,
+		&mov.Name,
+		&links,
+		&mov.Description,
+		&cyc.Id,
+		&removed,
+		&approved,
+		&mov.Watched,
+		&mov.Poster,
+		&start,
+		&end,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	cyc.Start = start.Local().Round(time.Second)
+	if end.Valid {
+		t := end.Time.Local().Round(time.Second)
+		cyc.End = &t
+	}
+
+	mov.CycleAdded = cyc
+
+	if links.Valid {
+		mov.Links = strings.Split(links.String, "\n")
+	}
+
+	mov.Removed = removed.Value()
+	mov.Approved = approved.Value()
+
+	return mov, nil
 }
 
 func (m *mysqlConnector) GetUserVotes(userId int) ([]*common.Movie, error) {
@@ -189,39 +365,51 @@ func (m *mysqlConnector) CheckUserExists(name string) (bool, error) {
 }
 
 func (m *mysqlConnector) UserVotedForMovie(userId, movieId int) (bool, error) {
-	return false, fmt.Errorf("UserVotedForMovie() not implemented for MySql")
+	var value int
+	err := m.executeQueryScalar("call user_VotedForMovie(?, ?)", &value, userId, movieId)
+	if err != nil {
+		return false, err
+	}
+
+	return value != 0, nil
 }
 
 func (m *mysqlConnector) UserLogin(name, password string) (*common.User, error) {
 	var notifyCycle int
 	var notifySelection int
-	var oauth *string
+	var oauth_str string = ""
+	var oauth_pointer *string = &oauth_str
 
 	user := &common.User{}
 	conn, stmt, row, err := m.executeQueryRow("call user_Login(?, ?)", name, password)
-	defer conn.Close()
-	defer stmt.Close()
-
 	if err != nil {
 		return nil, err
 	}
 
+	defer conn.Close()
+	defer stmt.Close()
+
 	err = row.Scan(
 		&user.Id,
 		&user.Name,
-		&user.Password,
-		&oauth,
+		&user.Password, // FIXME: remove this
+		oauth_pointer,
 		&user.Email,
 		&notifyCycle,
 		&notifySelection,
 		&user.Privilege,
 		&user.PassDate,
 	)
+
 	switch {
 	case err == sql.ErrNoRows:
 		return nil, fmt.Errorf("Invalid login credentials")
 	case err != nil:
 		return nil, err
+	}
+
+	if oauth_pointer != nil {
+		user.OAuthToken = oauth_str
 	}
 
 	if notifyCycle == 1 {
@@ -240,7 +428,7 @@ func (m *mysqlConnector) GetPastCycles(start, end int) ([]*common.Cycle, error) 
 }
 
 func (m *mysqlConnector) AddMovie(movie *common.Movie) (int, error) {
-	res, err := m.executeStatement("call movie_Add(?, ?, ?, ?, ?, ?, ?, ?)",
+	return m.executeInsert("call movie_Add(?, ?, ?, ?, ?, ?, ?, ?)",
 		movie.Name,
 		strings.Join(movie.Links, "\n"),
 		movie.Description,
@@ -250,30 +438,16 @@ func (m *mysqlConnector) AddMovie(movie *common.Movie) (int, error) {
 		movie.Watched,
 		movie.Poster,
 	)
-	if err != nil {
-		return 0, err
-	}
-
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	return int(id), nil
 }
 
 func (m *mysqlConnector) AddCycle(end *time.Time) (int, error) {
-	res, err := m.executeStatement("call cycle_Add(?, ?)", time.Now(), end)
-	if err != nil {
-		return 0, err
+	//fmt.Printf("local time: %s\n", time.Now().Local())
+	start := time.Now().Local().Round(time.Second)
+	if end != nil {
+		*end = end.Local().Round(time.Second)
 	}
 
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	return int(id), nil
+	return m.executeInsert("call cycle_Add(?, ?)", start, end)
 }
 
 func (m *mysqlConnector) AddOldCycle(cycle *common.Cycle) (int, error) {
@@ -281,11 +455,38 @@ func (m *mysqlConnector) AddOldCycle(cycle *common.Cycle) (int, error) {
 }
 
 func (m *mysqlConnector) AddUser(user *common.User) (int, error) {
-	return 0, fmt.Errorf("AddUser() not implemented for MySql")
+	var token *string
+	if user.OAuthToken != "" {
+		token = &user.OAuthToken
+	}
+
+	var email *string
+	if user.Email != "" {
+		email = &user.Email
+	}
+
+	//conn, stmt, row, err := m.executeQueryRow(
+	return m.executeInsert(
+		"call user_Add(?, ?, ?, ?, ?, ?, ?, ?)",
+		user.Name,
+		user.Password,
+		//user.OAuthToken
+		token,
+		email,
+		user.NotifyCycleEnd,
+		user.NotifyVoteSelection,
+		user.Privilege,
+		user.PassDate)
 }
 
 func (m *mysqlConnector) AddVote(userId, movieId int) error {
-	return fmt.Errorf("AddVote() not implemented for MySql")
+	_, err := m.executeStatement("call vote_Add(?, ?)", userId, movieId)
+	return err
+}
+
+func (m *mysqlConnector) DeleteVote(userId, movieId int) error {
+	_, err := m.executeStatement("call vote_Delete(?, ?)", userId, movieId)
+	return err
 }
 
 func (m *mysqlConnector) UpdateUser(user *common.User) error {
@@ -294,6 +495,7 @@ func (m *mysqlConnector) UpdateUser(user *common.User) error {
 
 func (m *mysqlConnector) UpdateMovie(movie *common.Movie) error {
 	return fmt.Errorf("UpdateMovie() not implemented for MySql")
+	//_, err := m.executeStatement("call movie_Update()")
 }
 
 func (m *mysqlConnector) UpdateCycle(cycle *common.Cycle) error {
@@ -301,11 +503,20 @@ func (m *mysqlConnector) UpdateCycle(cycle *common.Cycle) error {
 }
 
 func (m *mysqlConnector) CheckMovieExists(name string) (bool, error) {
-	return false, fmt.Errorf("CheckMovieExists() not implemented for MySql")
+	var boolVal mysqlBool
+
+	err := m.executeQueryScalar("select fn_CheckMovieExists(?)", &boolVal, name)
+	if err != nil {
+		return false, err
+	}
+
+	//boolVal := mysqlBool(val.([]uint8))
+	return boolVal.Value(), nil
 }
 
+// TODO: implement start and count
 func (m *mysqlConnector) GetUsers(start, count int) ([]*common.User, error) {
-	ulist := make([]*common.User, count)
+	ulist := []*common.User{}
 	conn, stmt, rows, err := m.executeQueryRows("call user_GetAll()")
 	if err != nil {
 		return nil, err
@@ -318,8 +529,8 @@ func (m *mysqlConnector) GetUsers(start, count int) ([]*common.User, error) {
 	for rows.Next() {
 		u := &common.User{}
 
-		var notifyCycle int
-		var notifySelection int
+		var notifyCycle mysqlBool
+		var notifySelection mysqlBool
 
 		err := rows.Scan(
 			&u.Id,
@@ -335,13 +546,8 @@ func (m *mysqlConnector) GetUsers(start, count int) ([]*common.User, error) {
 			return nil, err
 		}
 
-		if notifyCycle == 1 {
-			u.NotifyCycleEnd = true
-		}
-
-		if notifySelection == 1 {
-			u.NotifyVoteSelection = true
-		}
+		u.NotifyCycleEnd = notifyCycle.Value()
+		u.NotifyVoteSelection = notifySelection.Value()
 
 		ulist = append(ulist, u)
 	}
@@ -354,35 +560,39 @@ func (m *mysqlConnector) GetUsers(start, count int) ([]*common.User, error) {
 }
 
 func (m *mysqlConnector) GetCfgString(key string) (string, error) {
-	val, err := m.executeQueryScalar("call config_GetString(?)", key)
+	var value sql.NullString
+	err := m.executeQueryScalar("call config_GetString(?)", &value, key)
 	if err != nil {
 		return "", err
 	}
-	return val.(string), nil
+
+	if value.Valid {
+		return value.String, nil
+	}
+	return "", fmt.Errorf("String Cfg value does not exist for key %q", key)
 }
 
 func (m *mysqlConnector) GetCfgBool(key string) (bool, error) {
-	val, err := m.executeQueryScalar("call config_GetBool(?)", key)
+	var value mysqlBool
+	err := m.executeQueryScalar("call config_GetBool(?)", &value, key)
 	if err != nil {
 		return false, err
 	}
 
-	intVal := val.(int)
-	if intVal == 1 {
-		return true, nil
-	}
-	return false, nil
-
-	//return val.(string), nil
+	return value.Value(), nil
 }
 
 func (m *mysqlConnector) GetCfgInt(key string) (int, error) {
-	val, err := m.executeQueryScalar("call config_GetInt(?)", key)
+	var value sql.NullInt64
+	err := m.executeQueryScalar("call config_GetInt(?)", &value, key)
 	if err != nil {
 		return 0, err
 	}
 
-	return val.(int), nil
+	if value.Valid {
+		return int(value.Int64), nil
+	}
+	return 0, fmt.Errorf("Invalid Int64 value")
 }
 
 func (m *mysqlConnector) SetCfgString(key, value string) error {
@@ -403,12 +613,25 @@ func (m *mysqlConnector) SetCfgInt(key string, value int) error {
 
 func (m *mysqlConnector) SetCfgBool(key string, value bool) error {
 	_, err := m.executeStatement("call config_SetBool(?, ?)", key, value)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (m *mysqlConnector) DeleteCfgKey(key string) error {
-	return fmt.Errorf("DeleteCfgKey() not implemented for MySql")
+	_, err := m.executeStatement("call config_Delete(?)", key)
+	return err
+}
+
+func (m *mysqlConnector) DeleteUser(userId int) error {
+	_, err := m.executeStatement("call user_Delete(?)", userId)
+	return err
+}
+
+func (m *mysqlConnector) DeleteMovie(movieId int) error {
+	_, err := m.executeStatement("call movie_Delete(?)", movieId)
+	return err
+}
+
+func (m *mysqlConnector) DeleteCycle(cycleId int) error {
+	_, err := m.executeStatement("call cycle_Delete(?)", cycleId)
+	return err
 }

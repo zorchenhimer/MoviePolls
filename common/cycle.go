@@ -8,9 +8,9 @@ import (
 type Cycle struct {
 	Id int
 
-	Start     time.Time
-	End       time.Time
-	EndingSet bool // has an end time been set? (ignore End value if false)
+	Start time.Time
+	End   *time.Time
+	//EndingSet bool // has an end time been set? (ignore End value if false)
 }
 
 func (c Cycle) String() string {

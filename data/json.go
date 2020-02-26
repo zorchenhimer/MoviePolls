@@ -156,14 +156,9 @@ func (j *jsonConnector) AddCycle(end *time.Time) (int, error) {
 	c := &common.Cycle{
 		Id:    j.nextCycleId(),
 		Start: time.Now(),
+		End:   end,
 	}
 
-	if end != nil {
-		c.End = *end
-		c.EndingSet = true
-	} else {
-		c.EndingSet = false
-	}
 	j.Cycles = append(j.Cycles, c)
 
 	return c.Id, j.save()
@@ -386,16 +381,45 @@ func (j *jsonConnector) AddVote(userId, movieId int) error {
 		return fmt.Errorf("Movie has been removed by a mod or admin")
 	}
 
-	// TODO: check for movie approval
-
 	cc := j.currentCycle()
-	cId := 0
-	if cc != nil {
-		cId = cc.Id
+	if cc == nil {
+		return fmt.Errorf("No cycle currently active")
 	}
 
-	j.Votes = append(j.Votes, jsonVote{userId, movieId, cId})
+	j.Votes = append(j.Votes, jsonVote{userId, movieId, cc.Id})
 	return j.save()
+}
+
+func (j *jsonConnector) requireApproval() bool {
+	// ignore errors here.  "false" is default.
+	val, _ := j.GetCfgBool("RequireApproval")
+	return val
+}
+
+func (j *jsonConnector) DeleteVote(userId, movieId int) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	cc := j.currentCycle()
+	if cc == nil {
+		return fmt.Errorf("No cycle active")
+	}
+
+	found := false
+	newVotes := []jsonVote{}
+	for _, v := range j.Votes {
+		if v.UserId == userId && v.MovieId == movieId && v.CycleId == cc.Id {
+			found = true
+		} else {
+			newVotes = append(newVotes, v)
+		}
+	}
+
+	j.Votes = newVotes
+	if !found {
+		return fmt.Errorf("Vote not found for current cycle")
+	}
+	return nil
 }
 
 func (j *jsonConnector) findMovie(id int) *common.Movie {
@@ -682,5 +706,28 @@ func (j *jsonConnector) DeleteCfgKey(key string) error {
 
 	delete(j.Settings, key)
 
+	return j.save()
+}
+
+func (j *jsonConnector) DeleteUser(userId int) error {
+	found := false
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	newUsers := []*common.User{}
+
+	for _, user := range j.Users {
+		if user.Id == userId {
+			found = true
+		} else {
+			newUsers = append(newUsers, user)
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("User with ID %d does not exist", userId)
+	}
+
+	j.Users = newUsers
 	return j.save()
 }
