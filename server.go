@@ -91,6 +91,7 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/admin/", server.handlerAdmin)
 	mux.HandleFunc("/admin/config", server.handlerAdminConfig)
 	mux.HandleFunc("/admin/cycles", server.handlerAdminCycles)
+	mux.HandleFunc("/admin/endcycle", server.handlerAdminEndCycle)
 	mux.HandleFunc("/admin/user/", server.handlerAdminUserEdit)
 	mux.HandleFunc("/admin/users", server.handlerAdminUsers)
 

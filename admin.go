@@ -3,6 +3,7 @@ package moviepoll
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -286,11 +287,38 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 		dataPageBase
 		Cycle *common.Cycle
 	}{
-		dataPageBase: s.newPageBase("Admin - User Edit", w, r),
+		dataPageBase: s.newPageBase("Admin - Cycles", w, r),
 		Cycle:        cycle,
 	}
 
 	if err := s.executeTemplate(w, "adminCycles", data); err != nil {
+		fmt.Printf("Error rendering template: %v\n", err)
+	}
+}
+
+func (s *Server) handlerAdminEndCycle(w http.ResponseWriter, r *http.Request) {
+	if !s.checkAdminRights(w, r) {
+		return
+	}
+
+	movies, err := s.data.GetActiveMovies()
+	if err != nil {
+		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to get active movies: %v", err), w, r)
+		return
+	}
+
+	ml := common.MovieList(movies)
+	sort.Sort(sort.Reverse(ml))
+
+	data := struct {
+		dataPageBase
+		Movies []*common.Movie
+	}{
+		dataPageBase: s.newPageBase("Admin - End Cycle", w, r),
+		Movies:       ml,
+	}
+
+	if err := s.executeTemplate(w, "adminEndCycle", data); err != nil {
 		fmt.Printf("Error rendering template: %v\n", err)
 	}
 }

@@ -1,0 +1,15 @@
+{{define "adminbody"}}
+
+<form method="POST" id="endCycleForm" action="/adimn/endcycle">
+<div class="adminCenter">
+{{range .Movies}}
+    <div class="adminMovie">
+        <div><input type="checkbox" /></div>
+        <div>{{len .Votes}}</div>
+        <div>{{.Name}}</div>
+    </div>
+{{end}}
+</div>
+</form>
+
+{{end}}
