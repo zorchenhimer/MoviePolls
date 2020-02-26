@@ -3,3 +3,5 @@ cmd/server.exe
 cmd/mkdata
 cmd/mkdata.exe
 
+db/*
+

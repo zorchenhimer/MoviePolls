@@ -55,7 +55,7 @@ type jsonConnector struct {
 	filename string `json:"-"`
 	lock     *sync.RWMutex
 
-	CurrentCycle int
+	//CurrentCycle int
 
 	Cycles []*common.Cycle
 	Movies []jsonMovie
@@ -75,14 +75,16 @@ func newJsonConnector(filename string) (DataConnector, error) {
 		return loadJson(filename)
 	}
 
-	return &jsonConnector{
-		filename:     filename,
-		lock:         &sync.RWMutex{},
-		CurrentCycle: 0,
+	j := &jsonConnector{
+		filename: filename,
+		lock:     &sync.RWMutex{},
+		//CurrentCycle: 0,
 		Settings: map[string]configValue{
 			"Active": configValue{CVT_BOOL, true},
 		},
-	}, nil
+	}
+
+	return j, j.save()
 }
 
 func loadJson(filename string) (*jsonConnector, error) {
@@ -124,14 +126,12 @@ func (j *jsonConnector) save() error {
    If so, this would be the automatic end date for the cycle.
    If not, only the current cycle would have an end date, which would define
    the current cycle as the cycle without an end date.
-
-   Otherwise, just store the current cycle's ID somewhere (current
-   functionality).
 */
 func (j *jsonConnector) currentCycle() *common.Cycle {
+	now := time.Now().Local().Round(time.Second)
 
 	for _, c := range j.Cycles {
-		if j.CurrentCycle == c.Id {
+		if c.Start.Before(now) && (c.End == nil || c.End.After(now)) {
 			return c
 		}
 	}
@@ -415,11 +415,11 @@ func (j *jsonConnector) DeleteVote(userId, movieId int) error {
 		}
 	}
 
-	j.Votes = newVotes
 	if !found {
 		return fmt.Errorf("Vote not found for current cycle")
 	}
-	return nil
+	j.Votes = newVotes
+	return j.save()
 }
 
 func (j *jsonConnector) findMovie(id int) *common.Movie {
@@ -549,8 +549,13 @@ func (j *jsonConnector) UserVotedForMovie(userId, movieId int) (bool, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
+	cc := j.currentCycle()
+	if cc == nil {
+		return false, fmt.Errorf("No cycle active")
+	}
+
 	for _, v := range j.Votes {
-		if v.MovieId == movieId && v.UserId == userId {
+		if v.MovieId == movieId && v.UserId == userId && v.CycleId == cc.Id {
 			return true, nil
 		}
 	}

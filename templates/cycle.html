@@ -34,7 +34,7 @@
                     {{if $user}}
                     <div class="voteButton">
                         {{if .UserVoted $user.Id }}
-                            Voted!
+                        Voted! (<a href="#">Remove</a>)
                         {{else}}
                         <a href="/vote/{{.Id}}">Vote</a>
                         {{end}}

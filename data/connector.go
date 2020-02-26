@@ -2,7 +2,7 @@ package data
 
 import (
 	"fmt"
-	"time"
+	//"time"
 
 	"github.com/zorchenhimer/MoviePolls/common"
 )
@@ -45,7 +45,8 @@ type DataConnector interface {
 	// would be at a start value of 0.
 	GetPastCycles(start, end int) ([]*common.Cycle, error)
 
-	AddCycle(end *time.Time) (int, error)
+	// TODO: remove AddCycle()
+	//AddCycle(end *time.Time) (int, error)
 	AddOldCycle(cycle *common.Cycle) (int, error)
 	AddMovie(movie *common.Movie) (int, error)
 	AddUser(user *common.User) (int, error)

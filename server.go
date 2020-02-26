@@ -31,7 +31,7 @@ type Server struct {
 
 func NewServer(options Options) (*Server, error) {
 	if options.Listen == "" {
-		options.Listen = ":8080"
+		options.Listen = ":8090"
 	}
 
 	data, err := mpd.GetDataConnector("json", "db/data.json")
@@ -90,6 +90,7 @@ func NewServer(options Options) (*Server, error) {
 
 	mux.HandleFunc("/admin/", server.handlerAdmin)
 	mux.HandleFunc("/admin/config", server.handlerAdminConfig)
+	mux.HandleFunc("/admin/cycles", server.handlerAdminCycles)
 	mux.HandleFunc("/admin/user/", server.handlerAdminUserEdit)
 	mux.HandleFunc("/admin/users", server.handlerAdminUsers)
 
@@ -253,53 +254,6 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Error rendering template: %v\n", err)
 		//http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
 	}
-}
-
-func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
-	user := s.getSessionUser(w, r)
-	if user == nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-
-	var movieId int
-	if _, err := fmt.Sscanf(r.URL.Path, "/vote/%d", &movieId); err != nil {
-		s.doError(http.StatusBadRequest, "Invalid movie ID", w, r)
-		fmt.Printf("invalid vote URL: %q\n", r.URL.Path)
-		return
-	}
-
-	if _, err := s.data.GetMovie(movieId); err != nil {
-		s.doError(http.StatusBadRequest, "Invalid movie ID", w, r)
-		fmt.Printf("Movie with ID %d doesn't exist\n", movieId)
-		return
-	}
-
-	userVoted, err := s.data.UserVotedForMovie(user.Id, movieId)
-	if err != nil {
-		s.doError(
-			http.StatusBadRequest,
-			fmt.Sprintf("Cannot get user vote: %v", err),
-			w, r)
-		return
-	}
-
-	if userVoted {
-		s.doError(http.StatusBadRequest, "You already voted for that movie!", w, r)
-		return
-	}
-
-	if err := s.data.AddVote(user.Id, movieId); err != nil {
-		s.doError(http.StatusBadRequest, "Something went wrong :c", w, r)
-		fmt.Printf("Unable to cast vote: %v\n", err)
-		return
-	}
-
-	ref := r.Header.Get("Referer")
-	if ref == "" {
-		http.Redirect(w, r, "/", http.StatusFound)
-	}
-	http.Redirect(w, r, ref, http.StatusFound)
 }
 
 func (s *Server) handlerMovie(w http.ResponseWriter, r *http.Request) {

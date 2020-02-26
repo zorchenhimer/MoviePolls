@@ -29,6 +29,7 @@ var templateDefs map[string][]string = map[string][]string{
 	"adminConfig":   []string{"admin/base.html", "admin/config.html"},
 	"adminUsers":    []string{"admin/base.html", "admin/users.html"},
 	"adminUserEdit": []string{"admin/base.html", "admin/user-edit.html"},
+	"adminCycles":   []string{"admin/base.html", "admin/cycles.html"},
 }
 
 func (s *Server) registerTemplates() error {
@@ -45,7 +46,6 @@ func (s *Server) registerTemplates() error {
 			return fmt.Errorf("Error parsing template %s: %v", fpth, err)
 		}
 
-		fmt.Printf("Registering template %q\n", key)
 		s.templates[key] = t
 	}
 	return nil

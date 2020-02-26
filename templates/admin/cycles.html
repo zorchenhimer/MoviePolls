@@ -1,0 +1,20 @@
+{{define "adminbody"}}
+<h2>Current Cycle</h2>
+{{if .Cycle }}
+<div>
+    ID: {{.Cycle.Id}}<br />
+    Start: {{.Cycle.StartString}}<br />
+    End: {{.Cycle.EndString}}<br />
+</div>
+{{else}}
+<p>No cycle currently active</p>
+{{end}}
+
+<h2>New Cycle</h2>
+<form method="POST" action="/admin/cycles">
+    <div>Start: <input name="startDate" id="startDate" type="date" /></div>
+    <div>End: <input name="endDate" id="endDate" type="date" /></div>
+    <div><input type="submit" value="Create" /></div>
+</form>
+
+{{end}}

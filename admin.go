@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/zorchenhimer/MoviePolls/common"
 )
 
 type dataAdminHome struct {
 	dataPageBase
+
+	Cycle *common.Cycle
 }
 
 type dataAdminConfig struct {
@@ -70,8 +73,16 @@ func (s *Server) handlerAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cycle, err := s.data.GetCurrentCycle()
+	if err != nil {
+		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to get current cycle: %v", err), w, r)
+		return
+	}
+
 	data := dataAdminHome{
 		dataPageBase: s.newPageBase("Admin", w, r),
+
+		Cycle: cycle,
 	}
 
 	if err := s.executeTemplate(w, "adminHome", data); err != nil {
@@ -220,6 +231,66 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "adminConfig", data); err != nil {
+		fmt.Printf("Error rendering template: %v\n", err)
+	}
+}
+
+func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
+	if !s.checkAdminRights(w, r) {
+		return
+	}
+
+	var err error
+
+	if r.Method == "POST" {
+		fmt.Println("Cycle post")
+		if err = r.ParseForm(); err != nil {
+			fmt.Printf("Unable to parse form: %v\n", err)
+			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to parse form: %v", err), w, r)
+			return
+		}
+
+		cycle := &common.Cycle{}
+
+		start, err := time.Parse("2006-01-02", r.PostFormValue("startDate"))
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		cycle.Start = start
+
+		end, err := time.Parse("2006-01-02", r.PostFormValue("endDate"))
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			cycle.End = &end
+		}
+
+		fmt.Printf("start: %s\nend: %s\n", start, end)
+
+		_, err = s.data.AddOldCycle(cycle)
+		if err != nil {
+			fmt.Printf("Unable to add cycle: %v\n", err)
+			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to add cycle: %v", err), w, r)
+			return
+		}
+	}
+
+	cycle, err := s.data.GetCurrentCycle()
+	if err != nil {
+		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to get current cycle: %v", err), w, r)
+		return
+	}
+
+	data := struct {
+		dataPageBase
+		Cycle *common.Cycle
+	}{
+		dataPageBase: s.newPageBase("Admin - User Edit", w, r),
+		Cycle:        cycle,
+	}
+
+	if err := s.executeTemplate(w, "adminCycles", data); err != nil {
 		fmt.Printf("Error rendering template: %v\n", err)
 	}
 }
