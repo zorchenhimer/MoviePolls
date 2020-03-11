@@ -5,4 +5,4 @@ cmd/mkdata
 cmd/mkdata.exe
 
 db/*
-
+bin/*

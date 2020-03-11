@@ -20,17 +20,17 @@ SOURCES = \
 
 .PHONY: all data fmt server
 
-CMD_SERVER=cmd/server$(EXE)
-CMD_DATA=cmd/mkdata$(EXE)
+CMD_SERVER=bin/server$(EXE)
+CMD_DATA=bin/mkdata$(EXE)
 
-all: fmt $(CMD_SERVER) server
+all: fmt $(CMD_SERVER)
 data: fmt $(CMD_DATA)
 
 server: cmd/server.go fmt $(SOURCES)
-	GOOS=linux GOARCH=386 go build -o cmd/MoviePolls $<
+	GOOS=linux GOARCH=386 go build -o bin/MoviePolls $<
 
 clean:
-	rm -f $(CMD_SERVER) $(CMD_DATA) cmd/MoviePolls
+	rm -f $(CMD_SERVER) $(CMD_DATA) bin/MoviePolls
 
 fmt:
 	gofmt -w .
