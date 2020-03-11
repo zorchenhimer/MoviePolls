@@ -5,6 +5,7 @@
 {{define "body"}}
 {{ $voteListSize := 10 }}
 {{ $user := .User }}
+{{ $votingEnabled := .VotingEnabled }}
 <div class="cycleCard">
     <div class="cycleTitle">
         Cycle ending eventually.
@@ -34,9 +35,9 @@
                     {{if $user}}
                     <div class="voteButton">
                         {{if .UserVoted $user.Id }}
-                        Voted! (<a href="/vote/{{.Id}}">Remove</a>)
+                        Voted! {{if $votingEnabled}}(<a href="/vote/{{.Id}}">Remove</a>){{end}}
                         {{else}}
-                        <a href="/vote/{{.Id}}">Vote</a>
+                        {{if $votingEnabled}}<a href="/vote/{{.Id}}">Vote</a>{{end}}
                         {{end}}
                     </div>
                     {{end}}

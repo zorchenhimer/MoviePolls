@@ -244,12 +244,21 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := dataCycle{
+	data := struct {
+		dataPageBase
+
+		Cycle  *common.Cycle
+		Movies []*common.Movie
+
+		VotingEnabled bool
+	}{
 		dataPageBase: s.newPageBase("Current Cycle", w, r),
 
 		Cycle:  &common.Cycle{}, //s.data.GetCurrentCycle(),
 		Movies: activeMovies,
 	}
+
+	data.VotingEnabled, _ = s.data.GetCfgBool("VotingEnabled")
 
 	if err := s.executeTemplate(w, "cyclevotes", data); err != nil {
 		fmt.Printf("Error rendering template: %v\n", err)

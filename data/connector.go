@@ -67,6 +67,9 @@ type DataConnector interface {
 	GetUsers(start, count int) ([]*common.User, error)
 
 	// Configuration stuff
+	// Should this pass in a default value for these somewhere?  When the key
+	// doesn't exist it would then save the key with the given default value.
+	// Or, defalt values should be defined somewhere centralized.
 	GetCfgString(key string) (string, error)
 	GetCfgInt(key string) (int, error)
 	GetCfgBool(key string) (bool, error)

@@ -16,22 +16,6 @@ type dataAdminHome struct {
 	Cycle *common.Cycle
 }
 
-type dataAdminConfig struct {
-	dataPageBase
-
-	ErrorMessage []string
-
-	MaxUserVotes           int
-	EntriesRequireApproval bool
-	VotingOpen             bool
-
-	ErrMaxUserVotes bool
-}
-
-func (d dataAdminConfig) IsErrored() bool {
-	return d.ErrMaxUserVotes
-}
-
 type dataAdminUsers struct {
 	dataPageBase
 
@@ -176,7 +160,17 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := dataAdminConfig{
+	data := struct {
+		dataPageBase
+
+		ErrorMessage []string
+
+		MaxUserVotes           int
+		EntriesRequireApproval bool
+		VotingEnabled          bool
+
+		ErrMaxUserVotes bool
+	}{
 		dataPageBase: s.newPageBase("Admin - Config", w, r),
 		ErrorMessage: []string{},
 	}
@@ -214,21 +208,53 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 			s.data.DeleteCfgKey("PassSalt")
 		}
 
+		// I'm pretty sure this breaks things
 		clearCookies := r.PostFormValue("ClearCookies")
 		if clearCookies != "" {
 			s.data.DeleteCfgKey("SessionAuth")
 			s.data.DeleteCfgKey("SessionEncrypt")
+		}
+
+		votingEnabled := r.PostFormValue("VotingEnabled")
+		if votingEnabled == "" {
+			s.data.SetCfgBool("VotingEnabled", false)
+		} else {
+			s.data.SetCfgBool("VotingEnabled", true)
 		}
 	}
 
 	data.MaxUserVotes, err = s.data.GetCfgInt("MaxUserVotes")
 	if err != nil {
 		data.MaxUserVotes = 5 // FIXME: define defaults elsewhere
+		fmt.Printf("Error getting configuration value for MaxUserVotes: %s\n", err)
+
+		err = s.data.SetCfgInt("MaxUserVotes", data.MaxUserVotes)
+		if err != nil {
+			fmt.Printf("Error saving new configuration value for MaxUserVotes: %s\n", err)
+		}
 	}
 
 	data.EntriesRequireApproval, err = s.data.GetCfgBool("EntriesRequireApproval")
 	if err != nil {
 		data.EntriesRequireApproval = false
+		fmt.Printf("Error getting configuration value for EntriesRequireApproval: %s\n", err)
+
+		err = s.data.SetCfgBool("EntriesRequireApproval", data.EntriesRequireApproval)
+		if err != nil {
+			fmt.Printf("Error saving new configuration value for EntriesRequireApproval: %s\n", err)
+		}
+	}
+
+	data.VotingEnabled, err = s.data.GetCfgBool("VotingEnabled")
+	if err != nil {
+		data.VotingEnabled = false
+		fmt.Printf("Error getting configuration value for VotingEnabled: %s\n", err)
+
+		// try to resave new value
+		err = s.data.SetCfgBool("VotingEnabled", data.VotingEnabled)
+		if err != nil {
+			fmt.Printf("Error saving new configuration value for VotingEnabled: %s\n", err)
+		}
 	}
 
 	if err := s.executeTemplate(w, "adminConfig", data); err != nil {

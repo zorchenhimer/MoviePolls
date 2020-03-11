@@ -13,6 +13,20 @@ func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	enabled, err := s.data.GetCfgBool("VotingEnabled")
+	if err != nil {
+		fmt.Printf("Unable to get config value for VotingEnabled: %s\n", err)
+	}
+
+	// this should be false if an error was returned
+	if !enabled {
+		s.doError(
+			http.StatusBadRequest,
+			"Voting is not enabled",
+			w, r)
+		return
+	}
+
 	var movieId int
 	if _, err := fmt.Sscanf(r.URL.Path, "/vote/%d", &movieId); err != nil {
 		s.doError(http.StatusBadRequest, "Invalid movie ID", w, r)

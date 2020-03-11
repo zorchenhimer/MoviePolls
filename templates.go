@@ -82,13 +82,6 @@ type dataPageBase struct {
 	User *common.User
 }
 
-type dataCycle struct {
-	dataPageBase
-
-	Cycle  *common.Cycle
-	Movies []*common.Movie
-}
-
 type dataMovieInfo struct {
 	dataPageBase
 
