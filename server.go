@@ -107,6 +107,9 @@ func NewServer(options Options) (*Server, error) {
 }
 
 func (server *Server) Run() error {
+	if server.debug {
+		fmt.Printf("Listening on address %s\n", server.s.Addr)
+	}
 	return server.s.ListenAndServe()
 }
 

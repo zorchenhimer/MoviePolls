@@ -46,6 +46,10 @@ func (s *Server) getSessionUser(w http.ResponseWriter, r *http.Request) *common.
 	session, err := s.cookies.Get(r, SessionName)
 	if err != nil {
 		fmt.Printf("Unable to get session from store: %v\n", err)
+		err = delSession(session, w, r)
+		if err != nil {
+			fmt.Printf("Unable to delete cookie: %v\n", err)
+		}
 		return nil
 	}
 
