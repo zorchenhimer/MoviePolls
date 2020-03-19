@@ -14,6 +14,13 @@ import (
 
 const SessionName string = "moviepoll-session"
 
+// defaults
+const (
+	DefaultMaxUserVotes           int  = 5
+	DefaultEntriesRequireApproval bool = false
+	DefaultVotingEnabled          bool = false
+)
+
 type Options struct {
 	Listen string // eg, "127.0.0.1:8080" or ":8080" (defaults to 0.0.0.0:8080)
 	Debug  bool   // debug logging to console
@@ -43,14 +50,14 @@ func NewServer(options Options) (*Server, error) {
 		Addr: options.Listen,
 	}
 
-	authKey, err := data.GetCfgString("SessionAuth")
-	if err != nil {
+	authKey, err := data.GetCfgString("SessionAuth", "")
+	if err != nil || authKey == "" {
 		authKey = getCryptRandKey(64)
 		data.SetCfgString("SessionAuth", authKey)
 	}
 
-	encryptKey, err := data.GetCfgString("SessionEncrypt")
-	if err != nil {
+	encryptKey, err := data.GetCfgString("SessionEncrypt", "")
+	if err != nil || encryptKey == "" {
 		encryptKey = getCryptRandKey(32)
 		data.SetCfgString("SessionEncrypt", encryptKey)
 	}
@@ -66,8 +73,8 @@ func NewServer(options Options) (*Server, error) {
 		cookies: sessions.NewCookieStore([]byte(authKey), []byte(encryptKey)),
 	}
 
-	server.passwordSalt, err = server.data.GetCfgString("PassSalt")
-	if err != nil {
+	server.passwordSalt, err = server.data.GetCfgString("PassSalt", "")
+	if err != nil || server.passwordSalt == "" {
 		server.passwordSalt = getCryptRandKey(32)
 		server.data.SetCfgString("PassSalt", server.passwordSalt)
 	}
@@ -91,7 +98,7 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/admin/", server.handlerAdmin)
 	mux.HandleFunc("/admin/config", server.handlerAdminConfig)
 	mux.HandleFunc("/admin/cycles", server.handlerAdminCycles)
-	mux.HandleFunc("/admin/endcycle", server.handlerAdminEndCycle)
+	mux.HandleFunc("/admin/nextcycle", server.handlerAdminNextCycle)
 	mux.HandleFunc("/admin/user/", server.handlerAdminUserEdit)
 	mux.HandleFunc("/admin/users", server.handlerAdminUsers)
 
@@ -261,7 +268,7 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		Movies: activeMovies,
 	}
 
-	data.VotingEnabled, _ = s.data.GetCfgBool("VotingEnabled")
+	data.VotingEnabled, _ = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
 
 	if err := s.executeTemplate(w, "cyclevotes", data); err != nil {
 		fmt.Printf("Error rendering template: %v\n", err)

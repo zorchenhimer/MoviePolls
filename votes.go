@@ -13,7 +13,7 @@ func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	enabled, err := s.data.GetCfgBool("VotingEnabled")
+	enabled, err := s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
 	if err != nil {
 		fmt.Printf("Unable to get config value for VotingEnabled: %s\n", err)
 	}

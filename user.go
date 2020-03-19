@@ -16,7 +16,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	totalVotes, err := s.data.GetCfgInt("MaxUserVotes")
+	totalVotes, err := s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
 	if err != nil {
 		fmt.Printf("Error getting MaxUserVotes config setting: %v\n", err)
 		totalVotes = 5 // FIXME: define a default somewhere?

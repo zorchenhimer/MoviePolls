@@ -392,7 +392,7 @@ func (j *jsonConnector) AddVote(userId, movieId int) error {
 
 func (j *jsonConnector) requireApproval() bool {
 	// ignore errors here.  "false" is default.
-	val, _ := j.GetCfgBool("RequireApproval")
+	val, _ := j.GetCfgBool("RequireApproval", false)
 	return val
 }
 
@@ -594,13 +594,14 @@ func (v configValue) String() string {
 	return fmt.Sprintf("configValue{Type:%s Value:%v}", t, v.Value)
 }
 
-func (j *jsonConnector) GetCfgString(key string) (string, error) {
+func (j *jsonConnector) GetCfgString(key, value string) (string, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
 	val, ok := j.Settings[key]
 	if !ok {
-		return "", fmt.Errorf("Setting with key %q does not exist", key)
+		return value, nil
+		//return "", fmt.Errorf("Setting with key %q does not exist", key)
 	}
 
 	switch val.Type {
@@ -615,13 +616,14 @@ func (j *jsonConnector) GetCfgString(key string) (string, error) {
 	}
 }
 
-func (j *jsonConnector) GetCfgInt(key string) (int, error) {
+func (j *jsonConnector) GetCfgInt(key string, value int) (int, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
 	val, ok := j.Settings[key]
 	if !ok {
-		return 0, fmt.Errorf("Setting with key %q does not exist", key)
+		return value, nil
+		//return 0, fmt.Errorf("Setting with key %q does not exist", key)
 	}
 
 	switch val.Type {
@@ -650,13 +652,14 @@ func (j *jsonConnector) GetCfgInt(key string) (int, error) {
 	}
 }
 
-func (j *jsonConnector) GetCfgBool(key string) (bool, error) {
+func (j *jsonConnector) GetCfgBool(key string, value bool) (bool, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
 	val, ok := j.Settings[key]
 	if !ok {
-		return false, fmt.Errorf("Setting with key %q does not exist", key)
+		return value, nil
+		//return false, fmt.Errorf("Setting with key %q does not exist", key)
 	}
 
 	switch val.Type {

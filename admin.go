@@ -123,10 +123,9 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	totalVotes, err := s.data.GetCfgInt("MaxUserVotes")
+	totalVotes, err := s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
 	if err != nil {
 		fmt.Printf("Error getting MaxUserVotes config setting: %v\n", err)
-		totalVotes = 5 // FIXME: define a default somewhere?
 	}
 
 	votes, err := s.data.GetUserVotes(uid)
@@ -223,9 +222,8 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	data.MaxUserVotes, err = s.data.GetCfgInt("MaxUserVotes")
+	data.MaxUserVotes, err = s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
 	if err != nil {
-		data.MaxUserVotes = 5 // FIXME: define defaults elsewhere
 		fmt.Printf("Error getting configuration value for MaxUserVotes: %s\n", err)
 
 		err = s.data.SetCfgInt("MaxUserVotes", data.MaxUserVotes)
@@ -234,9 +232,8 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	data.EntriesRequireApproval, err = s.data.GetCfgBool("EntriesRequireApproval")
+	data.EntriesRequireApproval, err = s.data.GetCfgBool("EntriesRequireApproval", DefaultEntriesRequireApproval)
 	if err != nil {
-		data.EntriesRequireApproval = false
 		fmt.Printf("Error getting configuration value for EntriesRequireApproval: %s\n", err)
 
 		err = s.data.SetCfgBool("EntriesRequireApproval", data.EntriesRequireApproval)
@@ -245,9 +242,8 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	data.VotingEnabled, err = s.data.GetCfgBool("VotingEnabled")
+	data.VotingEnabled, err = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
 	if err != nil {
-		data.VotingEnabled = false
 		fmt.Printf("Error getting configuration value for VotingEnabled: %s\n", err)
 
 		// try to resave new value

@@ -37,9 +37,9 @@ func (re resultError) RowsAffected() (int64, error) {
 
 type mysqlBool []uint8
 
-func (mb mysqlBool) Value() bool {
+func (mb mysqlBool) Value(def bool) bool {
 	if len(mb) == 0 {
-		return false
+		return def
 	}
 	return mb[0] == 1
 }
@@ -226,8 +226,8 @@ func (m *mysqlConnector) GetUser(id int) (*common.User, error) {
 		return nil, err
 	}
 
-	user.NotifyCycleEnd = notifyEnd.Value()
-	user.NotifyVoteSelection = notifySelected.Value()
+	user.NotifyCycleEnd = notifyEnd.Value(false)
+	user.NotifyVoteSelection = notifySelected.Value(false)
 
 	return user, nil
 }
@@ -327,8 +327,8 @@ func scanMovie(s rowScanner) (*common.Movie, error) {
 		mov.Links = strings.Split(links.String, "\n")
 	}
 
-	mov.Removed = removed.Value()
-	mov.Approved = approved.Value()
+	mov.Removed = removed.Value(false)
+	mov.Approved = approved.Value(false)
 
 	return mov, nil
 }
@@ -511,7 +511,7 @@ func (m *mysqlConnector) CheckMovieExists(name string) (bool, error) {
 	}
 
 	//boolVal := mysqlBool(val.([]uint8))
-	return boolVal.Value(), nil
+	return boolVal.Value(false), nil
 }
 
 // TODO: implement start and count
@@ -546,8 +546,8 @@ func (m *mysqlConnector) GetUsers(start, count int) ([]*common.User, error) {
 			return nil, err
 		}
 
-		u.NotifyCycleEnd = notifyCycle.Value()
-		u.NotifyVoteSelection = notifySelection.Value()
+		u.NotifyCycleEnd = notifyCycle.Value(false)
+		u.NotifyVoteSelection = notifySelection.Value(false)
 
 		ulist = append(ulist, u)
 	}
@@ -559,7 +559,7 @@ func (m *mysqlConnector) GetUsers(start, count int) ([]*common.User, error) {
 	return ulist, nil
 }
 
-func (m *mysqlConnector) GetCfgString(key string) (string, error) {
+func (m *mysqlConnector) GetCfgString(key, val string) (string, error) {
 	var value sql.NullString
 	err := m.executeQueryScalar("call config_GetString(?)", &value, key)
 	if err != nil {
@@ -569,20 +569,21 @@ func (m *mysqlConnector) GetCfgString(key string) (string, error) {
 	if value.Valid {
 		return value.String, nil
 	}
-	return "", fmt.Errorf("String Cfg value does not exist for key %q", key)
+	//return "", fmt.Errorf("String Cfg value does not exist for key %q", key)
+	return val, nil
 }
 
-func (m *mysqlConnector) GetCfgBool(key string) (bool, error) {
+func (m *mysqlConnector) GetCfgBool(key string, val bool) (bool, error) {
 	var value mysqlBool
 	err := m.executeQueryScalar("call config_GetBool(?)", &value, key)
 	if err != nil {
 		return false, err
 	}
 
-	return value.Value(), nil
+	return value.Value(val), nil
 }
 
-func (m *mysqlConnector) GetCfgInt(key string) (int, error) {
+func (m *mysqlConnector) GetCfgInt(key string, val int) (int, error) {
 	var value sql.NullInt64
 	err := m.executeQueryScalar("call config_GetInt(?)", &value, key)
 	if err != nil {
@@ -592,7 +593,7 @@ func (m *mysqlConnector) GetCfgInt(key string) (int, error) {
 	if value.Valid {
 		return int(value.Int64), nil
 	}
-	return 0, fmt.Errorf("Invalid Int64 value")
+	return val, nil // fmt.Errorf("Invalid Int64 value")
 }
 
 func (m *mysqlConnector) SetCfgString(key, value string) error {
