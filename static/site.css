@@ -1,9 +1,9 @@
 html {
-    background-color:#0F0F11;
+    background-color:#333333;
     font-family: "Hack";
     font-size: 14px;
     font-style: normal;
-    color: #cfccd1;
+    color: #CFCCD1;
 }
 
 a {
@@ -27,12 +27,12 @@ a:hover {
 
 #movieCard {
     border: 1px solid black;
-    background: darkblue;
+    background: #2266aa;
 }
 
 #movieStats {
     border: 1px solid black;
-    background: darkblue;
+    background: #2266aa;
 }
 
 .movieCol {
@@ -58,7 +58,7 @@ a:hover {
     padding:1em;
     margin: 1em;
     border-radius: 5px;
-    background-color: darkblue;
+    background-color: #2266aa;
 }
 
 .voteNamePoster {
@@ -84,7 +84,7 @@ a:hover {
 
 .errorMessage {
     background-color: red;
-    color: black;
+    color: #000000;
 }
 
 .voteButton {
