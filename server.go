@@ -198,13 +198,41 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		}
 
 		movie := &common.Movie{
-			Name:        strings.TrimSpace(r.PostFormValue("MovieName")),
-			Description: strings.TrimSpace(r.PostFormValue("Description")),
+			Name:        "dummyname",
+			Description: "dummydesc",
 			Votes:       []*common.Vote{},
 			Links:       links,
 			Poster:      "data/unknown.jpg", // 165x250
 		}
 
+		fmt.Printf("AutofillBox: %v\n", r.PostFormValue("AutofillBox"))
+		if r.PostFormValue("AutofillBox") == "on" {
+			// use api to fill
+			fmt.Print("Autofill is on!\n")
+
+			sourcelink := links[0]
+
+			if strings.Contains(sourcelink, "myanimelist") {
+				fmt.Printf("MAL link: %s\n", sourcelink)
+				a := jikan{url: sourcelink}
+				// Y YOU NO WORK!!!!!
+				a.getTitle()
+
+			} else if strings.Contains(sourcelink, "imdb") {
+				fmt.Printf("IMDB link: %s\n", sourcelink)
+			} else {
+				data.ErrLinks = true
+				errText = append(errText, "To use autofill use an imdb or myanimelist link")
+			}
+
+			movie.Name = strings.TrimSpace(r.PostFormValue("MovieName"))
+			movie.Description = strings.TrimSpace(r.PostFormValue("Description"))
+			movie.Poster = "unknown.jpg"
+		} else {
+			movie.Name = strings.TrimSpace(r.PostFormValue("MovieName"))
+			movie.Description = strings.TrimSpace(r.PostFormValue("Description"))
+			movie.Poster = "unknown.jpg"
+		}
 		var movieId int
 		if !data.isError() {
 			movieId, err = s.data.AddMovie(movie)
