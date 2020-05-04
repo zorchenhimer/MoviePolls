@@ -14,6 +14,7 @@ SOURCES = \
 		  data/connector.go \
 		  data/json.go \
 		  data/mysql.go \
+		  dataimporter.go \
 		  server.go \
 		  session.go \
 		  templates.go
