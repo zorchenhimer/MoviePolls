@@ -58,6 +58,8 @@ func (t tmdb) getTitle() string {
 		title = dat["movie_results"][0]["title"].(string)
 		release := dat["movie_results"][0]["release_date"].(string)
 
+		release = release[0:4]
+
 		title = title + " (" + release + ")"
 	}
 
@@ -144,6 +146,10 @@ func (j jikan) getTitle() string {
 		}
 
 		title = dat["title"].(string)
+
+		if dat["title_english"] != nil {
+			title += dat["title_english"].(string)
+		}
 	}
 
 	return title
