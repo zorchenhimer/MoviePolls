@@ -1,10 +1,14 @@
 package moviepoll
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/gorilla/sessions"
@@ -185,14 +189,14 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			errText = append(errText, "Movie already exists")
 		}
 
-		if data.ValTitle == "" {
+		if data.ValTitle == "" && !(r.PostFormValue("AutofillBox") == "on") {
 			errText = append(errText, "Missing movie title")
 			data.ErrTitle = true
 		}
 
 		descr := strings.TrimSpace(r.PostFormValue("Description"))
 		data.ValDescription = descr
-		if len(descr) == 0 {
+		if len(descr) == 0 && !(r.PostFormValue("AutofillBox") == "on") {
 			data.ErrDescription = true
 			errText = append(errText, "Missing description")
 		}
@@ -205,33 +209,82 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			Poster:      "data/unknown.jpg", // 165x250
 		}
 
-		fmt.Printf("AutofillBox: %v\n", r.PostFormValue("AutofillBox"))
 		if r.PostFormValue("AutofillBox") == "on" {
-			// use api to fill
-			fmt.Print("Autofill is on!\n")
 
-			sourcelink := links[0]
+			// make sure we have a link to look at
+			if len(links) >= 1 {
+				sourcelink := links[0]
 
-			if strings.Contains(sourcelink, "myanimelist") {
-				fmt.Printf("MAL link: %s\n", sourcelink)
-				a := jikan{url: sourcelink}
-				// Y YOU NO WORK!!!!!
-				a.getTitle()
+				var results []string
 
-			} else if strings.Contains(sourcelink, "imdb") {
-				fmt.Printf("IMDB link: %s\n", sourcelink)
+				if strings.Contains(sourcelink, "myanimelist") {
+					// Get Data from MAL (jikan api)
+					rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/anime\/([0-9]*)`)
+					match := rgx.FindStringSubmatch(sourcelink)
+					id := match[1]
+
+					sourceAPI := jikan{id: id}
+					// might want to quit early if the movie (title) already exists??
+					results = getMovieData(sourceAPI)
+
+				} else if strings.Contains(sourcelink, "imdb") {
+					// Get Data from IMDB (tmdb api)
+					rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/title\/(tt[0-9]*)`)
+					match := rgx.FindStringSubmatch(sourcelink)
+					id := match[1]
+
+					jsonFile, err := os.Open("config.json")
+
+					if err != nil {
+						fmt.Println(err)
+					}
+
+					content, _ := ioutil.ReadAll(jsonFile)
+
+					var config map[string]interface{}
+
+					json.Unmarshal(content, &config)
+
+					sourceAPI := tmdb{id: id, token: config["tmdb_token"].(string)}
+					results = getMovieData(sourceAPI)
+				} else {
+					data.ErrLinks = true
+					errText = append(errText, "To use autofill use an imdb or myanimelist link as first link")
+				}
+
+				if len(results) > 0 {
+
+					if results[0] == "" && results[1] == "" && results[2] == "" {
+						data.ErrLinks = true
+						fmt.Println("The provided imdb link is not a link to a movie!")
+						errText = append(errText, "The provided imdb link is not a link to a movie!")
+					}
+
+					//duplicate check
+					movieExists, err := s.data.CheckMovieExists(results[0])
+					if err != nil {
+						s.doError(
+							http.StatusInternalServerError,
+							fmt.Sprintf("Unable to check if movie exists: %v", err),
+							w, r)
+						return
+					}
+
+					if movieExists {
+						data.ErrLinks = true
+						fmt.Println("Movie exists")
+						errText = append(errText, "Movie already exists")
+					} else {
+						movie.Name = results[0]
+						movie.Description = results[1]
+						movie.Poster = results[2]
+					}
+				}
 			} else {
-				data.ErrLinks = true
-				errText = append(errText, "To use autofill use an imdb or myanimelist link")
+				movie.Name = strings.TrimSpace(r.PostFormValue("MovieName"))
+				movie.Description = strings.TrimSpace(r.PostFormValue("Description"))
+				movie.Poster = "unknown.jpg"
 			}
-
-			movie.Name = strings.TrimSpace(r.PostFormValue("MovieName"))
-			movie.Description = strings.TrimSpace(r.PostFormValue("Description"))
-			movie.Poster = "unknown.jpg"
-		} else {
-			movie.Name = strings.TrimSpace(r.PostFormValue("MovieName"))
-			movie.Description = strings.TrimSpace(r.PostFormValue("Description"))
-			movie.Poster = "unknown.jpg"
 		}
 		var movieId int
 		if !data.isError() {
