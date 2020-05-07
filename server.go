@@ -225,7 +225,12 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 					sourceAPI := jikan{id: id}
 					// might want to quit early if the movie (title) already exists??
-					results = getMovieData(sourceAPI)
+					results, err = getMovieData(sourceAPI)
+
+					if err != nil {
+						data.ErrAutofill = true
+						errText = append(errText, err.Error())
+					}
 
 				} else if strings.Contains(sourcelink, "imdb") {
 					// Get Data from IMDB (tmdb api)
@@ -236,17 +241,26 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 					jsonFile, err := os.Open("config.json")
 
 					if err != nil {
-						fmt.Println(err)
+						fmt.Println("Could not open config.json")
 					}
 
-					content, _ := ioutil.ReadAll(jsonFile)
+					content, err := ioutil.ReadAll(jsonFile)
+					if err == nil {
+						var config map[string]interface{}
 
-					var config map[string]interface{}
+						json.Unmarshal(content, &config)
+						sourceAPI := tmdb{id: id, token: config["tmdb_token"].(string)}
 
-					json.Unmarshal(content, &config)
+						results, err = getMovieData(sourceAPI)
 
-					sourceAPI := tmdb{id: id, token: config["tmdb_token"].(string)}
-					results = getMovieData(sourceAPI)
+						if err != nil {
+							data.ErrAutofill = true
+							errText = append(errText, err.Error())
+						}
+
+					} else {
+						fmt.Println("Could not parse config.json")
+					}
 				} else {
 					data.ErrLinks = true
 					errText = append(errText, "To use autofill use an imdb or myanimelist link as first link")
