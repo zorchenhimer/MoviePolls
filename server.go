@@ -224,7 +224,26 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 					id := match[1]
 
 					sourceAPI := jikan{id: id}
-					// might want to quit early if the movie (title) already exists??
+
+					// Exit early when the title already exists
+					title, err := sourceAPI.getTitle()
+					if err == nil {
+						exists, _ := s.data.CheckMovieExists(title)
+						if err == nil {
+							if exists {
+								data.ErrAutofill = true
+								errText = append(errText, "Movie already exists")
+
+								data.ErrorMessage = errText
+								if err := s.executeTemplate(w, "addmovie", data); err != nil {
+									fmt.Printf("Error rendering template: %v\n", err)
+								}
+								return
+
+							}
+						}
+					}
+
 					results, err = getMovieData(sourceAPI)
 
 					if err != nil {
@@ -250,6 +269,25 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 						json.Unmarshal(content, &config)
 						sourceAPI := tmdb{id: id, token: config["tmdb_token"].(string)}
+
+						// Exit early when the title already exists
+						title, err := sourceAPI.getTitle()
+						if err == nil {
+							exists, _ := s.data.CheckMovieExists(title)
+							if err == nil {
+								if exists {
+									data.ErrAutofill = true
+									errText = append(errText, "Movie already exists")
+
+									data.ErrorMessage = errText
+									if err := s.executeTemplate(w, "addmovie", data); err != nil {
+										fmt.Printf("Error rendering template: %v\n", err)
+									}
+									return
+
+								}
+							}
+						}
 
 						results, err = getMovieData(sourceAPI)
 
