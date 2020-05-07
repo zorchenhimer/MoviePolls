@@ -2,7 +2,7 @@ package moviepoll
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -10,9 +10,9 @@ import (
 )
 
 type dataapi interface {
-	getTitle() string
-	getDesc() string
-	getPoster() string //path to the file  (from root)
+	getTitle() (string, error)
+	getDesc() (string, error)
+	getPoster() (string, error) //path to the file  (from root)
 }
 
 type tmdb struct {
@@ -24,36 +24,49 @@ type jikan struct {
 	id string
 }
 
-func getMovieData(api dataapi) []string {
+func getMovieData(api dataapi) ([]string, error) {
 	var slice []string
-	slice = append(slice, api.getTitle())
-	slice = append(slice, api.getDesc())
-	slice = append(slice, api.getPoster())
 
-	fmt.Printf("DEBUG: %v\n", slice)
+	val, err := api.getTitle()
+	if err != nil {
+		return nil, err
+	}
+	slice = append(slice, val)
 
-	return slice
+	val, err = api.getDesc()
+	if err != nil {
+		return nil, err
+	}
+	slice = append(slice, val)
+
+	val, err = api.getPoster()
+	if err != nil {
+		return nil, err
+	}
+	slice = append(slice, val)
+
+	return slice, nil
 }
 
-func (t tmdb) getTitle() string {
+func (t tmdb) getTitle() (string, error) {
 
 	title := ""
-
-	resp, err := http.Get("https://api.themoviedb.org/3/find/" + t.id +
-		"?api_key=" + t.token + "&language=en-US&external_source=imdb_id")
+	url := "https://api.themoviedb.org/3/find/" + t.id + "?api_key=" + t.token + "&language=en-US&external_source=imdb_id"
+	resp, err := http.Get(url)
 	if err != nil || resp.StatusCode != 200 {
-		panic("\n\nTried to access API - Response Code: " + resp.Status + "\nRequest Url: " + "https://api.themoviedb.org/3/find/" + t.id + "?api_key=" + t.token + "&language=en-US&external_source=imdb_id\n\n")
+		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status +
+			"\nRequest Url: " + url + "\n\n")
 	} else {
 		body, _ := ioutil.ReadAll(resp.Body)
 
 		var dat map[string][]map[string]interface{}
 
 		if err := json.Unmarshal(body, &dat); err != nil {
-			panic("unmarshal tmdb")
+			return "", errors.New("Error while unmarshalling json response")
 		}
 
 		if len(dat["movie_results"]) == 0 {
-			return ""
+			return "", errors.New("JSON Result did not return a movie, make sure the imdb link is for a movie")
 		}
 		title = dat["movie_results"][0]["title"].(string)
 		release := dat["movie_results"][0]["release_date"].(string)
@@ -63,58 +76,61 @@ func (t tmdb) getTitle() string {
 		title = title + " (" + release + ")"
 	}
 
-	return title
+	return title, nil
 }
 
-func (t tmdb) getDesc() string {
+func (t tmdb) getDesc() (string, error) {
 
 	desc := ""
 
-	resp, err := http.Get("https://api.themoviedb.org/3/find/" + t.id +
-		"?api_key=" + t.token + "&language=en-US&external_source=imdb_id")
+	url := "https://api.themoviedb.org/3/find/" + t.id + "?api_key=" + t.token + "&language=en-US&external_source=imdb_id"
+	resp, err := http.Get(url)
 	if err != nil || resp.StatusCode != 200 {
-		panic("\n\nTried to access API - Response Code: " + resp.Status + "\nRequest Url: " + "https://api.themoviedb.org/3/find/" + t.id + "?api_key=" + t.token + "&language=en-US&external_source=imdb_id\n\n")
+		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status +
+			"\nRequest Url: " + url + "\n\n")
 	} else {
 		body, _ := ioutil.ReadAll(resp.Body)
 
 		var dat map[string][]map[string]interface{}
 
 		if err := json.Unmarshal(body, &dat); err != nil {
-			panic("unmarshal tmdb")
+
+			return "", errors.New("Error while unmarshalling json response")
 		}
 		if len(dat["movie_results"]) == 0 {
-			return ""
+			return "", errors.New("JSON Result did not return a movie, make sure the imdb link is for a movie")
 		}
 		desc = dat["movie_results"][0]["overview"].(string)
 	}
 
-	return desc
+	return desc, nil
 }
 
-func (t tmdb) getPoster() string {
+func (t tmdb) getPoster() (string, error) {
 
 	external_path := ""
 
-	resp, err := http.Get("https://api.themoviedb.org/3/find/" + t.id +
-		"?api_key=" + t.token + "&language=en-US&external_source=imdb_id")
+	url := "https://api.themoviedb.org/3/find/" + t.id + "?api_key=" + t.token + "&language=en-US&external_source=imdb_id"
+	resp, err := http.Get(url)
 	if err != nil || resp.StatusCode != 200 {
-		panic("\n\nTried to access API - Response Code: " + resp.Status + "\nRequest Url: " + "https://api.themoviedb.org/3/find/" + t.id + "?api_key=" + t.token + "&language=en-US&external_source=imdb_id\n\n")
+		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status +
+			"\nRequest Url: " + url + "\n\n")
 	} else {
 		body, _ := ioutil.ReadAll(resp.Body)
 
 		var dat map[string][]map[string]interface{}
 
 		if err := json.Unmarshal(body, &dat); err != nil {
-			panic("unmarshal tmdb")
+			return "", errors.New("Error while unmarshalling json response")
 		}
 		if len(dat["movie_results"]) == 0 {
-			return ""
+			return "", errors.New("JSON Result did not return a movie, make sure the imdb link is for a movie")
 		}
 		external_path = dat["movie_results"][0]["poster_path"].(string)
 	}
 
 	if external_path == "" {
-		return "unknown.jpg"
+		return "unknown.jpg", nil
 	} else {
 		fileurl := "https://image.tmdb.org/t/p/w300" + external_path
 
@@ -123,26 +139,26 @@ func (t tmdb) getPoster() string {
 		err = DownloadFile(path, fileurl)
 
 		if !(err == nil) {
-			panic("AAAAAAAAAA")
+			return "unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
 		}
-		return path
+		return path, nil
 	}
 }
 
-func (j jikan) getTitle() string {
+func (j jikan) getTitle() (string, error) {
 
 	title := ""
 
 	resp, err := http.Get("https://api.jikan.moe/v3/anime/" + j.id)
 	if err != nil || resp.StatusCode != 200 {
-		panic("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n\n")
+		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n\n")
 	} else {
 		body, _ := ioutil.ReadAll(resp.Body)
 
 		var dat map[string]interface{}
 
 		if err := json.Unmarshal(body, &dat); err != nil {
-			panic("unmarshal jikan")
+			return "", errors.New("Error while unmarshalling json response")
 		}
 
 		title = dat["title"].(string)
@@ -152,47 +168,48 @@ func (j jikan) getTitle() string {
 		}
 	}
 
-	return title
+	return title, nil
 }
 
-func (j jikan) getDesc() string {
+func (j jikan) getDesc() (string, error) {
 
 	desc := ""
 
 	resp, err := http.Get("https://api.jikan.moe/v3/anime/" + j.id)
 	if err != nil || resp.StatusCode != 200 {
-		panic("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n\n")
+
+		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n\n")
 	} else {
 		body, _ := ioutil.ReadAll(resp.Body)
 
 		var dat map[string]interface{}
 
 		if err := json.Unmarshal(body, &dat); err != nil {
-			panic("unmarshal jikan")
+			return "", errors.New("Error while unmarshalling json response")
 		}
 
 		desc = dat["synopsis"].(string)
 	}
 
-	return desc
+	return desc, nil
 
 }
 
-func (j jikan) getPoster() string {
+func (j jikan) getPoster() (string, error) {
 
 	fileurl := ""
 
 	// get the file url form the api
 	resp, err := http.Get("https://api.jikan.moe/v3/anime/" + j.id)
 	if err != nil || resp.StatusCode != 200 {
-		panic("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n\n")
+		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n\n")
 	} else {
 		body, _ := ioutil.ReadAll(resp.Body)
 
 		var dat map[string]interface{}
 
 		if err := json.Unmarshal(body, &dat); err != nil {
-			panic(err)
+			return "", errors.New("Error while unmarshalling json response")
 		}
 
 		fileurl = dat["image_url"].(string)
@@ -203,9 +220,9 @@ func (j jikan) getPoster() string {
 	err = DownloadFile(path, fileurl)
 
 	if !(err == nil) {
-		panic("AAAAAAAAAA")
+		return "unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
 	}
-	return path
+	return path, nil
 }
 
 func DownloadFile(filepath string, url string) error {
