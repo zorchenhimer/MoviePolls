@@ -54,8 +54,7 @@ func (t tmdb) getTitle() (string, error) {
 	url := "https://api.themoviedb.org/3/find/" + t.id + "?api_key=" + t.token + "&language=en-US&external_source=imdb_id"
 	resp, err := http.Get(url)
 	if err != nil || resp.StatusCode != 200 {
-		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status +
-			"\nRequest Url: " + url + "\n\n")
+		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\nMaybe check your tmdb api token")
 	} else {
 		body, _ := ioutil.ReadAll(resp.Body)
 
@@ -86,8 +85,8 @@ func (t tmdb) getDesc() (string, error) {
 	url := "https://api.themoviedb.org/3/find/" + t.id + "?api_key=" + t.token + "&language=en-US&external_source=imdb_id"
 	resp, err := http.Get(url)
 	if err != nil || resp.StatusCode != 200 {
-		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status +
-			"\nRequest Url: " + url + "\n\n")
+
+		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\nMaybe check your tmdb api token")
 	} else {
 		body, _ := ioutil.ReadAll(resp.Body)
 
@@ -113,8 +112,8 @@ func (t tmdb) getPoster() (string, error) {
 	url := "https://api.themoviedb.org/3/find/" + t.id + "?api_key=" + t.token + "&language=en-US&external_source=imdb_id"
 	resp, err := http.Get(url)
 	if err != nil || resp.StatusCode != 200 {
-		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status +
-			"\nRequest Url: " + url + "\n\n")
+
+		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\nMaybe check your tmdb api token")
 	} else {
 		body, _ := ioutil.ReadAll(resp.Body)
 
