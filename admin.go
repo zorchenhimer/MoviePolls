@@ -167,6 +167,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		MaxUserVotes           int
 		EntriesRequireApproval bool
 		VotingEnabled          bool
+		TmdbToken              string
 
 		ErrMaxUserVotes bool
 	}{
@@ -220,6 +221,10 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		} else {
 			s.data.SetCfgBool("VotingEnabled", true)
 		}
+
+		tmdbToken := r.PostFormValue("TmdbToken")
+		s.data.SetCfgString("TmdbToken", tmdbToken)
+
 	}
 
 	data.MaxUserVotes, err = s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
@@ -250,6 +255,17 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		err = s.data.SetCfgBool("VotingEnabled", data.VotingEnabled)
 		if err != nil {
 			fmt.Printf("Error saving new configuration value for VotingEnabled: %s\n", err)
+		}
+	}
+
+	data.TmdbToken, err = s.data.GetCfgString("TmdbToken", DefaultTmdbToken)
+	if err != nil {
+		fmt.Printf("Error getting configuration value for TmdbToken: %s\n", err)
+
+		// try to resave new value
+		err = s.data.SetCfgString("TmdbToken", data.TmdbToken)
+		if err != nil {
+			fmt.Printf("Error saving new configuration value for TmdbToken: %s\n", err)
 		}
 	}
 

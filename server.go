@@ -1,12 +1,9 @@
 package moviepoll
 
 import (
-	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -20,9 +17,10 @@ const SessionName string = "moviepoll-session"
 
 // defaults
 const (
-	DefaultMaxUserVotes           int  = 5
-	DefaultEntriesRequireApproval bool = false
-	DefaultVotingEnabled          bool = false
+	DefaultMaxUserVotes           int    = 5
+	DefaultEntriesRequireApproval bool   = false
+	DefaultVotingEnabled          bool   = false
+	DefaultTmdbToken              string = ""
 )
 
 type Options struct {
@@ -257,35 +255,37 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 					match := rgx.FindStringSubmatch(sourcelink)
 					id := match[1]
 
-					jsonFile, err := os.Open("config.json")
+					token, err := s.data.GetCfgString("TmdbToken", "")
 
-					if err != nil {
-						fmt.Println("Could not open config.json")
+					if err != nil || token == "" {
+						data.ErrAutofill = true
+						errText = append(errText, "TmdbToken is either empty or not set in the admin config")
+
+						data.ErrorMessage = errText
+						if err := s.executeTemplate(w, "addmovie", data); err != nil {
+							fmt.Printf("Error rendering template: %v\n", err)
+						}
+						return
+
 					}
 
-					content, err := ioutil.ReadAll(jsonFile)
+					sourceAPI := tmdb{id: id, token: token}
+
+					// Exit early when the title already exists
+					title, err := sourceAPI.getTitle()
 					if err == nil {
-						var config map[string]interface{}
-
-						json.Unmarshal(content, &config)
-						sourceAPI := tmdb{id: id, token: config["tmdb_token"].(string)}
-
-						// Exit early when the title already exists
-						title, err := sourceAPI.getTitle()
+						exists, _ := s.data.CheckMovieExists(title)
 						if err == nil {
-							exists, _ := s.data.CheckMovieExists(title)
-							if err == nil {
-								if exists {
-									data.ErrAutofill = true
-									errText = append(errText, "Movie already exists")
+							if exists {
+								data.ErrAutofill = true
+								errText = append(errText, "Movie already exists")
 
-									data.ErrorMessage = errText
-									if err := s.executeTemplate(w, "addmovie", data); err != nil {
-										fmt.Printf("Error rendering template: %v\n", err)
-									}
-									return
-
+								data.ErrorMessage = errText
+								if err := s.executeTemplate(w, "addmovie", data); err != nil {
+									fmt.Printf("Error rendering template: %v\n", err)
 								}
+								return
+
 							}
 						}
 
@@ -297,7 +297,8 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 						}
 
 					} else {
-						fmt.Println("Could not parse config.json")
+						data.ErrAutofill = true
+						errText = append(errText, err.Error())
 					}
 				} else {
 					data.ErrLinks = true
