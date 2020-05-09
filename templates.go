@@ -108,6 +108,7 @@ type dataAddMovie struct {
 	ErrDescription bool
 	ErrLinks       bool
 	ErrPoster      bool
+	ErrAutofill    bool
 
 	// Values for input if error
 	ValTitle       string
@@ -117,7 +118,7 @@ type dataAddMovie struct {
 }
 
 func (d dataAddMovie) isError() bool {
-	return d.ErrTitle || d.ErrDescription || d.ErrLinks || d.ErrPoster
+	return d.ErrTitle || d.ErrDescription || d.ErrLinks || d.ErrPoster || d.ErrAutofill
 }
 
 type dataAccount struct {

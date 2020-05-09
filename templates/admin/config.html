@@ -20,6 +20,12 @@
         <input type="checkbox" id="VotingEnabled" name="VotingEnabled" {{if .VotingEnabled}}checked {{end}}/>
     </div>
 
+	<div class="configItem">
+        <label for="TmdbToken">Your tMDB Token</label>
+		<input type="text" id="TmdbToken" name="TmdbToken" value="{{.TmdbToken}}"/>
+    </div>
+
+
     <div class="configItem">
         <hr style="width:100%" />
     </div>

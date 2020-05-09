@@ -1,12 +1,9 @@
 package moviepoll
 
 import (
-	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -20,9 +17,10 @@ const SessionName string = "moviepoll-session"
 
 // defaults
 const (
-	DefaultMaxUserVotes           int  = 5
-	DefaultEntriesRequireApproval bool = false
-	DefaultVotingEnabled          bool = false
+	DefaultMaxUserVotes           int    = 5
+	DefaultEntriesRequireApproval bool   = false
+	DefaultVotingEnabled          bool   = false
+	DefaultTmdbToken              string = ""
 )
 
 type Options struct {
@@ -224,8 +222,32 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 					id := match[1]
 
 					sourceAPI := jikan{id: id}
-					// might want to quit early if the movie (title) already exists??
-					results = getMovieData(sourceAPI)
+
+					// Exit early when the title already exists
+					title, err := sourceAPI.getTitle()
+					if err == nil {
+						exists, _ := s.data.CheckMovieExists(title)
+						if err == nil {
+							if exists {
+								data.ErrAutofill = true
+								errText = append(errText, "Movie already exists")
+
+								data.ErrorMessage = errText
+								if err := s.executeTemplate(w, "addmovie", data); err != nil {
+									fmt.Printf("Error rendering template: %v\n", err)
+								}
+								return
+
+							}
+						}
+					}
+
+					results, err = getMovieData(sourceAPI)
+
+					if err != nil {
+						data.ErrAutofill = true
+						errText = append(errText, err.Error())
+					}
 
 				} else if strings.Contains(sourcelink, "imdb") {
 					// Get Data from IMDB (tmdb api)
@@ -233,20 +255,51 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 					match := rgx.FindStringSubmatch(sourcelink)
 					id := match[1]
 
-					jsonFile, err := os.Open("config.json")
+					token, err := s.data.GetCfgString("TmdbToken", "")
 
-					if err != nil {
-						fmt.Println(err)
+					if err != nil || token == "" {
+						data.ErrAutofill = true
+						errText = append(errText, "TmdbToken is either empty or not set in the admin config")
+
+						data.ErrorMessage = errText
+						if err := s.executeTemplate(w, "addmovie", data); err != nil {
+							fmt.Printf("Error rendering template: %v\n", err)
+						}
+						return
+
 					}
 
-					content, _ := ioutil.ReadAll(jsonFile)
+					sourceAPI := tmdb{id: id, token: token}
 
-					var config map[string]interface{}
+					// Exit early when the title already exists
+					title, err := sourceAPI.getTitle()
+					if err == nil {
+						exists, _ := s.data.CheckMovieExists(title)
+						if err == nil {
+							if exists {
+								data.ErrAutofill = true
+								errText = append(errText, "Movie already exists")
 
-					json.Unmarshal(content, &config)
+								data.ErrorMessage = errText
+								if err := s.executeTemplate(w, "addmovie", data); err != nil {
+									fmt.Printf("Error rendering template: %v\n", err)
+								}
+								return
 
-					sourceAPI := tmdb{id: id, token: config["tmdb_token"].(string)}
-					results = getMovieData(sourceAPI)
+							}
+						}
+
+						results, err = getMovieData(sourceAPI)
+
+						if err != nil {
+							data.ErrAutofill = true
+							errText = append(errText, err.Error())
+						}
+
+					} else {
+						data.ErrAutofill = true
+						errText = append(errText, err.Error())
+					}
 				} else {
 					data.ErrLinks = true
 					errText = append(errText, "To use autofill use an imdb or myanimelist link as first link")
