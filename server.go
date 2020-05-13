@@ -216,136 +216,29 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if r.PostFormValue("AutofillBox") == "on" {
+			results, errors, rerenderSite := s.handleAutofill(links, w, r)
 
-			// make sure we have a link to look at
-			if len(links) >= 1 {
-				sourcelink := links[0]
+			if len(errors) > 0 {
+				errText = append(errText, errors...)
+				data.ErrAutofill = true
 
-				var results []string
-
-				if strings.Contains(sourcelink, "myanimelist") {
-					// Get Data from MAL (jikan api)
-					rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/anime\/([0-9]*)`)
-					match := rgx.FindStringSubmatch(sourcelink)
-					id := match[1]
-
-					sourceAPI := jikan{id: id}
-
-					// Exit early when the title already exists
-					title, err := sourceAPI.getTitle()
-					if err == nil {
-						exists, _ := s.data.CheckMovieExists(title)
-						if err == nil {
-							if exists {
-								data.ErrAutofill = true
-								errText = append(errText, "Movie already exists")
-
-								data.ErrorMessage = errText
-								if err := s.executeTemplate(w, "addmovie", data); err != nil {
-									fmt.Printf("Error rendering template: %v\n", err)
-								}
-								return
-
-							}
-						}
+				if rerenderSite {
+					data.ErrorMessage = errText
+					if err := s.executeTemplate(w, "addmovie", data); err != nil {
+						fmt.Printf("Error rendering template: %v\n", err)
 					}
-
-					results, err = getMovieData(sourceAPI)
-
-					if err != nil {
-						data.ErrAutofill = true
-						errText = append(errText, err.Error())
-					}
-
-				} else if strings.Contains(sourcelink, "imdb") {
-					// Get Data from IMDB (tmdb api)
-					rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/title\/(tt[0-9]*)`)
-					match := rgx.FindStringSubmatch(sourcelink)
-					id := match[1]
-
-					token, err := s.data.GetCfgString("TmdbToken", "")
-
-					if err != nil || token == "" {
-						data.ErrAutofill = true
-						errText = append(errText, "TmdbToken is either empty or not set in the admin config")
-
-						data.ErrorMessage = errText
-						if err := s.executeTemplate(w, "addmovie", data); err != nil {
-							fmt.Printf("Error rendering template: %v\n", err)
-						}
-						return
-
-					}
-
-					sourceAPI := tmdb{id: id, token: token}
-
-					// Exit early when the title already exists
-					title, err := sourceAPI.getTitle()
-					if err == nil {
-						exists, _ := s.data.CheckMovieExists(title)
-						if err == nil {
-							if exists {
-								data.ErrAutofill = true
-								errText = append(errText, "Movie already exists")
-
-								data.ErrorMessage = errText
-								if err := s.executeTemplate(w, "addmovie", data); err != nil {
-									fmt.Printf("Error rendering template: %v\n", err)
-								}
-								return
-
-							}
-						}
-
-						results, err = getMovieData(sourceAPI)
-
-						if err != nil {
-							data.ErrAutofill = true
-							errText = append(errText, err.Error())
-						}
-
-					} else {
-						data.ErrAutofill = true
-						errText = append(errText, err.Error())
-					}
-				} else {
-					data.ErrLinks = true
-					errText = append(errText, "To use autofill use an imdb or myanimelist link as first link")
-				}
-
-				if len(results) > 0 {
-
-					if results[0] == "" && results[1] == "" && results[2] == "" {
-						data.ErrLinks = true
-						fmt.Println("The provided imdb link is not a link to a movie!")
-						errText = append(errText, "The provided imdb link is not a link to a movie!")
-					}
-
-					//duplicate check
-					movieExists, err := s.data.CheckMovieExists(results[0])
-					if err != nil {
-						s.doError(
-							http.StatusInternalServerError,
-							fmt.Sprintf("Unable to check if movie exists: %v", err),
-							w, r)
-						return
-					}
-
-					if movieExists {
-						data.ErrLinks = true
-						fmt.Println("Movie exists")
-						errText = append(errText, "Movie already exists")
-					} else {
-						movie.Name = results[0]
-						movie.Description = results[1]
-						movie.Poster = results[2]
-					}
+					return
 				}
 			} else {
-				movie.Name = strings.TrimSpace(r.PostFormValue("MovieName"))
-				movie.Description = strings.TrimSpace(r.PostFormValue("Description"))
-				movie.Poster = "unknown.jpg"
+				movie.Name = results[0]
+				movie.Description = results[1]
+				movie.Poster = results[2]
 			}
+
+		} else {
+			movie.Name = strings.TrimSpace(r.PostFormValue("MovieName"))
+			movie.Description = strings.TrimSpace(r.PostFormValue("Description"))
+			movie.Poster = "unknown.jpg"
 		}
 		var movieId int
 		if !data.isError() {
@@ -457,4 +350,115 @@ func (s *Server) handlerMovie(w http.ResponseWriter, r *http.Request) {
 	if err := s.executeTemplate(w, "movieinfo", data); err != nil {
 		http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
 	}
+}
+
+// outsourced autofill logic
+func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.Request) ([]string, []string, bool) {
+	// internal error log
+	errors := []string{}
+	// bool to check if the site should be rerendered
+	rerenderSite := false
+	// slice for the api results
+	var results []string
+	// make sure we have a link to look at
+	if len(links) >= 1 {
+		sourcelink := links[0]
+
+		if strings.Contains(sourcelink, "myanimelist") {
+			// Get Data from MAL (jikan api)
+			rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/anime\/([0-9]*)`)
+			match := rgx.FindStringSubmatch(sourcelink)
+			id := match[1]
+
+			sourceAPI := jikan{id: id}
+
+			// Return early when the title already exists
+			title, err := sourceAPI.getTitle()
+			if err == nil {
+				exists, _ := s.data.CheckMovieExists(title)
+				if err == nil {
+					if exists {
+						errors = append(errors, "Movie already exists")
+						rerenderSite = true
+						return nil, errors, rerenderSite
+					}
+				}
+			}
+
+			results, err = getMovieData(sourceAPI)
+
+			if err != nil {
+				// error while getting data from the api
+				errors = append(errors, err.Error())
+			}
+
+		} else if strings.Contains(sourcelink, "imdb") {
+			// Retrieve token from database
+			token, err := s.data.GetCfgString("TmdbToken", "")
+			if err != nil || token == "" {
+				errors = append(errors, "TmdbToken is either empty or not set in the admin config")
+				rerenderSite = true
+				return nil, errors, rerenderSite
+			}
+
+			// get the movie id
+			rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/title\/(tt[0-9]*)`)
+			match := rgx.FindStringSubmatch(sourcelink)
+			id := match[1]
+
+			sourceAPI := tmdb{id: id, token: token}
+
+			// Return early when the title already exists
+			title, err := sourceAPI.getTitle()
+			if err == nil {
+				exists, _ := s.data.CheckMovieExists(title)
+				if err == nil {
+					if exists {
+						errors = append(errors, "Movie already exists")
+						rerenderSite = true
+						return nil, errors, rerenderSite
+					}
+				}
+
+				results, err = getMovieData(sourceAPI)
+
+				if err != nil {
+					// errors from getMovieData
+					errors = append(errors, err.Error())
+				}
+
+			} else {
+				// Errors from sourceAPI.getTitle
+				errors = append(errors, err.Error())
+			}
+		} else {
+			// neither IMDB nor MAL link
+			errors = append(errors, "To use autofill use an imdb or myanimelist link as first link")
+		}
+
+		if len(results) > 0 {
+			if results[0] == "" && results[1] == "" && results[2] == "" {
+				errors = append(errors, "The provided imdb link is not a link to a movie!")
+			}
+
+			//duplicate check
+			movieExists, err := s.data.CheckMovieExists(results[0])
+			if err != nil {
+				s.doError(
+					http.StatusInternalServerError,
+					fmt.Sprintf("Unable to check if movie exists: %v", err),
+					w, r)
+				return nil, errors, rerenderSite
+			}
+
+			if movieExists {
+				errors = append(errors, "Movie already exists")
+			}
+		} else {
+			errors = append(errors, "No results retrived from API")
+		}
+	} else {
+		errors = append(errors, "No links to either IMDB or MAL were provided")
+	}
+	return results, errors, rerenderSite
 }
