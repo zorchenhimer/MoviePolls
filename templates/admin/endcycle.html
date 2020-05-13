@@ -1,13 +1,26 @@
 {{define "adminbody"}}
 
-<form method="POST" id="endCycleForm" action="/adimn/endcycle">
+<form method="POST" id="endCycleForm" action="/admin/cycles">
 <div class="adminCenter">
-{{range .Movies}}
+{{if eq .Stage 1}}
+    {{range .Movies}}
+        <div class="adminMovie">
+            <div><input type="checkbox" name="cb_{{.Id}}" /></div>
+            <div>{{len .Votes}}</div>
+            <div>{{.Name}}</div>
+        </div>
+    {{end}}
+    <div><button type="submit" name="action" value="select">Select Movies</button></div>
+    <div><button type="submit" name="action" value="cancel">Cancel</button></div>
+
+{{else if eq .Stage 2}}
+    <div>Movies picked</div>
+    {{range .Movies}}
     <div class="adminMovie">
-        <div><input type="checkbox" /></div>
-        <div>{{len .Votes}}</div>
         <div>{{.Name}}</div>
     </div>
+    {{end}}
+    <div><a href="Start new cycle">Start new cycle</a></div>
 {{end}}
 </div>
 </form>

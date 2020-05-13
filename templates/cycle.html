@@ -7,13 +7,11 @@
 {{ $user := .User }}
 {{ $votingEnabled := .VotingEnabled }}
 <div class="cycleCard">
-    <div class="cycleTitle">
-        Cycle ending eventually.
+    {{if not $votingEnabled}}
+    <div>
+        Voting cerrently disabled.
     </div>
-
-    <div class="cycleMovieHead">
-        Movies this cycle
-    </div>
+    {{end}}
 
     {{if .Cycle}}
     <div class="cycleVotes">

@@ -23,6 +23,14 @@ const (
 	DefaultTmdbToken              string = ""
 )
 
+// configuration keys
+const (
+	ConfigVotingEnabled          string = "VotingEnabled"
+	ConfigMaxUserVotes           string = "MaxUserVotes"
+	ConfigEntriesRequireApproval string = "EntriesRequireApproval"
+	ConfigTmdbToken              string = "TmdbToken"
+)
+
 type Options struct {
 	Listen string // eg, "127.0.0.1:8080" or ":8080" (defaults to 0.0.0.0:8080)
 	Debug  bool   // debug logging to console

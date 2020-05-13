@@ -190,6 +190,10 @@ func (m *mysqlConnector) GetCurrentCycle() (*common.Cycle, error) {
 	return scanCycle(row)
 }
 
+func (m *mysqlConnector) GetCycle(id int) (*common.Cycle, error) {
+	return nil, fmt.Errorf("GetCycle(id) not implemented by MySQL yet")
+}
+
 func (m *mysqlConnector) GetMovie(id int) (*common.Movie, error) {
 	conn, stmt, row, err := m.executeQueryRow("call movie_GetById(?)", id)
 	if err != nil {

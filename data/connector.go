@@ -30,6 +30,8 @@ func register(backend string, initFunc constructor) {
 
 type DataConnector interface {
 	GetCurrentCycle() (*common.Cycle, error) // Return nil when no cycle is active.
+
+	GetCycle(id int) (*common.Cycle, error)
 	GetMovie(id int) (*common.Movie, error)
 	GetUser(id int) (*common.User, error)
 	GetActiveMovies() ([]*common.Movie, error)

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/zorchenhimer/MoviePolls/common"
@@ -217,9 +218,9 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 
 		votingEnabled := r.PostFormValue("VotingEnabled")
 		if votingEnabled == "" {
-			s.data.SetCfgBool("VotingEnabled", false)
+			s.data.SetCfgBool(ConfigVotingEnabled, false)
 		} else {
-			s.data.SetCfgBool("VotingEnabled", true)
+			s.data.SetCfgBool(ConfigVotingEnabled, true)
 		}
 
 		tmdbToken := r.PostFormValue("TmdbToken")
@@ -241,7 +242,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Printf("Error getting configuration value for EntriesRequireApproval: %s\n", err)
 
-		err = s.data.SetCfgBool("EntriesRequireApproval", data.EntriesRequireApproval)
+		err = s.data.SetCfgBool(ConfigEntriesRequireApproval, data.EntriesRequireApproval)
 		if err != nil {
 			fmt.Printf("Error saving new configuration value for EntriesRequireApproval: %s\n", err)
 		}
@@ -252,7 +253,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Error getting configuration value for VotingEnabled: %s\n", err)
 
 		// try to resave new value
-		err = s.data.SetCfgBool("VotingEnabled", data.VotingEnabled)
+		err = s.data.SetCfgBool(ConfigVotingEnabled, data.VotingEnabled)
 		if err != nil {
 			fmt.Printf("Error saving new configuration value for VotingEnabled: %s\n", err)
 		}
@@ -276,6 +277,40 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 	if !s.checkAdminRights(w, r) {
+		return
+	}
+
+	var action string
+	if r.Method == "POST" {
+		action = r.PostFormValue("action")
+	}
+
+	// URL parameters override POST
+	if val := r.URL.Query().Get("action"); val != "" {
+		action = val
+	}
+
+	fmt.Printf("action: %q\n", r.URL.Query().Get("action"))
+	switch action {
+	case "end":
+		//adminEndCycle(w, r)
+		s.cycleStage1(w, r)
+		return
+
+	case "cancel":
+		fmt.Println("Canceling cycle end")
+		err := s.data.SetCfgBool(ConfigVotingEnabled, true)
+		if err != nil {
+			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to disable voting: %v", err), w, r)
+			return
+		}
+
+		r.Method = "GET"
+		http.Redirect(w, r, "/admin/cycles", http.StatusSeeOther)
+		return
+
+	case "select":
+		s.cycleStage2(w, r)
 		return
 	}
 
@@ -329,13 +364,18 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 		Cycle:        cycle,
 	}
 
+	fmt.Println("Executing admin cycles template")
 	if err := s.executeTemplate(w, "adminCycles", data); err != nil {
 		fmt.Printf("Error rendering template: %v\n", err)
 	}
 }
 
-func (s *Server) handlerAdminEndCycle(w http.ResponseWriter, r *http.Request) {
-	if !s.checkAdminRights(w, r) {
+// display movies to select
+func (s *Server) cycleStage1(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("cycleStage1")
+	err := s.data.SetCfgBool(ConfigVotingEnabled, false)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to disable voting: %v", err), w, r)
 		return
 	}
 
@@ -348,15 +388,137 @@ func (s *Server) handlerAdminEndCycle(w http.ResponseWriter, r *http.Request) {
 	ml := common.MovieList(movies)
 	sort.Sort(sort.Reverse(ml))
 
+	err = s.data.SetCfgString("CycleStage", "ended")
+	if err != nil {
+		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to set CycleStage: %v", err), w, r)
+		return
+	}
+
+	currentCycle, err := s.data.GetCurrentCycle()
+	if err != nil || currentCycle == nil {
+		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to get current cycle: %v", err), w, r)
+		return
+	}
+
+	err = s.data.SetCfgString("CycleEnding", fmt.Sprint(currentCycle.Id))
+	if err != nil {
+		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to set ending cycle ID: %v", err), w, r)
+		return
+	}
+
 	data := struct {
 		dataPageBase
+
 		Movies []*common.Movie
+		Stage  int
 	}{
 		dataPageBase: s.newPageBase("Admin - End Cycle", w, r),
-		Movies:       ml,
+
+		Movies: ml,
+		Stage:  1,
 	}
 
 	if err := s.executeTemplate(w, "adminEndCycle", data); err != nil {
 		fmt.Printf("Error rendering template: %v\n", err)
 	}
 }
+
+func (s *Server) cycleStage2(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("cycleStage2")
+
+	// No data received.  re-display list.
+	if r.Method != "POST" {
+		s.cycleStage1(w, r)
+		return
+	}
+
+	//cycleId, err := s.data.GetCfgString("CycleEnding", "")
+	//if err != nil {
+	//	s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to get ending cycle ID: %v", err), w, r)
+	//	return
+	//}
+
+	//var cId int
+	//_, err = fmt.Sscanf(cycleId, "%d", &cId)
+	//if err != nil {
+	//	s.doError(http.StatusInternalServerError, fmt.Sprintf("invalid cycle id in CycleEnding key %q: %v", cycleId, err), w, r)
+	//	return
+	//}
+
+	//cycle, err := s.data.GetCycle(cId)
+	//if err != nil {
+	//	s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to get cycle with ID %d: %v", cId, err), w, r)
+	//	return
+	//}
+
+	var err error
+	if err = r.ParseForm(); err != nil {
+		s.doError(http.StatusInternalServerError, fmt.Sprintf("Parse form error: %v", err), w, r)
+		return
+	}
+	//fmt.Printf("sumbit value: %s\n", r.PostForm.Get("submit"))
+
+	cycle, err := s.data.GetCurrentCycle()
+	if err != nil {
+		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to get current cycle: %v", err), w, r)
+		return
+	}
+
+	movies := []*common.Movie{}
+
+	// Get movie IDs from checkboxes
+	for key, vals := range r.PostForm {
+		//fmt.Printf("%s : (%d) [%s]\n", key, len(vals), strings.Join(vals, " "))
+		if len(vals) > 0 && strings.HasPrefix(key, "cb_") && vals[0] != "" {
+			fmt.Println("scanning for ID")
+			var id int
+			_, err = fmt.Sscanf(key, "cb_%d", &id)
+			if err != nil {
+				fmt.Printf("Error scanning cb_<id> from %q: %v\n", key, err)
+				continue
+			}
+
+			fmt.Printf("selecting movie %s: %d\n", key, id)
+			movie, err := s.data.GetMovie(id)
+			if err != nil {
+				fmt.Printf("Unable to get movie with ID %d: %v", id, err)
+				continue
+			}
+
+			movies = append(movies, movie)
+		}
+	}
+
+	// Set movie as "watched" today
+	watched := time.Now().Local().Round(time.Hour)
+	for _, movie := range movies {
+		fmt.Printf("> setting watched on %s\n", movie.Name)
+		movie.Watched = &watched
+		err = s.data.UpdateMovie(movie)
+		if err != nil {
+			fmt.Printf("Unable to update movie with ID %d: %v", movie.Id, err)
+			continue
+		}
+	}
+
+	cycle.End = &watched
+	if err = s.data.UpdateCycle(cycle); err != nil {
+		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to update cycle: %v", err), w, r)
+		return
+	}
+
+	// Clear status
+	//err = s.data.SetCfgString("CycleStage", "")
+	//if err != nil {
+	//	s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to set CycleStage: %v", err), w, r)
+	//	return
+	//}
+
+	//if err := s.executeTemplate(w, "adminEndCycle", data); err != nil {
+	//	fmt.Printf("Error rendering template: %v\n", err)
+	//}
+
+	// Redirect to admin page
+	http.Redirect(w, r, "/admin/cycles", http.StatusSeeOther)
+}
+

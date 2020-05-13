@@ -27,6 +27,7 @@ type jsonMovie struct {
 }
 
 func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
+	fmt.Println("newJsonMovie()")
 	currentCycle := j.currentCycle()
 	cycleId := 0
 	if currentCycle != nil {
@@ -41,6 +42,7 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 		CycleAddedId: cycleId,
 		Removed:      movie.Removed,
 		Approved:     movie.Approved,
+		Watched:      movie.Watched,
 		Poster:       movie.Poster,
 	}
 }
@@ -143,6 +145,16 @@ func (j *jsonConnector) GetCurrentCycle() (*common.Cycle, error) {
 	defer j.lock.RUnlock()
 
 	return j.currentCycle(), nil
+}
+
+func (j *jsonConnector) GetCycle(id int) (*common.Cycle, error) {
+	for _, c := range j.Cycles {
+		if c.Id == id {
+			return c, nil
+		}
+	}
+
+	return nil, fmt.Errorf("Cycle not found with ID %d", id)
 }
 
 func (j *jsonConnector) AddCycle(end *time.Time) (int, error) {
@@ -527,6 +539,8 @@ func (j *jsonConnector) UpdateMovie(movie *common.Movie) error {
 			newLst = append(newLst, m)
 		}
 	}
+	j.Movies = newLst
+
 	return j.save()
 }
 
@@ -670,12 +684,13 @@ func (j *jsonConnector) GetCfgBool(key string, value bool) (bool, error) {
 		}
 		return bval, nil
 	case CVT_INT:
-		if val.Value.(int) == 0 {
+		if v, ok := val.Value.(int); ok && v == 0 {
 			return false, nil
 		}
 		return true, nil
 	case CVT_BOOL:
-		return val.Value.(bool), nil
+		v, ok := val.Value.(bool)
+		return (ok && v), nil
 	default:
 		return false, fmt.Errorf("Unknown type %d", val.Type)
 	}

@@ -66,7 +66,11 @@ func (s *Server) executeTemplate(w http.ResponseWriter, key string, data interfa
 		return fmt.Errorf("Template with key %q does not exist", key)
 	}
 
-	return t.Execute(w, data)
+	if err := t.Execute(w, data); err != nil {
+		return fmt.Errorf("[%s] %v", key, err)
+	}
+
+	return nil
 }
 
 func (s *Server) newPageBase(title string, w http.ResponseWriter, r *http.Request) dataPageBase {
