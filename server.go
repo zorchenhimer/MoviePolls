@@ -200,8 +200,8 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		}
 
 		movie := &common.Movie{
-			Name:        "dummyname",
-			Description: "dummydesc",
+			Name:        strings.TrimSpace(r.PostFormValue("MovieName")),
+			Description: strings.TrimSpace(r.PostFormValue("Description")),
 			Votes:       []*common.Vote{},
 			Links:       links,
 			Poster:      "data/unknown.jpg", // 165x250
