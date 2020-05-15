@@ -301,7 +301,7 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Canceling cycle end")
 		err := s.data.SetCfgBool(ConfigVotingEnabled, true)
 		if err != nil {
-			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to disable voting: %v", err), w, r)
+			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to enable voting: %v", err), w, r)
 			return
 		}
 
@@ -346,6 +346,13 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Printf("Unable to add cycle: %v\n", err)
 			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to add cycle: %v", err), w, r)
+			return
+		}
+
+		// Re-enable voting after successfully starting a new cycle
+		err = s.data.SetCfgBool(ConfigVotingEnabled, true)
+		if err != nil {
+			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to enable voting: %v", err), w, r)
 			return
 		}
 	}
