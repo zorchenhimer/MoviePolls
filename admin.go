@@ -528,4 +528,3 @@ func (s *Server) cycleStage2(w http.ResponseWriter, r *http.Request) {
 	// Redirect to admin page
 	http.Redirect(w, r, "/admin/cycles", http.StatusSeeOther)
 }
-
