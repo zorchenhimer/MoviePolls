@@ -644,3 +644,7 @@ func (m *mysqlConnector) DeleteCycle(cycleId int) error {
 func (m *mysqlConnector) GetMoviesFromCycle(id int) ([]*common.Movie, error) {
 	return nil, fmt.Errorf("GetMoviesFromCycle() not implemented for MySQL")
 }
+
+func (m *mysqlConnector) SearchMovieTitles(query string) ([]*common.Movie, error) {
+	return nil, fmt.Errorf("SearchMovieTitles() not implemented for MySQL")
+}

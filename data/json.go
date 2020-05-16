@@ -870,3 +870,30 @@ func (j *jsonConnector) DeleteUser(userId int) error {
 	j.Users = newUsers
 	return j.save()
 }
+
+func (j *jsonConnector) SearchMovieTitles(query string) ([]*common.Movie, error) {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
+	found := []*common.Movie{}
+	query = strings.ToLower(query)
+	words := strings.Split(query, " ")
+
+	for _, movie := range j.Movies {
+		ok := true
+		for _, word := range words {
+			if !strings.Contains(movie.Name, word) {
+				ok = false
+				break
+			}
+		}
+
+		if ok {
+			m := j.findMovie(movie.Id)
+			m.Votes = j.findVotes(m)
+			found = append(found, m)
+		}
+	}
+
+	return found, nil
+}

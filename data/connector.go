@@ -36,6 +36,8 @@ type DataConnector interface {
 	GetUser(id int) (*common.User, error)
 	GetActiveMovies() ([]*common.Movie, error)
 
+	SearchMovieTitles(query string) ([]*common.Movie, error)
+
 	GetUserVotes(userId int) ([]*common.Movie, error)
 
 	//GetMovieVotes(userId int) []*Movie
