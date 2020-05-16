@@ -3,6 +3,7 @@ package moviepoll
 import (
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"regexp"
@@ -159,7 +160,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		dataPageBase: s.newPageBase("Add Movie", w, r),
 	}
 
-	err := r.ParseForm()
+	err := r.ParseMultipartForm(4096)
 	if err != nil {
 		fmt.Printf("Error parsing movie form: %v\n", err)
 	}
@@ -167,8 +168,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		errText := []string{}
 
-		linktext := strings.ReplaceAll(r.PostFormValue("Links"), "\r", "")
-		fmt.Printf("linktext: %q\n", linktext)
+		linktext := strings.ReplaceAll(r.FormValue("Links"), "\r", "")
 		data.ValLinks = linktext
 
 		links := strings.Split(linktext, "\n")
@@ -179,8 +179,8 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			errText = append(errText, "Invalid link(s) given.")
 		}
 
-		data.ValTitle = strings.TrimSpace(r.PostFormValue("MovieName"))
-		movieExists, err := s.data.CheckMovieExists(r.PostFormValue("MovieName"))
+		data.ValTitle = strings.TrimSpace(r.FormValue("MovieName"))
+		movieExists, err := s.data.CheckMovieExists(r.FormValue("MovieName"))
 		if err != nil {
 			s.doError(
 				http.StatusInternalServerError,
@@ -195,27 +195,27 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			errText = append(errText, "Movie already exists")
 		}
 
-		if data.ValTitle == "" && !(r.PostFormValue("AutofillBox") == "on") {
+		if data.ValTitle == "" && !(r.FormValue("AutofillBox") == "on") {
 			errText = append(errText, "Missing movie title")
 			data.ErrTitle = true
 		}
 
-		descr := strings.TrimSpace(r.PostFormValue("Description"))
+		descr := strings.TrimSpace(r.FormValue("Description"))
 		data.ValDescription = descr
-		if len(descr) == 0 && !(r.PostFormValue("AutofillBox") == "on") {
+		if len(descr) == 0 && !(r.FormValue("AutofillBox") == "on") {
 			data.ErrDescription = true
 			errText = append(errText, "Missing description")
 		}
 
 		movie := &common.Movie{
-			Name:        strings.TrimSpace(r.PostFormValue("MovieName")),
-			Description: strings.TrimSpace(r.PostFormValue("Description")),
+			Name:        strings.TrimSpace(r.FormValue("MovieName")),
+			Description: strings.TrimSpace(r.FormValue("Description")),
 			Votes:       []*common.Vote{},
 			Links:       links,
 			Poster:      "data/unknown.jpg", // 165x250
 		}
 
-		if r.PostFormValue("AutofillBox") == "on" {
+		if r.FormValue("AutofillBox") == "on" {
 			results, errors, rerenderSite := s.handleAutofill(links, w, r)
 
 			if len(errors) > 0 {
@@ -236,9 +236,17 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			}
 
 		} else {
-			movie.Name = strings.TrimSpace(r.PostFormValue("MovieName"))
-			movie.Description = strings.TrimSpace(r.PostFormValue("Description"))
-			movie.Poster = "unknown.jpg"
+			movie.Name = strings.TrimSpace(r.FormValue("MovieName"))
+			movie.Description = strings.TrimSpace(r.FormValue("Description"))
+
+			file, err := uploadFile(r, strings.TrimSpace(r.FormValue("MovieName")))
+
+			if err != nil {
+				data.ErrPoster = true
+				errText = append(errText, err.Error())
+			} else {
+				movie.Poster = file
+			}
 		}
 		var movieId int
 		if !data.isError() {
@@ -458,7 +466,42 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 			errors = append(errors, "No results retrived from API")
 		}
 	} else {
-		errors = append(errors, "No links to either IMDB or MAL were provided")
+		errors = append(errors, "No links provided")
 	}
 	return results, errors, rerenderSite
+}
+
+func uploadFile(r *http.Request, name string) (filepath string, err error) {
+	// 10 MB upload limit
+	r.ParseMultipartForm(10 << 20)
+
+	file, handler, err := r.FormFile("PosterFile")
+
+	if err != nil {
+		fmt.Printf("%v\n", err.Error())
+		return "", fmt.Errorf("Unalbe to retrive the file")
+	}
+
+	defer file.Close()
+
+	fmt.Printf("Uploaded File: %v - Size %v\n", handler.Filename, handler.Size)
+
+	tempFile, err := ioutil.TempFile("posters", name+"-*.png")
+
+	if err != nil {
+		return "", fmt.Errorf("Error while saving file to disk\n%v\n", err)
+	}
+	defer tempFile.Close()
+
+	fileBytes, err := ioutil.ReadAll(file)
+
+	if err != nil {
+		return "", err
+	}
+
+	tempFile.Write(fileBytes)
+
+	fmt.Printf("Filename: %v\n", tempFile.Name())
+
+	return tempFile.Name(), nil
 }
