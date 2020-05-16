@@ -22,4 +22,15 @@
 
     {{end}}
 </div>
+
+<h2>Past Cycles</h2>
+{{range .Past}}
+    Start: {{.Start}}<br />
+    End: {{.End}}<br />
+    Watched:
+    <ul>
+    {{range .Watched}}<li><a href="/movie/{{.Id}}" target="_blank">{{.Name}}</a></li>{{end}}
+    </ul>
+{{end}}
+
 {{end}}

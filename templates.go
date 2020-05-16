@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	//"time"
+	"time"
 
 	"github.com/zorchenhimer/MoviePolls/common"
 )
@@ -24,6 +24,7 @@ var templateDefs map[string][]string = map[string][]string{
 	"account":     []string{"account.html"},
 	"newaccount":  []string{"newaccount.html"},
 	"error":       []string{"error.html"},
+	"history":     []string{"history.html"},
 
 	"adminHome":     []string{"admin/base.html", "admin/home.html"},
 	"adminConfig":   []string{"admin/base.html", "admin/config.html"},

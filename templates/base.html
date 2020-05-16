@@ -10,6 +10,7 @@
         <div id="header">
             <div id="headTitle"><a href="/" class="titleLink">MoviePolls</a>{{if .PageTitle}} - {{.PageTitle}}{{end}}</div>
             <div id="userButtons">
+                <a href="/history">History</a>
                 {{if .User}}
                     {{if .User.CheckPriv "ADMIN"}}<a href="/admin">Admin</a>{{end}}
                 <a href="/add">Add Movie</a>

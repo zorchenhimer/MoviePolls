@@ -175,3 +175,31 @@ a:hover {
     display:flex;
     flex-direction: column;
 }
+
+.cycleList {
+    display:flex;
+    flex-direction: column;
+    width: 80%;
+}
+
+.cycleListElement {
+    display:flex;
+    flex-direction: column;
+    margin: 1em;
+}
+
+.cycleItemHead {
+}
+
+.cycleMovieWrapper {
+    display:flex;
+    justify-content: space-evenly;
+}
+
+.cycleMovie {
+    display:flex;
+    flex-direction: column;
+}
+
+.cycleMovie img {
+}
