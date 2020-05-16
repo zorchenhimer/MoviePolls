@@ -14,9 +14,9 @@
 </div>
 
 <div id="movieStats" class="movieCol">
-    {{if .Movie.Watched}}
-    <p>Watched: {{.Movie.Watched}}</p>
-    {{else}}
+    {{if .Movie.CycleWatched}}
+    <p>Watched: {{.Movie.CycleWatched.End}}</p>
+    {{end}}
     <div>Added by: somebody{{/* .Movie.AddedBy */}}</div>
     {{if .Movie.Links}}<div><ul>{{range .Movie.Links}}<li><a href="{{.}}">{{.}}</a></li>{{end}}</ul></div>{{end}}
     <div>
@@ -29,7 +29,6 @@
         <p>No votes</p>
         {{end}}
     </div>
-    {{end}}
 </div>
 
 {{end}}

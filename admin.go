@@ -366,10 +366,22 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		dataPageBase
 		Cycle *common.Cycle
+		Past  []*common.Cycle
 	}{
 		dataPageBase: s.newPageBase("Admin - Cycles", w, r),
-		Cycle:        cycle,
+
+		Cycle: cycle,
+		Past:  []*common.Cycle{},
 	}
+
+	pastCycles, err := s.data.GetPastCycles(0, 5)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to get past cycles: %v", err), w, r)
+		return
+	}
+
+	data.Past = pastCycles
+	fmt.Printf("found %d past cycles: %s\n", len(pastCycles), pastCycles)
 
 	fmt.Println("Executing admin cycles template")
 	if err := s.executeTemplate(w, "adminCycles", data); err != nil {
@@ -500,7 +512,7 @@ func (s *Server) cycleStage2(w http.ResponseWriter, r *http.Request) {
 	watched := time.Now().Local().Round(time.Hour)
 	for _, movie := range movies {
 		fmt.Printf("> setting watched on %s\n", movie.Name)
-		movie.Watched = &watched
+		movie.CycleWatched = cycle
 		err = s.data.UpdateMovie(movie)
 		if err != nil {
 			fmt.Printf("Unable to update movie with ID %d: %v", movie.Id, err)

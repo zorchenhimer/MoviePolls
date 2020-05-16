@@ -2,7 +2,7 @@ package common
 
 import (
 	"fmt"
-	"time"
+	//"time"
 )
 
 type Movie struct {
@@ -11,12 +11,11 @@ type Movie struct {
 	Links       []string
 	Description string
 
-	//CycleAddedId int
-	CycleAdded *Cycle
+	CycleAdded   *Cycle
+	CycleWatched *Cycle
 
 	Removed  bool // Removed by a mod or admin
 	Approved bool // Approved by a mod or admin (if required by config)
-	Watched  *time.Time
 
 	Votes []*Vote
 
@@ -39,12 +38,13 @@ func (m Movie) String() string {
 		votes = append(votes, v.User.Name)
 	}
 
-	return fmt.Sprintf("Movie{Id:%d Name:%q Links:%s Description:%q CycleAdded:%s Votes:%s}",
+	return fmt.Sprintf("Movie{Id:%d Name:%q Links:%s Description:%q CycleAdded:%s CycleWatched:%s Votes:%s}",
 		m.Id,
 		m.Name,
 		m.Links,
 		m.Description,
 		m.CycleAdded,
+		m.CycleWatched,
 		votes,
 	)
 }

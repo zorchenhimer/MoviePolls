@@ -42,10 +42,13 @@ type DataConnector interface {
 	UserLogin(name, hashedPw string) (*common.User, error)
 
 	// Return a list of past cycles.  Start and end are an offset from
-	// the current.  Ie, a start of 1 and an end of 5 will get the last
-	// finished cycle and the four preceding it.  The currently active cycle
-	// would be at a start value of 0.
-	GetPastCycles(start, end int) ([]*common.Cycle, error)
+	// the current.  Ie, a start of 0 and an end of 5 will get the last
+	// finished cycle and the four preceding it.  Currently active cycle will
+	// not be returned.
+	GetPastCycles(start, count int) ([]*common.Cycle, error)
+
+	// Get all the movies that belong to the given Cycle
+	GetMoviesFromCycle(id int) ([]*common.Movie, error)
 
 	// TODO: remove AddCycle()
 	//AddCycle(end *time.Time) (int, error)

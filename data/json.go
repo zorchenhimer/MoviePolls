@@ -15,15 +15,15 @@ import (
 
 //type jsonCycle
 type jsonMovie struct {
-	Id           int
-	Name         string
-	Links        []string
-	Description  string
-	CycleAddedId int
-	Removed      bool
-	Approved     bool
-	Watched      *time.Time
-	Poster       string
+	Id             int
+	Name           string
+	Links          []string
+	Description    string
+	CycleAddedId   int
+	CycleWatchedId int
+	Removed        bool
+	Approved       bool
+	Poster string
 }
 
 func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
@@ -34,16 +34,21 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 		cycleId = currentCycle.Id
 	}
 
+	cycleWatched := 0
+	if movie.CycleWatched != nil {
+		cycleWatched = movie.CycleWatched.Id
+	}
+
 	return jsonMovie{
-		Id:           j.nextMovieId(),
-		Name:         movie.Name,
-		Links:        movie.Links,
-		Description:  movie.Description,
-		CycleAddedId: cycleId,
-		Removed:      movie.Removed,
-		Approved:     movie.Approved,
-		Watched:      movie.Watched,
-		Poster:       movie.Poster,
+		Id:             j.nextMovieId(),
+		Name:           movie.Name,
+		Links:          movie.Links,
+		Description:    movie.Description,
+		CycleAddedId:   cycleId,
+		CycleWatchedId: cycleWatched,
+		Removed:        movie.Removed,
+		Approved:       movie.Approved,
+		Poster:         movie.Poster,
 	}
 }
 
@@ -51,6 +56,29 @@ type jsonVote struct {
 	UserId  int
 	MovieId int
 	CycleId int
+}
+
+type jsonCycle struct {
+	Id      int
+	Start   time.Time
+	End     *time.Time
+	Watched []int
+}
+
+func (j *jsonConnector) newJsonCycle(cycle *common.Cycle) jsonCycle {
+	watched := []int{}
+	if cycle.Watched != nil {
+		for _, movie := range cycle.Watched {
+			watched = append(watched, movie.Id)
+		}
+	}
+
+	return jsonCycle{
+		Id:      cycle.Id,
+		Start:   cycle.Start,
+		End:     cycle.End,
+		Watched: watched,
+	}
 }
 
 type jsonConnector struct {
@@ -246,7 +274,7 @@ func (j *jsonConnector) GetActiveMovies() ([]*common.Movie, error) {
 
 	for _, m := range j.Movies {
 		mov, _ := j.GetMovie(m.Id)
-		if mov != nil && m.Watched == nil {
+		if mov != nil && m.CycleWatchedId == 0 {
 			movies = append(movies, mov)
 		}
 	}
@@ -254,10 +282,84 @@ func (j *jsonConnector) GetActiveMovies() ([]*common.Movie, error) {
 	return movies, nil
 }
 
+type sortableCycle []*common.Cycle
+
+func (s sortableCycle) Len() int { return len(s) }
+
+// sort in reverse
+func (s sortableCycle) Less(i, j int) bool { return s[i].Id > s[j].Id }
+func (s sortableCycle) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
 func (j *jsonConnector) GetPastCycles(start, end int) ([]*common.Cycle, error) {
-	// TODO: implement this
-	//return []*common.Cycle{}
-	return nil, fmt.Errorf("GetPastCycles() not implemented for JSON")
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
+	past := sortableCycle{}
+	for _, cycle := range j.Cycles {
+		if cycle.End != nil {
+			past = append(past, cycle)
+		}
+	}
+
+	sort.Sort(past)
+	filtered := []*common.Cycle{}
+	idx := start
+	for i := 0; i < end && i+idx < len(past); i++ {
+		f := past[idx+i]
+		f.Watched = []*common.Movie{}
+
+		fmt.Printf("[GetPastCycles] finding watched movies for cycle %d\n", f.Id)
+		for _, movie := range j.Movies {
+			if movie.CycleWatchedId == f.Id {
+				fmt.Printf("found movie with ID %d\n", movie.Id)
+				f.Watched = append(f.Watched, j.movieFromJson(movie))
+			}
+		}
+
+		filtered = append(filtered, f)
+	}
+
+	return filtered, nil
+}
+
+func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
+	movie := &common.Movie{
+		Id:          jMovie.Id,
+		Name:        jMovie.Name,
+		Description: jMovie.Description,
+		Removed:     jMovie.Removed,
+		Approved:    jMovie.Approved,
+		//CycleAdded:   j.findCycle(jMovie.CycleAddedId),
+		//CycleWatched: j.findCycle(jMovie.CycleWatchedId),
+		Links:  jMovie.Links,
+		Poster: jMovie.Poster,
+	}
+
+	return movie
+}
+
+func (j *jsonConnector) GetMoviesFromCycle(id int) ([]*common.Movie, error) {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
+	watched := j.findCycle(id)
+	if watched == nil {
+		return nil, fmt.Errorf("Cycle with ID %d not found", id)
+	}
+
+	movies := []*common.Movie{}
+	for _, movie := range j.Movies {
+		if movie.CycleWatchedId == id {
+			m := j.movieFromJson(movie)
+
+			m.CycleWatched = watched
+			m.CycleAdded = j.findCycle(movie.CycleAddedId)
+
+			movies = append(movies, j.movieFromJson(movie))
+		}
+	}
+
+	return movies, nil
 }
 
 // UserLogin returns a user if the given username and password match a user.
@@ -385,7 +487,7 @@ func (j *jsonConnector) AddVote(userId, movieId int) error {
 		return fmt.Errorf("Movie not found with ID %d", movieId)
 	}
 
-	if movie.Watched != nil {
+	if movie.CycleWatched != nil {
 		return fmt.Errorf("Movie has already been watched")
 	}
 
@@ -434,25 +536,6 @@ func (j *jsonConnector) DeleteVote(userId, movieId int) error {
 	return j.save()
 }
 
-func (j *jsonConnector) findMovie(id int) *common.Movie {
-	for _, m := range j.Movies {
-		if m.Id == id {
-			return &common.Movie{
-				Id:          id,
-				Name:        m.Name,
-				Description: m.Description,
-				Removed:     m.Removed,
-				Approved:    m.Approved,
-				CycleAdded:  j.findCycle(m.CycleAddedId),
-				Links:       m.Links,
-				Poster:      m.Poster,
-			}
-		}
-	}
-
-	return nil
-}
-
 func (j *jsonConnector) CheckMovieExists(title string) (bool, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
@@ -479,10 +562,38 @@ func (j *jsonConnector) CheckUserExists(name string) (bool, error) {
 	return false, nil
 }
 
+/* Find */
+
+func (j *jsonConnector) findMovie(id int) *common.Movie {
+	if id == 0 {
+		return nil
+	}
+
+	for _, m := range j.Movies {
+		if m.Id == id {
+			movie := j.movieFromJson(m)
+			movie.CycleWatched = j.findCycle(m.CycleWatchedId)
+			movie.CycleAdded = j.findCycle(m.CycleAddedId)
+			//fmt.Printf("[findMovie] added:%s watched:%s\n", watched, added)
+			return movie
+		}
+	}
+
+	return nil
+}
+
 func (j *jsonConnector) findCycle(id int) *common.Cycle {
+	if id == 0 {
+		return nil
+	}
+
 	for _, c := range j.Cycles {
 		if c.Id == id {
-			return c
+			return &common.Cycle{
+				Id:    c.Id,
+				Start: c.Start,
+				End:   c.End,
+			}
 		}
 	}
 	return nil
@@ -511,6 +622,8 @@ func (j *jsonConnector) findUser(id int) *common.User {
 	}
 	return nil
 }
+
+/* Update */
 
 func (j *jsonConnector) UpdateUser(user *common.User) error {
 	j.lock.Lock()
@@ -547,6 +660,9 @@ func (j *jsonConnector) UpdateMovie(movie *common.Movie) error {
 func (j *jsonConnector) UpdateCycle(cycle *common.Cycle) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
+
+	// clear these out
+	cycle.Watched = nil
 
 	newLst := []*common.Cycle{}
 	for _, c := range j.Cycles {
