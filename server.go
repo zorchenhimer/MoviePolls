@@ -96,6 +96,9 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/poster/", server.handlerPoster)
 	mux.HandleFunc("/add", server.handlerAddMovie)
 
+	// list of past cycles
+	mux.HandleFunc("/history", server.handlerHistory)
+
 	mux.HandleFunc("/user", server.handlerUser)
 	mux.HandleFunc("/user/login", server.handlerUserLogin)
 	mux.HandleFunc("/user/logout", server.handlerUserLogout)
@@ -337,10 +340,12 @@ func (s *Server) handlerMovie(w http.ResponseWriter, r *http.Request) {
 
 		if err := s.executeTemplate(w, "movieError", dataError); err != nil {
 			http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
-			fmt.Println(err)
+			fmt.Println("movie not found: " + err.Error())
 		}
 		return
 	}
+
+	fmt.Println(movie)
 
 	data := dataMovieInfo{
 		dataPageBase: s.newPageBase(movie.Name, w, r),
@@ -461,4 +466,41 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 		errors = append(errors, "No links to either IMDB or MAL were provided")
 	}
 	return results, errors, rerenderSite
+}
+
+type historyCycle struct {
+	End     string
+	Watched []*common.Movie
+}
+
+// List of past cycles
+func (s *Server) handlerHistory(w http.ResponseWriter, r *http.Request) {
+	past, err := s.data.GetPastCycles(0, 10)
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			fmt.Sprintf("something went wrong :C"),
+			w, r)
+		fmt.Println("Unable to get past cycles: ", err)
+		return
+	}
+
+	data := struct {
+		dataPageBase
+		Cycles []historyCycle
+	}{
+		dataPageBase: s.newPageBase("Add Movie", w, r),
+		Cycles:       []historyCycle{},
+	}
+
+	for _, cycle := range past {
+		data.Cycles = append(data.Cycles, historyCycle{
+			End:     cycle.End.Format("Jan 06"),
+			Watched: cycle.Watched,
+		})
+	}
+
+	if err := s.executeTemplate(w, "history", data); err != nil {
+		fmt.Printf("Error rendering template: %v\n", err)
+	}
 }

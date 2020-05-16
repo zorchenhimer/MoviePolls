@@ -10,7 +10,10 @@ type Cycle struct {
 
 	Start time.Time
 	End   *time.Time
-	//EndingSet bool // has an end time been set? (ignore End value if false)
+
+	// List of movies watched this cycle.  If cycle has not ended, this will be
+	// nil.
+	Watched []*Movie
 }
 
 func (c Cycle) StartString() string {

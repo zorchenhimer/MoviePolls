@@ -309,7 +309,7 @@ func scanMovie(s rowScanner) (*common.Movie, error) {
 		&cyc.Id,
 		&removed,
 		&approved,
-		&mov.Watched,
+		//&mov.Watched,
 		&mov.Poster,
 		&start,
 		&end,
@@ -439,7 +439,7 @@ func (m *mysqlConnector) AddMovie(movie *common.Movie) (int, error) {
 		movie.CycleAdded.Id,
 		movie.Removed,
 		movie.Approved,
-		movie.Watched,
+		//movie.Watched,
 		movie.Poster,
 	)
 }
@@ -639,4 +639,8 @@ func (m *mysqlConnector) DeleteMovie(movieId int) error {
 func (m *mysqlConnector) DeleteCycle(cycleId int) error {
 	_, err := m.executeStatement("call cycle_Delete(?)", cycleId)
 	return err
+}
+
+func (m *mysqlConnector) GetMoviesFromCycle(id int) ([]*common.Movie, error) {
+	return nil, fmt.Errorf("GetMoviesFromCycle() not implemented for MySQL")
 }
