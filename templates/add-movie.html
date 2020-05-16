@@ -1,7 +1,7 @@
 {{define "header"}}{{end}}
 
 {{define "body"}}
-<form method="POST" action="/add">
+<form method="POST" action="/add" enctype="multipart/form-data">
     {{if .ErrorMessage}}<div class="errorMessage"><ul>{{range .ErrorMessage}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
     <div id="addMovieForm">
         <div class="movieInput">
@@ -17,7 +17,7 @@
         </div>
         <div class="movieInput">
             <div{{if .ErrPoster}} class="errorMessage"{{end}}><label for="PosterFile">Poster Image<label></div>
-            <div><input type="file" name="PosterFile" id="PosterFile" /></div>
+            <div><input type="file" name="PosterFile" id="PosterFile" accept="image/*"/></div>
         </div>
 		<div class="movieInput">
 			<div{{if .ErrAutofill}} class="errorMessage"{{end}}><label for="AutofillBox">Autofill Data with the provided Link<label></div>
