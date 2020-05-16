@@ -23,7 +23,7 @@ type jsonMovie struct {
 	CycleWatchedId int
 	Removed        bool
 	Approved       bool
-	Poster string
+	Poster         string
 }
 
 func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
