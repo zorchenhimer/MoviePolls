@@ -104,19 +104,19 @@ func compareUsers(a, b *common.User, t *testing.T) {
 	//}
 
 	if a.Email != b.Email {
-		t.Fatalf("Email mismatch: %q vs %q", a.Email, b.Email)
+		t.Fatalf("[User %d] Email mismatch: %q vs %q", a.Id, a.Email, b.Email)
 	}
 
 	if a.NotifyCycleEnd != b.NotifyCycleEnd {
-		t.Fatalf("NotifyCycleEnd mismatch: %t vs %t", a.NotifyCycleEnd, b.NotifyCycleEnd)
+		t.Fatalf("[User %d] NotifyCycleEnd mismatch: %t vs %t", a.Id, a.NotifyCycleEnd, b.NotifyCycleEnd)
 	}
 
 	if a.NotifyVoteSelection != b.NotifyVoteSelection {
-		t.Fatalf("NotifyVoteSelection mismatch: %t vs %t", a.NotifyVoteSelection, b.NotifyVoteSelection)
+		t.Fatalf("[User %d] NotifyVoteSelection mismatch: %t vs %t", a.Id, a.NotifyVoteSelection, b.NotifyVoteSelection)
 	}
 
 	if a.PassDate != b.PassDate {
-		t.Fatalf("PassDate mismatch: %s vs %s", a.PassDate, b.PassDate)
+		t.Fatalf("[User %d] PassDate mismatch: %s vs %s", a.Id, a.PassDate, b.PassDate)
 	}
 
 	//if user.RateLimitOverride != loggedIn.RateLimitOverride {
@@ -178,7 +178,7 @@ func compareCycles(a, b *common.Cycle, t *testing.T) {
 		t.Fatalf("Cycle start mismatch: %s vs %s", a.Start, b.Start)
 	}
 
-	if a.End != b.End {
+	if (a.End == nil && b.End != nil) || (a.End != nil && b.End == nil) || (!a.End.Equal(*b.End)) {
 		t.Fatalf("Cycle end mismatch: %s vs %s", a.End, b.End)
 	}
 }

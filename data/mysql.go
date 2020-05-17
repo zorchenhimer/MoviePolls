@@ -216,11 +216,12 @@ func (m *mysqlConnector) GetUser(id int) (*common.User, error) {
 	user := &common.User{}
 	var notifyEnd mysqlBool
 	var notifySelected mysqlBool
+	var email sql.NullString
 
 	err = row.Scan(
 		&user.Id,
 		&user.Name,
-		&user.Email,
+		&email,
 		&notifyEnd,
 		&notifySelected,
 		&user.Privilege,
@@ -232,6 +233,9 @@ func (m *mysqlConnector) GetUser(id int) (*common.User, error) {
 
 	user.NotifyCycleEnd = notifyEnd.Value(false)
 	user.NotifyVoteSelection = notifySelected.Value(false)
+	if email.Valid {
+		user.Email = email.String
+	}
 
 	return user, nil
 }
@@ -535,11 +539,12 @@ func (m *mysqlConnector) GetUsers(start, count int) ([]*common.User, error) {
 
 		var notifyCycle mysqlBool
 		var notifySelection mysqlBool
+		var email sql.NullString
 
 		err := rows.Scan(
 			&u.Id,
 			&u.Name,
-			&u.Email,
+			&email,
 			&notifyCycle,
 			&notifySelection,
 			&u.Privilege,
@@ -552,6 +557,9 @@ func (m *mysqlConnector) GetUsers(start, count int) ([]*common.User, error) {
 
 		u.NotifyCycleEnd = notifyCycle.Value(false)
 		u.NotifyVoteSelection = notifySelection.Value(false)
+		if email.Valid {
+			u.Email = email.String
+		}
 
 		ulist = append(ulist, u)
 	}

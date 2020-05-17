@@ -64,18 +64,18 @@ func Test_AddMovie(t *testing.T) {
 		t.Skip("Skipping due to previous failure")
 	}
 
-	testDate := time.Now().Unix()
-	movieName := fmt.Sprintf("Test Movie %d", testDate)
+	testDate := time.Now().Local()
+	movieName := fmt.Sprintf("Test Movie %d", testDate.Unix())
 
 	// Add Movie
 	m := &common.Movie{
 		Name: movieName,
 		Links: []string{
-			fmt.Sprintf("http://example.com/1/%d", testDate),
-			fmt.Sprintf("https://example.com/2/%d", testDate),
+			fmt.Sprintf("http://example.com/1/%d", testDate.Unix()),
+			fmt.Sprintf("https://example.com/2/%d", testDate.Unix()),
 		},
 		Description: fmt.Sprintf("%s description", movieName),
-		CycleAdded:  &common.Cycle{Id: cycleId},
+		CycleAdded:  testCycle,
 		Removed:     true,
 		Approved:    false,
 		Votes:       []*common.Vote{},
@@ -401,7 +401,7 @@ func Test_CfgString(t *testing.T) {
 
 // TODO: fix this test
 func nope_TestJson_DecayVotes(t *testing.T) {
-	now := time.Now()
+	now := time.Now().Local()
 	uid, err := conn.AddUser(&common.User{Name: "Test User"})
 	if err != nil {
 		t.Fatal(err)

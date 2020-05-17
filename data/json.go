@@ -171,6 +171,10 @@ func (j *jsonConnector) currentCycle() *common.Cycle {
 
 	for _, c := range j.Cycles {
 		if c.End == nil || c.End.After(now) {
+			if c.End != nil {
+				end := (*c.End).Round(time.Second)
+				c.End = &end
+			}
 			return c
 		}
 	}
@@ -187,6 +191,11 @@ func (j *jsonConnector) GetCurrentCycle() (*common.Cycle, error) {
 func (j *jsonConnector) GetCycle(id int) (*common.Cycle, error) {
 	for _, c := range j.Cycles {
 		if c.Id == id {
+			c.Start = c.Start.Round(time.Second)
+			if c.End != nil {
+				end := (*c.End).Round(time.Second)
+				c.End = &end
+			}
 			return c, nil
 		}
 	}
@@ -204,7 +213,7 @@ func (j *jsonConnector) AddCycle(end *time.Time) (int, error) {
 
 	c := &common.Cycle{
 		Id:    j.nextCycleId(),
-		Start: time.Now(),
+		Start: time.Now().Round(time.Second),
 		End:   end,
 	}
 
@@ -222,6 +231,11 @@ func (j *jsonConnector) AddOldCycle(c *common.Cycle) (int, error) {
 	}
 
 	c.Id = j.nextCycleId()
+	c.Start = c.Start.Round(time.Second)
+	if c.End != nil {
+		end := (*c.End).Round(time.Second)
+		c.End = &end
+	}
 
 	j.Cycles = append(j.Cycles, c)
 	return c.Id, j.save()
@@ -632,11 +646,15 @@ func (j *jsonConnector) findCycle(id int) *common.Cycle {
 
 	for _, c := range j.Cycles {
 		if c.Id == id {
-			return &common.Cycle{
+			cycle := &common.Cycle{
 				Id:    c.Id,
-				Start: c.Start,
-				End:   c.End,
+				Start: c.Start.Round(time.Second),
 			}
+			if c.End != nil {
+				end := (*c.End).Round(time.Second)
+				cycle.End = &end
+			}
+			return cycle
 		}
 	}
 	return nil
@@ -783,9 +801,9 @@ func (j *jsonConnector) GetCfgString(key, value string) (string, error) {
 	case CVT_STRING:
 		return val.Value.(string), nil
 	case CVT_INT:
-		return fmt.Sprintf("%d", val.Value.(int)), nil
+		return "", fmt.Errorf("%q is an INT key, not a STRING key", key)
 	case CVT_BOOL:
-		return fmt.Sprintf("%t", val.Value.(bool)), nil
+		return "", fmt.Errorf("%q is a BOOL key, not a STRING key", key)
 	default:
 		return "", fmt.Errorf("Unknown type %d", val.Type)
 	}
@@ -803,12 +821,7 @@ func (j *jsonConnector) GetCfgInt(key string, value int) (int, error) {
 
 	switch val.Type {
 	case CVT_STRING:
-		ival, err := strconv.ParseInt(val.Value.(string), 10, 32)
-		if err != nil {
-			return 0, fmt.Errorf("Int parse error: %s", err)
-		}
-
-		return int(ival), nil
+		return 0, fmt.Errorf("%q is a STRING key, not an INT key", key)
 	case CVT_INT:
 		if val, ok := val.Value.(int); ok {
 			return val, nil
@@ -818,10 +831,7 @@ func (j *jsonConnector) GetCfgInt(key string, value int) (int, error) {
 		}
 		return 0, fmt.Errorf("Unknown number type for %s", key)
 	case CVT_BOOL:
-		if val.Value.(bool) == true {
-			return 1, nil
-		}
-		return 0, nil
+		return 0, fmt.Errorf("%q is a BOOL key, not an INT key", key)
 	default:
 		return 0, fmt.Errorf("Unknown type %d", val.Type)
 	}
@@ -845,10 +855,7 @@ func (j *jsonConnector) GetCfgBool(key string, value bool) (bool, error) {
 		}
 		return bval, nil
 	case CVT_INT:
-		if v, ok := val.Value.(int); ok && v == 0 {
-			return false, nil
-		}
-		return true, nil
+		return false, fmt.Errorf("%q is an INT key, not a BOOL key", key)
 	case CVT_BOOL:
 		v, ok := val.Value.(bool)
 		return (ok && v), nil
