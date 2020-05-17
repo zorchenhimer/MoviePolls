@@ -934,7 +934,7 @@ func (j *jsonConnector) SearchMovieTitles(query string) ([]*common.Movie, error)
 	for _, movie := range j.Movies {
 		ok := true
 		for _, word := range words {
-			if !strings.Contains(movie.Name, word) {
+			if !strings.Contains(strings.ToLower(movie.Name), word) {
 				ok = false
 				break
 			}
