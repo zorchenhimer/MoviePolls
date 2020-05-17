@@ -6,6 +6,13 @@
 {{ $voteListSize := 10 }}
 {{ $user := .User }}
 {{ $votingEnabled := .VotingEnabled }}
+
+<div class="searchbar">
+	<form action="/" method="post">
+		<input type="text" placeholder="Search..." name="search">
+		<button type="submit">Submit</button>
+	</form>
+</div>
 <div class="cycleCard">
     {{if not $votingEnabled}}
     <div>

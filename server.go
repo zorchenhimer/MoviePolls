@@ -291,15 +291,32 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	activeMovies, err := s.data.GetActiveMovies()
-	if err != nil {
-		s.doError(
-			http.StatusBadRequest,
-			fmt.Sprintf("Cannot get active movies: %v", err),
-			w, r)
-		return
-	}
+	movieList := []*common.Movie{}
 
+	if r.Body != http.NoBody {
+		err := r.ParseForm()
+		if err != nil {
+			fmt.Printf("[ERR] %v\n", err)
+		}
+		searchVal := r.FormValue("search")
+		fmt.Printf("%v\n", searchVal)
+
+		movieList, err = s.data.SearchMovieTitles(searchVal)
+		if err != nil {
+			fmt.Printf("[ERR] %v\n", err)
+		}
+		fmt.Printf("%v\n", movieList)
+	} else {
+		var err error = nil
+		movieList, err = s.data.GetActiveMovies()
+		if err != nil {
+			s.doError(
+				http.StatusBadRequest,
+				fmt.Sprintf("Cannot get active movies: %v", err),
+				w, r)
+			return
+		}
+	}
 	data := struct {
 		dataPageBase
 
@@ -311,7 +328,7 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		dataPageBase: s.newPageBase("Current Cycle", w, r),
 
 		Cycle:  &common.Cycle{}, //s.data.GetCurrentCycle(),
-		Movies: activeMovies,
+		Movies: movieList,
 	}
 
 	data.VotingEnabled, _ = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
