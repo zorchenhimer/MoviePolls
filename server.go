@@ -299,13 +299,11 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("[ERR] %v\n", err)
 		}
 		searchVal := r.FormValue("search")
-		fmt.Printf("%v\n", searchVal)
 
 		movieList, err = s.data.SearchMovieTitles(searchVal)
 		if err != nil {
 			fmt.Printf("[ERR] %v\n", err)
 		}
-		fmt.Printf("%v\n", movieList)
 	} else {
 		var err error = nil
 		movieList, err = s.data.GetActiveMovies()
