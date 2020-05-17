@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	//"runtime/debug"
 
 	"github.com/zorchenhimer/MoviePolls/common"
 )
@@ -27,7 +28,7 @@ type jsonMovie struct {
 }
 
 func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
-	fmt.Println("newJsonMovie()")
+	//fmt.Println("newJsonMovie()")
 	currentCycle := j.currentCycle()
 	cycleId := 0
 	if currentCycle != nil {
@@ -39,8 +40,13 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 		cycleWatched = movie.CycleWatched.Id
 	}
 
+	id := j.nextMovieId()
+	//fmt.Printf("newJsonMovie(): %d\n", id)
+
+	//debug.PrintStack()
+
 	return jsonMovie{
-		Id:             j.nextMovieId(),
+		Id:             id,
 		Name:           movie.Name,
 		Links:          movie.Links,
 		Description:    movie.Description,
@@ -97,10 +103,13 @@ type jsonConnector struct {
 }
 
 func init() {
-	register("json", newJsonConnector)
+	register("json", func(connStr string) (DataConnector, error) {
+		dc, err := newJsonConnector(connStr)
+		return DataConnector(dc), err
+	})
 }
 
-func newJsonConnector(filename string) (DataConnector, error) {
+func newJsonConnector(filename string) (*jsonConnector, error) {
 	if common.FileExists(filename) {
 		return loadJson(filename)
 	}
@@ -161,7 +170,7 @@ func (j *jsonConnector) currentCycle() *common.Cycle {
 	now := time.Now().Local().Round(time.Second)
 
 	for _, c := range j.Cycles {
-		if c.Start.Before(now) && (c.End == nil || c.End.After(now)) {
+		if c.End == nil || c.End.After(now) {
 			return c
 		}
 	}
@@ -231,7 +240,7 @@ func (j *jsonConnector) nextCycleId() int {
 func (j *jsonConnector) nextMovieId() int {
 	highest := 0
 	for _, m := range j.Movies {
-		if m.Id > highest {
+		if m.Id >= highest {
 			highest = m.Id
 		}
 	}
@@ -242,14 +251,15 @@ func (j *jsonConnector) AddMovie(movie *common.Movie) (int, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
-	fmt.Printf("Adding movie %s\n", movie.String())
 	if j.Movies == nil {
 		j.Movies = []jsonMovie{}
 	}
 
 	m := j.newJsonMovie(movie)
+	//fmt.Printf("Adding movie %s\n", m.String())
 	j.Movies = append(j.Movies, m)
 
+	//fmt.Printf("AddMovie() ID: %d\n", m.Id)
 	return m.Id, j.save()
 }
 
@@ -440,7 +450,39 @@ func (j *jsonConnector) GetUserVotes(userId int) ([]*common.Movie, error) {
 			}
 		}
 	}
+
 	return votes, nil
+}
+
+func (j *jsonConnector) DecayVotes(age int) error {
+	sortable := sortableCycle(j.Cycles)
+	sort.Sort(sortable)
+
+	idLimit := 0
+	for i, cycle := range sortable {
+		if i >= age {
+			idLimit = cycle.Id
+			break
+		}
+	}
+
+	active, err := j.GetActiveMovies()
+	if err != nil {
+		return fmt.Errorf("Error getting active movies: %v", err)
+	}
+
+	for _, movie := range active {
+		for _, vote := range movie.Votes {
+			if vote.CycleAdded.Id < idLimit {
+				err = j.DeleteVote(vote.User.Id, vote.Movie.Id)
+				if err != nil {
+					return fmt.Errorf("Error deleting vote by user ID %d for movie ID %d: %v", vote.User.Id, vote.Movie.Id, err)
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func (j *jsonConnector) nextUserId() int {
@@ -579,6 +621,7 @@ func (j *jsonConnector) findMovie(id int) *common.Movie {
 		}
 	}
 
+	fmt.Printf("findMovie() not found with ID %d\n", id)
 	return nil
 }
 
@@ -647,7 +690,9 @@ func (j *jsonConnector) UpdateMovie(movie *common.Movie) error {
 	newLst := []jsonMovie{}
 	for _, m := range j.Movies {
 		if m.Id == movie.Id {
-			newLst = append(newLst, j.newJsonMovie(movie))
+			newM := j.newJsonMovie(movie)
+			newM.Id = m.Id
+			newLst = append(newLst, newM)
 		} else {
 			newLst = append(newLst, m)
 		}
@@ -896,4 +941,28 @@ func (j *jsonConnector) SearchMovieTitles(query string) ([]*common.Movie, error)
 	}
 
 	return found, nil
+}
+
+func (j *jsonConnector) DeleteCycle(cycleId int) error {
+	return fmt.Errorf("DeleteCycle() not implemented for JSON")
+}
+
+func (j *jsonConnector) DeleteMovie(movieId int) error {
+	return fmt.Errorf("DeleteMovie() not implemented for JSON")
+}
+
+func (j *jsonConnector) Test_GetUserVotes(userId int) ([]*common.Vote, error) {
+	votes := []*common.Vote{}
+	for _, vote := range j.Votes {
+		if vote.UserId != userId {
+			continue
+		}
+		u := j.findUser(vote.UserId)
+		m := j.findMovie(vote.MovieId)
+		c := j.findCycle(vote.CycleId)
+
+		//fmt.Printf("Test_GetUserVotes() movie: %s\n", m)
+		votes = append(votes, &common.Vote{CycleAdded: c, Movie: m, User: u})
+	}
+	return votes, nil
 }

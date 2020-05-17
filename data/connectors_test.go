@@ -2,7 +2,7 @@ package data
 
 import (
 	"fmt"
-	"os"
+	//"os"
 	"testing"
 	"time"
 
@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	mc TestableDataConnector
+	conn TestableDataConnector
 
 	testUser  *common.User
 	testMovie *common.Movie
@@ -20,27 +20,14 @@ var (
 	cycleId int
 	movieId int
 
-	err error
-
 	userFail  bool
 	movieFail bool
 	cycleFail bool
 )
 
-func TestMain(m *testing.M) {
-	var err error
-	mc, err = newMySqlConnector("root:buttslol@tcp(127.0.0.1:3306)/moviepolls?parseTime=true&loc=Local")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	os.Exit(m.Run())
-}
-
-func TestMySql_AddCycle(t *testing.T) {
+func Test_AddCycle(t *testing.T) {
 	future := time.Now().Local().AddDate(0, 0, 7)
-	cycleId, err = mc.AddCycle(&future)
+	cycleId, err = conn.AddCycle(&future)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,12 +39,12 @@ func TestMySql_AddCycle(t *testing.T) {
 	t.Logf("created cycle Id: %d", cycleId)
 }
 
-func TestMySql_GetCurrentCycle(t *testing.T) {
+func Test_GetCurrentCycle(t *testing.T) {
 	if cycleId < 1 {
 		t.Skip("Skipping due to previous failure")
 	}
 
-	cycle, err := mc.GetCurrentCycle()
+	cycle, err := conn.GetCurrentCycle()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +59,7 @@ func TestMySql_GetCurrentCycle(t *testing.T) {
 	testCycle = cycle
 }
 
-func TestMySql_AddMovie(t *testing.T) {
+func Test_AddMovie(t *testing.T) {
 	if testCycle == nil {
 		t.Skip("Skipping due to previous failure")
 	}
@@ -95,7 +82,7 @@ func TestMySql_AddMovie(t *testing.T) {
 		Poster:      "unknown.jpg",
 	}
 
-	movieId, err = mc.AddMovie(m)
+	movieId, err = conn.AddMovie(m)
 	if err != nil {
 		movieFail = true
 		t.Fatal(err)
@@ -109,12 +96,12 @@ func TestMySql_AddMovie(t *testing.T) {
 	testMovie = m
 }
 
-func TestMySql_GetMovie(t *testing.T) {
+func Test_GetMovie(t *testing.T) {
 	if testMovie == nil {
 		t.Skip("Skipping due to previous failure")
 	}
 
-	movie, err := mc.GetMovie(movieId)
+	movie, err := conn.GetMovie(movieId)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,12 +113,12 @@ func TestMySql_GetMovie(t *testing.T) {
 	compareMovies(testMovie, movie, t)
 }
 
-func TestMySql_GetActiveMovies(t *testing.T) {
+func Test_GetActiveMovies(t *testing.T) {
 	if testMovie == nil {
 		t.Skip("Skipping due to previous failure")
 	}
 
-	active, err := mc.GetActiveMovies()
+	active, err := conn.GetActiveMovies()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,20 +134,20 @@ func TestMySql_GetActiveMovies(t *testing.T) {
 	compareMovies(testMovie, movie, t)
 }
 
-func TestMySql_CheckMovieExists_True(t *testing.T) {
+func Test_CheckMovieExists_True(t *testing.T) {
 	if testMovie == nil {
 		t.Skip("Skipping due to previous failure")
 	}
 
-	if ok, err := mc.CheckMovieExists(testMovie.Name); err != nil {
+	if ok, err := conn.CheckMovieExists(testMovie.Name); err != nil {
 		t.Fatal(err)
 	} else if !ok {
 		t.Fatal("CheckMovieExists() failed")
 	}
 }
 
-func TestMySql_CheckMovieExists_False(t *testing.T) {
-	val, err := mc.CheckMovieExists("doesn't exist")
+func Test_CheckMovieExists_False(t *testing.T) {
+	val, err := conn.CheckMovieExists("doesn't exist")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +157,7 @@ func TestMySql_CheckMovieExists_False(t *testing.T) {
 	}
 }
 
-func TestMySql_AddUser(t *testing.T) {
+func Test_AddUser(t *testing.T) {
 	passDate := time.Now().UTC().Truncate(time.Second)
 	name := fmt.Sprintf("test_user_parts_%d", passDate.Unix())
 	testUser = &common.User{
@@ -187,7 +174,7 @@ func TestMySql_AddUser(t *testing.T) {
 		LastMovieAdd:        passDate.Add(time.Hour),
 	}
 
-	uid, err := mc.AddUser(testUser)
+	uid, err := conn.AddUser(testUser)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,12 +185,12 @@ func TestMySql_AddUser(t *testing.T) {
 	}
 }
 
-func TestMySql_GetUser(t *testing.T) {
+func Test_GetUser(t *testing.T) {
 	if testUser == nil || testUser.Id == -1 {
 		t.Fatal("Skipping due to previous failure")
 	}
 
-	u, err := mc.GetUser(testUser.Id)
+	u, err := conn.GetUser(testUser.Id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,12 +202,12 @@ func TestMySql_GetUser(t *testing.T) {
 	compareUsers(testUser, u, t)
 }
 
-func TestMySql_CheckUserExists(t *testing.T) {
+func Test_CheckUserExists(t *testing.T) {
 	if testUser == nil || testUser.Id == -1 {
 		t.Skip("Skipping due to previous failure")
 	}
 
-	exist, err := mc.CheckUserExists(testUser.Name)
+	exist, err := conn.CheckUserExists(testUser.Name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,12 +217,12 @@ func TestMySql_CheckUserExists(t *testing.T) {
 	}
 }
 
-func TestMySql_UserLogin(t *testing.T) {
+func Test_UserLogin(t *testing.T) {
 	if testUser == nil || testUser.Id == -1 {
 		t.Skip("Skipping due to previous failure")
 	}
 
-	u, err := mc.UserLogin(testUser.Name, testUser.Password)
+	u, err := conn.UserLogin(testUser.Name, testUser.Password)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,12 +234,12 @@ func TestMySql_UserLogin(t *testing.T) {
 	compareUsers(testUser, u, t)
 }
 
-func TestMySql_GetUsers(t *testing.T) {
+func Test_GetUsers(t *testing.T) {
 	if testUser == nil || testUser.Id == -1 {
 		t.Skip("Skipping due to previous failure")
 	}
 
-	lst, err := mc.GetUsers(0, 100)
+	lst, err := conn.GetUsers(0, 100)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,48 +260,48 @@ func TestMySql_GetUsers(t *testing.T) {
 }
 
 func testMySql_GetUserVotes(t *testing.T) {
-	t.Fatal("Not implemented")
+	t.Skip("Test Not implemented")
 }
 
 func testMySql_GetPastCycles(t *testing.T) {
-	t.Fatal("Not implemented")
+	t.Skip("Test Not implemented")
 }
 
-func TestMySql_AddOldCycle(t *testing.T) {
-	t.Fatal("Not implemented")
+func Test_AddOldCycle(t *testing.T) {
+	t.Skip("Test Not implemented")
 }
 
-func TestMySql_AddVote(t *testing.T) {
-	t.Fatal("Not implemented")
+func Test_AddVote(t *testing.T) {
+	t.Skip("Test Not implemented")
 }
 
-func TestMySql_UpdateUser(t *testing.T) {
-	t.Fatal("Not implemented")
+func Test_UpdateUser(t *testing.T) {
+	t.Skip("Test Not implemented")
 }
 
-func TestMySql_UpdateMovie(t *testing.T) {
-	t.Fatal("Not implemented")
+func Test_UpdateMovie(t *testing.T) {
+	t.Skip("Test Not implemented")
 }
 
-func TestMySql_UpdateCycle(t *testing.T) {
-	t.Fatal("Not implemented")
+func Test_UpdateCycle(t *testing.T) {
+	t.Skip("Test Not implemented")
 }
 
-func TestMySql_UserVotedForMovie(t *testing.T) {
-	t.Fatal("Not implemented")
+func Test_UserVotedForMovie(t *testing.T) {
+	t.Skip("Test Not implemented")
 }
 
-func TestSql_CfgInt(t *testing.T) {
+func Test_CfgInt(t *testing.T) {
 	testDate := time.Now().Unix()
 	data := int(testDate)
 	key := fmt.Sprintf("test int %d", testDate)
 
-	err := mc.SetCfgInt(key, data)
+	err := conn.SetCfgInt(key, data)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	val, err := mc.GetCfgInt(key)
+	val, err := conn.GetCfgInt(key, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -324,33 +311,33 @@ func TestSql_CfgInt(t *testing.T) {
 	}
 
 	// Make sure int/string variants return an error
-	_, err = mc.GetCfgString(key)
+	_, err = conn.GetCfgString(key, "nope.jpg")
+	if err == nil {
+		t.Fatal("GetCfgString() did not return an error for int key")
+	}
+
+	_, err = conn.GetCfgBool(key, false)
 	if err == nil {
 		t.Fatal("GetCfgBool() did not return an error for int key")
 	}
 
-	_, err = mc.GetCfgBool(key)
-	if err == nil {
-		t.Fatal("GetCfgBool() did not return an error for int key")
-	}
-
-	err = mc.DeleteCfgKey(key)
+	err = conn.DeleteCfgKey(key)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestSql_CfgBool(t *testing.T) {
+func Test_CfgBool(t *testing.T) {
 	testDate := time.Now().Unix()
 	data := true
 	key := fmt.Sprintf("test bool %d", testDate)
 
-	err := mc.SetCfgBool(key, data)
+	err := conn.SetCfgBool(key, data)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	val, err := mc.GetCfgBool(key)
+	val, err := conn.GetCfgBool(key, !data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -360,33 +347,33 @@ func TestSql_CfgBool(t *testing.T) {
 	}
 
 	// Make sure int/string variants return an error
-	_, err = mc.GetCfgString(key)
+	_, err = conn.GetCfgString(key, "nope.jpg")
 	if err == nil {
-		t.Fatal("GetCfgBool() did not return an error for bool key")
+		t.Fatal("GetCfgString() did not return an error for bool key")
 	}
 
-	_, err = mc.GetCfgInt(key)
+	_, err = conn.GetCfgInt(key, -1)
 	if err == nil {
 		t.Fatal("GetCfgInt() did not return an error for bool key")
 	}
 
-	err = mc.DeleteCfgKey(key)
+	err = conn.DeleteCfgKey(key)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestMySql_CfgString(t *testing.T) {
+func Test_CfgString(t *testing.T) {
 	testDate := time.Now().Unix()
 	data := "test data"
 	key := fmt.Sprintf("test string %d", testDate)
 
-	err := mc.SetCfgString(key, data)
+	err := conn.SetCfgString(key, data)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	val, err := mc.GetCfgString(key)
+	val, err := conn.GetCfgString(key, "nope.jpg")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -396,69 +383,146 @@ func TestMySql_CfgString(t *testing.T) {
 	}
 
 	// Make sure int/bool variants return an error
-	_, err = mc.GetCfgBool(key)
+	_, err = conn.GetCfgBool(key, false)
 	if err == nil {
 		t.Fatal("GetCfgBool() did not return an error for string key")
 	}
 
-	_, err = mc.GetCfgInt(key)
+	_, err = conn.GetCfgInt(key, -1)
 	if err == nil {
 		t.Fatal("GetCfgInt() did not return an error for string key")
 	}
 
-	err = mc.DeleteCfgKey(key)
+	err = conn.DeleteCfgKey(key)
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+// TODO: fix this test
+func nope_TestJson_DecayVotes(t *testing.T) {
+	now := time.Now()
+	uid, err := conn.AddUser(&common.User{Name: "Test User"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 4; i++ {
+		end := now.Add(-1 * time.Hour * 24 * (time.Duration(i) + 1))
+		cid, err := conn.AddCycle(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		cycle, err := conn.GetCycle(cid)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		//fmt.Printf("adding movie %d\n", i+1)
+		mid, err := conn.AddMovie(&common.Movie{Name: fmt.Sprintf("Movie %d", i+1), Links: []string{"http://example.com"}, CycleAdded: cycle})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = conn.AddVote(uid, mid)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if i < 3 {
+			movie, err := conn.GetMovie(mid)
+			if err != nil {
+				t.Fatal(err)
+			}
+			movie.CycleWatched = cycle
+
+			err = conn.UpdateMovie(movie)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			//fmt.Printf("ending cycle %d\n", cycle.Id)
+			cycle.End = &end
+			err = conn.UpdateCycle(cycle)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	// test actually starts here, lol
+	before, err := conn.Test_GetUserVotes(uid)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = conn.DecayVotes(2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	after, err := conn.Test_GetUserVotes(uid)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	beforeString := []string{}
+	for _, v := range before {
+		beforeString = append(beforeString, v.String())
+	}
+
+	fmt.Println(before)
+	fmt.Println(after)
 }
 
 /*
 	Cleanup
 */
 
-func TestMySql_DeleteVote(t *testing.T) {
+func Test_DeleteVote(t *testing.T) {
 	if testUser == nil || testUser.Id < 1 ||
 		testMovie == nil || testMovie.Id < 1 ||
 		testCycle == nil || testCycle.Id < 1 {
 		t.Skip("Skipping due to previous failure")
 	}
 
-	err := mc.DeleteVote(testUser.Id, testMovie.Id)
+	err := conn.DeleteVote(testUser.Id, testMovie.Id)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestMySql_DeleteMovie(t *testing.T) {
+func Test_DeleteMovie(t *testing.T) {
 	if movieFail || testMovie == nil || testMovie.Id < 1 {
 		t.Skip("Skipping due to previous failure")
 	}
 
-	err := mc.DeleteMovie(testMovie.Id)
+	err := conn.DeleteMovie(testMovie.Id)
 	if err != nil {
 		t.Fatal(err)
 	}
 	testMovie = nil
 }
 
-func TestMySql_DeleteCycle(t *testing.T) {
+func Test_DeleteCycle(t *testing.T) {
 	if movieFail || cycleFail || testMovie != nil || testCycle == nil || testCycle.Id < 1 {
 		t.Skip("Skipping due to previous failure")
 	}
 
-	err := mc.DeleteCycle(testCycle.Id)
+	err := conn.DeleteCycle(testCycle.Id)
 	if err != nil {
 		t.Fatal(err)
 	}
 	testCycle = nil
 }
 
-func TestMySql_DeleteUser(t *testing.T) {
+func Test_DeleteUser(t *testing.T) {
 	if userFail || testUser == nil || testUser.Id < 1 {
 		t.Skip("Skipping due to previous failure")
 	}
 
-	if err := mc.DeleteUser(testUser.Id); err != nil {
+	if err := conn.DeleteUser(testUser.Id); err != nil {
 		t.Fatal(err)
 	}
 }

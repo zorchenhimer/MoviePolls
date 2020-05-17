@@ -2,7 +2,7 @@ package data
 
 import (
 	"fmt"
-	//"time"
+	"time"
 
 	"github.com/zorchenhimer/MoviePolls/common"
 )
@@ -53,13 +53,15 @@ type DataConnector interface {
 	GetMoviesFromCycle(id int) ([]*common.Movie, error)
 
 	// TODO: remove AddCycle()
-	//AddCycle(end *time.Time) (int, error)
+	AddCycle(end *time.Time) (int, error)
 	AddOldCycle(cycle *common.Cycle) (int, error)
 	AddMovie(movie *common.Movie) (int, error)
 	AddUser(user *common.User) (int, error)
 
 	AddVote(userId, movieId int) error
 	DeleteVote(userId, movieId int) error
+	// Removes votes older than age
+	DecayVotes(age int) error
 
 	UpdateUser(user *common.User) error
 	UpdateMovie(movie *common.Movie) error
@@ -91,6 +93,8 @@ type TestableDataConnector interface {
 	DataConnector
 
 	DeleteUser(userId int) error
-	DeleteMovie(userId int) error
-	DeleteCycle(userId int) error
+	DeleteMovie(movieId int) error
+	DeleteCycle(cycleId int) error
+
+	Test_GetUserVotes(userId int) ([]*common.Vote, error)
 }
