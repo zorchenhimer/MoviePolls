@@ -308,9 +308,10 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		var err error = nil
 		movieList, err = s.data.GetActiveMovies()
 		if err != nil {
+			fmt.Printf("[ERR] %v\n", err)
 			s.doError(
 				http.StatusBadRequest,
-				fmt.Sprintf("Cannot get active movies: %v", err),
+				fmt.Sprintf("Cannot get active movies. Please contact the server admin."),
 				w, r)
 			return
 		}
