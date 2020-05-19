@@ -400,81 +400,81 @@ func Test_CfgString(t *testing.T) {
 }
 
 // TODO: fix this test
-func nope_TestJson_DecayVotes(t *testing.T) {
-	now := time.Now().Local()
-	uid, err := conn.AddUser(&common.User{Name: "Test User"})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for i := 0; i < 4; i++ {
-		end := now.Add(-1 * time.Hour * 24 * (time.Duration(i) + 1))
-		cid, err := conn.AddCycle(nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		cycle, err := conn.GetCycle(cid)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		//fmt.Printf("adding movie %d\n", i+1)
-		mid, err := conn.AddMovie(&common.Movie{Name: fmt.Sprintf("Movie %d", i+1), Links: []string{"http://example.com"}, CycleAdded: cycle})
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		err = conn.AddVote(uid, mid)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if i < 3 {
-			movie, err := conn.GetMovie(mid)
-			if err != nil {
-				t.Fatal(err)
-			}
-			movie.CycleWatched = cycle
-
-			err = conn.UpdateMovie(movie)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			//fmt.Printf("ending cycle %d\n", cycle.Id)
-			cycle.End = &end
-			err = conn.UpdateCycle(cycle)
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
-
-	// test actually starts here, lol
-	before, err := conn.Test_GetUserVotes(uid)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = conn.DecayVotes(2)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	after, err := conn.Test_GetUserVotes(uid)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	beforeString := []string{}
-	for _, v := range before {
-		beforeString = append(beforeString, v.String())
-	}
-
-	fmt.Println(before)
-	fmt.Println(after)
-}
+//func nope_TestJson_DecayVotes(t *testing.T) {
+//	now := time.Now().Local()
+//	uid, err := conn.AddUser(&common.User{Name: "Test User"})
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	for i := 0; i < 4; i++ {
+//		end := now.Add(-1 * time.Hour * 24 * (time.Duration(i) + 1))
+//		cid, err := conn.AddCycle(nil)
+//		if err != nil {
+//			t.Fatal(err)
+//		}
+//
+//		cycle, err := conn.GetCycle(cid)
+//		if err != nil {
+//			t.Fatal(err)
+//		}
+//
+//		//fmt.Printf("adding movie %d\n", i+1)
+//		mid, err := conn.AddMovie(&common.Movie{Name: fmt.Sprintf("Movie %d", i+1), Links: []string{"http://example.com"}, CycleAdded: cycle})
+//		if err != nil {
+//			t.Fatal(err)
+//		}
+//
+//		err = conn.AddVote(uid, mid)
+//		if err != nil {
+//			t.Fatal(err)
+//		}
+//
+//		if i < 3 {
+//			movie, err := conn.GetMovie(mid)
+//			if err != nil {
+//				t.Fatal(err)
+//			}
+//			movie.CycleWatched = cycle
+//
+//			err = conn.UpdateMovie(movie)
+//			if err != nil {
+//				t.Fatal(err)
+//			}
+//
+//			//fmt.Printf("ending cycle %d\n", cycle.Id)
+//			cycle.End = &end
+//			err = conn.UpdateCycle(cycle)
+//			if err != nil {
+//				t.Fatal(err)
+//			}
+//		}
+//	}
+//
+//	// test actually starts here, lol
+//	before, err := conn.Test_GetUserVotes(uid)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	err = conn.DecayVotes(2)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	after, err := conn.Test_GetUserVotes(uid)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	beforeString := []string{}
+//	for _, v := range before {
+//		beforeString = append(beforeString, v.String())
+//	}
+//
+//	fmt.Println(before)
+//	fmt.Println(after)
+//}
 
 /*
 	Cleanup

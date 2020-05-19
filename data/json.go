@@ -208,6 +208,11 @@ func (j *jsonConnector) AddCycle(plannedEnd *time.Time) (int, error) {
 		j.Cycles = []*common.Cycle{}
 	}
 
+	if plannedEnd != nil {
+		t := (*plannedEnd).Round(time.Second)
+		plannedEnd = &t
+	}
+
 	c := &common.Cycle{
 		Id:         j.nextCycleId(),
 		PlannedEnd: plannedEnd,

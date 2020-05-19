@@ -16,11 +16,11 @@ var (
 	err error
 )
 
-var testConnectors = map[string]func() (TestableDataConnector, error) {
-	"mysql": func() (TestableDataConnector, error) {
-		dc, err := newMySqlConnector("root:buttslol@tcp(127.0.0.1:3306)/moviepolls?parseTime=true&loc=Local")
-		return TestableDataConnector(dc), err
-	},
+var testConnectors = map[string]func() (TestableDataConnector, error){
+	//"mysql": func() (TestableDataConnector, error) {
+	//	dc, err := newMySqlConnector("root:buttslol@tcp(127.0.0.1:3306)/moviepolls?parseTime=true&loc=Local")
+	//	return TestableDataConnector(dc), err
+	//},
 	"json": func() (TestableDataConnector, error) {
 		dc, err := newJsonConnector("test.json")
 		return TestableDataConnector(dc), err
@@ -30,7 +30,7 @@ var testConnectors = map[string]func() (TestableDataConnector, error) {
 func TestMain(m *testing.M) {
 	failval := 0
 	for name, connector := range testConnectors {
-		fmt.Println("Running "+name+" tests")
+		fmt.Println("Running " + name + " tests")
 		if name == "json" {
 			os.Remove("test.json")
 		}
@@ -164,6 +164,9 @@ func compareMovies(a, b *common.Movie, t *testing.T) {
 		t.Fatalf("Poster mismatch: %q vs %q", a.Poster, b.Poster)
 	}
 
+	if a.CycleAdded == nil || b.CycleAdded == nil {
+		t.Fatalf("Missing cycle added: %v vs %v", a.CycleAdded, b.CycleAdded)
+	}
 	compareCycles(a.CycleAdded, b.CycleAdded, t)
 }
 
@@ -174,11 +177,17 @@ func compareCycles(a, b *common.Cycle, t *testing.T) {
 		t.Fatalf("Cycle Id mismatch: %d vs %d", a.Id, b.Id)
 	}
 
-	if a.Start != b.Start {
-		t.Fatalf("Cycle start mismatch: %s vs %s", a.Start, b.Start)
+	if (a.PlannedEnd == nil && b.PlannedEnd != nil) ||
+	   (a.PlannedEnd != nil && b.PlannedEnd == nil) {
+		if a.PlannedEnd != nil && b.PlannedEnd != nil && !a.PlannedEnd.Equal(*b.PlannedEnd) {
+			t.Fatalf("Cycle planned end mismatch: %s vs %s", a.PlannedEnd, b.PlannedEnd)
+		}
 	}
 
-	if (a.End == nil && b.End != nil) || (a.End != nil && b.End == nil) || (!a.End.Equal(*b.End)) {
-		t.Fatalf("Cycle end mismatch: %s vs %s", a.End, b.End)
+	if (a.Ended == nil && b.Ended != nil) ||
+	   (a.Ended != nil && b.Ended == nil) {
+		if a.Ended != nil && b.Ended != nil && !a.Ended.Equal(*b.Ended) {
+			t.Fatalf("Cycle ended mismatch: %s vs %s", a.Ended, b.Ended)
+		}
 	}
 }
