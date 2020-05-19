@@ -1,3 +1,5 @@
+// +build ignore
+
 package data
 
 import (
@@ -660,7 +662,6 @@ func (m *mysqlConnector) SearchMovieTitles(query string) ([]*common.Movie, error
 func (m *mysqlConnector) DecayVotes(age int) error {
 	return fmt.Errorf("DecayVotes() not implemented for MySQL")
 }
-
 
 func (m *mysqlConnector) Test_GetUserVotes(userId int) ([]*common.Vote, error) {
 	return nil, fmt.Errorf("Test_GetUserVotes() not implemented for MySQL")

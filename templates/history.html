@@ -4,7 +4,7 @@
 <div class="cycleList">
 {{range .Cycles}}
 <div class="cycleListElement">
-    <div class="cycleItemHead">Ended: {{.End}}</div>
+    <div class="cycleItemHead">Ended: {{.EndedString}}</div>
     <div class="cycleMovieWrapper">
         {{range .Watched}}<div class="cycleMovie">
             <div><a href="/movie/{{.Id}}">{{.Name}}</a></div>

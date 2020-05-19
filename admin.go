@@ -324,25 +324,16 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		cycle := &common.Cycle{}
-
-		start, err := time.Parse("2006-01-02", r.PostFormValue("startDate"))
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		cycle.Start = start
-
+		var plannedEnd *time.Time
 		end, err := time.Parse("2006-01-02", r.PostFormValue("endDate"))
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			cycle.End = &end
+			t := (&end).Round(time.Second)
+			plannedEnd = &t
 		}
 
-		fmt.Printf("start: %s\nend: %s\n", start, end)
-
-		_, err = s.data.AddOldCycle(cycle)
+		_, err = s.data.AddCycle(plannedEnd)
 		if err != nil {
 			fmt.Printf("Unable to add cycle: %v\n", err)
 			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to add cycle: %v", err), w, r)
@@ -520,7 +511,7 @@ func (s *Server) cycleStage2(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	cycle.End = &watched
+	cycle.Ended = &watched
 	if err = s.data.UpdateCycle(cycle); err != nil {
 		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to update cycle: %v", err), w, r)
 		return

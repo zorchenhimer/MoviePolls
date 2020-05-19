@@ -3,8 +3,8 @@
 {{if .Cycle }}
 <div>
     ID: {{.Cycle.Id}}<br />
-    Start: {{.Cycle.StartString}}<br />
-    End: {{.Cycle.EndString}}<br />
+    PlannedEnd: {{.Cycle.PlannedEndString}}<br />
+    Ended: {{.Cycle.EndedString}}<br />
 </div>
 {{else}}
 <p>No cycle currently active</p>
@@ -15,8 +15,7 @@
 
 <h2>New Cycle</h2>
 <form method="POST" action="/admin/cycles">
-    <div>Start: <input name="startDate" id="startDate" type="date" /></div>
-    <div>End: <input name="endDate" id="endDate" type="date" /></div>
+    <div>Planned End: <input name="endDate" id="endDate" type="date" /></div>
     <div><input type="submit" value="Create" /></div>
 </form>
 
@@ -25,8 +24,8 @@
 
 <h2>Past Cycles</h2>
 {{range .Past}}
-    Start: {{.Start}}<br />
-    End: {{.End}}<br />
+    PlannedEnd: {{.PlannedEndString}}<br />
+    Ended: {{.EndedString}}<br />
     Watched:
     <ul>
     {{range .Watched}}<li><a href="/movie/{{.Id}}" target="_blank">{{.Name}}</a></li>{{end}}

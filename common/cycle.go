@@ -8,25 +8,28 @@ import (
 type Cycle struct {
 	Id int
 
-	Start time.Time
-	End   *time.Time
+	PlannedEnd *time.Time
+	Ended      *time.Time
 
 	// List of movies watched this cycle.  If cycle has not ended, this will be
 	// nil.
 	Watched []*Movie
 }
 
-func (c Cycle) StartString() string {
-	return fmt.Sprintf("%s %d, %d", c.Start.Month().String(), c.Start.Day(), c.Start.Year())
+func (c Cycle) PlannedEndString() string {
+	if c.PlannedEnd == nil {
+		return ""
+	}
+	return c.PlannedEnd.Format("Mon Jan 2")
 }
 
-func (c Cycle) EndString() string {
-	if c.End == nil {
-		return "no end date"
+func (c Cycle) EndedString() string {
+	if c.Ended == nil {
+		return ""
 	}
-	return fmt.Sprintf("%s %d, %d", c.End.Month().String(), c.End.Day(), c.End.Year())
+	return c.Ended.Format("Mon Jan 2")
 }
 
 func (c Cycle) String() string {
-	return fmt.Sprintf("Cycle{Id:%d}", c.Id)
+	return fmt.Sprintf("Cycle{Id:%d PlannedEnd:%s Ended: %s}", c.Id, c.PlannedEndString(), c.EndedString())
 }

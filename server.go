@@ -527,11 +527,6 @@ func uploadFile(r *http.Request, name string) (filepath string, err error) {
 	return tempFile.Name(), nil
 }
 
-type historyCycle struct {
-	End     string
-	Watched []*common.Movie
-}
-
 // List of past cycles
 func (s *Server) handlerHistory(w http.ResponseWriter, r *http.Request) {
 	past, err := s.data.GetPastCycles(0, 10)
@@ -546,17 +541,10 @@ func (s *Server) handlerHistory(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		dataPageBase
-		Cycles []historyCycle
+		Cycles []*common.Cycle
 	}{
-		dataPageBase: s.newPageBase("Add Movie", w, r),
-		Cycles:       []historyCycle{},
-	}
-
-	for _, cycle := range past {
-		data.Cycles = append(data.Cycles, historyCycle{
-			End:     cycle.End.Format("Jan 06"),
-			Watched: cycle.Watched,
-		})
+		dataPageBase: s.newPageBase("Cycle History", w, r),
+		Cycles:       past,
 	}
 
 	if err := s.executeTemplate(w, "history", data); err != nil {

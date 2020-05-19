@@ -53,7 +53,7 @@ type DataConnector interface {
 	GetMoviesFromCycle(id int) ([]*common.Movie, error)
 
 	// TODO: remove AddCycle()
-	AddCycle(end *time.Time) (int, error)
+	AddCycle(plannedEnd *time.Time) (int, error)
 	AddOldCycle(cycle *common.Cycle) (int, error)
 	AddMovie(movie *common.Movie) (int, error)
 	AddUser(user *common.User) (int, error)

@@ -65,10 +65,10 @@ type jsonVote struct {
 }
 
 type jsonCycle struct {
-	Id      int
-	Start   time.Time
-	End     *time.Time
-	Watched []int
+	Id         int
+	PlannedEnd *time.Time
+	Ended      *time.Time
+	Watched    []int
 }
 
 func (j *jsonConnector) newJsonCycle(cycle *common.Cycle) jsonCycle {
@@ -80,10 +80,10 @@ func (j *jsonConnector) newJsonCycle(cycle *common.Cycle) jsonCycle {
 	}
 
 	return jsonCycle{
-		Id:      cycle.Id,
-		Start:   cycle.Start,
-		End:     cycle.End,
-		Watched: watched,
+		Id:         cycle.Id,
+		PlannedEnd: cycle.PlannedEnd,
+		Ended:      cycle.Ended,
+		Watched:    watched,
 	}
 }
 
@@ -167,14 +167,8 @@ func (j *jsonConnector) save() error {
    the current cycle as the cycle without an end date.
 */
 func (j *jsonConnector) currentCycle() *common.Cycle {
-	now := time.Now().Local().Round(time.Second)
-
 	for _, c := range j.Cycles {
-		if c.End == nil || c.End.After(now) {
-			if c.End != nil {
-				end := (*c.End).Round(time.Second)
-				c.End = &end
-			}
+		if c.Ended == nil {
 			return c
 		}
 	}
@@ -191,10 +185,13 @@ func (j *jsonConnector) GetCurrentCycle() (*common.Cycle, error) {
 func (j *jsonConnector) GetCycle(id int) (*common.Cycle, error) {
 	for _, c := range j.Cycles {
 		if c.Id == id {
-			c.Start = c.Start.Round(time.Second)
-			if c.End != nil {
-				end := (*c.End).Round(time.Second)
-				c.End = &end
+			if c.PlannedEnd != nil {
+				t := (*c.PlannedEnd).Round(time.Second)
+				c.PlannedEnd = &t
+			}
+			if c.Ended != nil {
+				t := (*c.Ended).Round(time.Second)
+				c.Ended = &t
 			}
 			return c, nil
 		}
@@ -203,7 +200,7 @@ func (j *jsonConnector) GetCycle(id int) (*common.Cycle, error) {
 	return nil, fmt.Errorf("Cycle not found with ID %d", id)
 }
 
-func (j *jsonConnector) AddCycle(end *time.Time) (int, error) {
+func (j *jsonConnector) AddCycle(plannedEnd *time.Time) (int, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -212,9 +209,8 @@ func (j *jsonConnector) AddCycle(end *time.Time) (int, error) {
 	}
 
 	c := &common.Cycle{
-		Id:    j.nextCycleId(),
-		Start: time.Now().Round(time.Second),
-		End:   end,
+		Id:         j.nextCycleId(),
+		PlannedEnd: plannedEnd,
 	}
 
 	j.Cycles = append(j.Cycles, c)
@@ -231,10 +227,13 @@ func (j *jsonConnector) AddOldCycle(c *common.Cycle) (int, error) {
 	}
 
 	c.Id = j.nextCycleId()
-	c.Start = c.Start.Round(time.Second)
-	if c.End != nil {
-		end := (*c.End).Round(time.Second)
-		c.End = &end
+	if c.PlannedEnd != nil {
+		t := (*c.PlannedEnd).Round(time.Second)
+		c.PlannedEnd = &t
+	}
+	if c.Ended != nil {
+		t := (*c.Ended).Round(time.Second)
+		c.Ended = &t
 	}
 
 	j.Cycles = append(j.Cycles, c)
@@ -320,7 +319,7 @@ func (j *jsonConnector) GetPastCycles(start, end int) ([]*common.Cycle, error) {
 
 	past := sortableCycle{}
 	for _, cycle := range j.Cycles {
-		if cycle.End != nil {
+		if cycle.Ended != nil {
 			past = append(past, cycle)
 		}
 	}
@@ -647,12 +646,16 @@ func (j *jsonConnector) findCycle(id int) *common.Cycle {
 	for _, c := range j.Cycles {
 		if c.Id == id {
 			cycle := &common.Cycle{
-				Id:    c.Id,
-				Start: c.Start.Round(time.Second),
+				Id: c.Id,
 			}
-			if c.End != nil {
-				end := (*c.End).Round(time.Second)
-				cycle.End = &end
+			if c.PlannedEnd != nil {
+				t := (*c.PlannedEnd).Round(time.Second)
+				cycle.PlannedEnd = &t
+			}
+
+			if c.Ended != nil {
+				t := (*c.Ended).Round(time.Second)
+				cycle.Ended = &t
 			}
 			return cycle
 		}
