@@ -977,11 +977,27 @@ func (j *jsonConnector) SearchMovieTitles(query string) ([]*common.Movie, error)
 }
 
 func (j *jsonConnector) DeleteCycle(cycleId int) error {
-	return fmt.Errorf("DeleteCycle() not implemented for JSON")
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	if _, exists := j.Cycles[cycleId]; !exists {
+		return fmt.Errorf("Cycle with ID %d does not exist!", cycleId)
+	}
+
+	delete(j.Cycles, cycleId)
+	return nil
 }
 
 func (j *jsonConnector) DeleteMovie(movieId int) error {
-	return fmt.Errorf("DeleteMovie() not implemented for JSON")
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	if _, exists := j.Movies[movieId]; !exists {
+		return fmt.Errorf("Cycle with ID %d does not exist!", movieId)
+	}
+
+	delete(j.Movies, movieId)
+	return nil
 }
 
 func (j *jsonConnector) Test_GetUserVotes(userId int) ([]*common.Vote, error) {
