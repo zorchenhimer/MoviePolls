@@ -741,6 +741,8 @@ func (j *jsonConnector) UpdateUser(user *common.User) error {
 			newLst = append(newLst, u)
 		}
 	}
+
+	j.Users = newLst
 	return j.save()
 }
 
