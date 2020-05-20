@@ -9,12 +9,10 @@ import (
 	"strings"
 	"sync"
 	"time"
-	//"runtime/debug"
 
 	"github.com/zorchenhimer/MoviePolls/common"
 )
 
-//type jsonCycle
 type jsonMovie struct {
 	Id             int
 	Name           string
@@ -28,7 +26,6 @@ type jsonMovie struct {
 }
 
 func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
-	//fmt.Println("newJsonMovie()")
 	currentCycle := j.currentCycle()
 	cycleId := 0
 	if currentCycle != nil {
@@ -41,9 +38,6 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 	}
 
 	id := j.nextMovieId()
-	//fmt.Printf("newJsonMovie(): %d\n", id)
-
-	//debug.PrintStack()
 
 	return jsonMovie{
 		Id:             id,
@@ -91,9 +85,7 @@ type jsonConnector struct {
 	filename string `json:"-"`
 	lock     *sync.RWMutex
 
-	//CurrentCycle int
-
-	Cycles []*common.Cycle
+	Cycles []jsonCycle
 	Movies []jsonMovie
 	Users  []*common.User
 	Votes  []jsonVote
@@ -117,7 +109,6 @@ func newJsonConnector(filename string) (*jsonConnector, error) {
 	j := &jsonConnector{
 		filename: filename,
 		lock:     &sync.RWMutex{},
-		//CurrentCycle: 0,
 		Settings: map[string]configValue{
 			"Active": configValue{CVT_BOOL, true},
 		},
@@ -169,10 +160,64 @@ func (j *jsonConnector) save() error {
 func (j *jsonConnector) currentCycle() *common.Cycle {
 	for _, c := range j.Cycles {
 		if c.Ended == nil {
-			return c
+			return j.cycleFromJson(c)
 		}
 	}
 	return nil
+}
+
+func (j *jsonConnector) cycleFromJson(cycle jsonCycle) *common.Cycle {
+	c := &common.Cycle{
+		Id: cycle.Id,
+		PlannedEnd: cycle.PlannedEnd,
+		Ended: cycle.Ended,
+	}
+
+	if cycle.PlannedEnd != nil {
+		t := (*cycle.PlannedEnd).Round(time.Second)
+		c.PlannedEnd = &t
+	}
+	if cycle.Ended != nil {
+		t := (*cycle.Ended).Round(time.Second)
+		c.Ended = &t
+	}
+
+	if cycle.Watched != nil {
+		movies := []*common.Movie{}
+		for _, m := range cycle.Watched {
+			movies = append(movies, j.findMovie(m))
+		}
+		c.Watched = movies
+	}
+
+	return c
+}
+
+func (j *jsonConnector) jsonFromCycle(cycle *common.Cycle) jsonCycle {
+	c := jsonCycle{
+		Id: cycle.Id,
+		PlannedEnd: cycle.PlannedEnd,
+		Ended: cycle.Ended,
+	}
+
+	if cycle.PlannedEnd != nil {
+		t := (*cycle.PlannedEnd).Round(time.Second)
+		c.PlannedEnd = &t
+	}
+
+	if cycle.Ended != nil {
+		t := (*cycle.Ended).Round(time.Second)
+		c.Ended = &t
+	}
+
+	if cycle.Watched != nil {
+		movies := []int{}
+		for _, m := range cycle.Watched {
+			movies = append(movies, m.Id)
+		}
+		c.Watched = movies
+	}
+	return c
 }
 
 func (j *jsonConnector) GetCurrentCycle() (*common.Cycle, error) {
@@ -185,15 +230,7 @@ func (j *jsonConnector) GetCurrentCycle() (*common.Cycle, error) {
 func (j *jsonConnector) GetCycle(id int) (*common.Cycle, error) {
 	for _, c := range j.Cycles {
 		if c.Id == id {
-			if c.PlannedEnd != nil {
-				t := (*c.PlannedEnd).Round(time.Second)
-				c.PlannedEnd = &t
-			}
-			if c.Ended != nil {
-				t := (*c.Ended).Round(time.Second)
-				c.Ended = &t
-			}
-			return c, nil
+			return j.cycleFromJson(c), nil
 		}
 	}
 
@@ -205,7 +242,7 @@ func (j *jsonConnector) AddCycle(plannedEnd *time.Time) (int, error) {
 	defer j.lock.Unlock()
 
 	if j.Cycles == nil {
-		j.Cycles = []*common.Cycle{}
+		j.Cycles = []jsonCycle{}
 	}
 
 	if plannedEnd != nil {
@@ -213,7 +250,7 @@ func (j *jsonConnector) AddCycle(plannedEnd *time.Time) (int, error) {
 		plannedEnd = &t
 	}
 
-	c := &common.Cycle{
+	c := jsonCycle{
 		Id:         j.nextCycleId(),
 		PlannedEnd: plannedEnd,
 	}
@@ -228,7 +265,7 @@ func (j *jsonConnector) AddOldCycle(c *common.Cycle) (int, error) {
 	defer j.lock.Unlock()
 
 	if j.Cycles == nil {
-		j.Cycles = []*common.Cycle{}
+		j.Cycles = []jsonCycle{}
 	}
 
 	c.Id = j.nextCycleId()
@@ -241,7 +278,7 @@ func (j *jsonConnector) AddOldCycle(c *common.Cycle) (int, error) {
 		c.Ended = &t
 	}
 
-	j.Cycles = append(j.Cycles, c)
+	j.Cycles = append(j.Cycles, j.jsonFromCycle(c))
 	return c.Id, j.save()
 }
 
@@ -274,10 +311,8 @@ func (j *jsonConnector) AddMovie(movie *common.Movie) (int, error) {
 	}
 
 	m := j.newJsonMovie(movie)
-	//fmt.Printf("Adding movie %s\n", m.String())
 	j.Movies = append(j.Movies, m)
 
-	//fmt.Printf("AddMovie() ID: %d\n", m.Id)
 	return m.Id, j.save()
 }
 
@@ -310,7 +345,7 @@ func (j *jsonConnector) GetActiveMovies() ([]*common.Movie, error) {
 	return movies, nil
 }
 
-type sortableCycle []*common.Cycle
+type sortableCycle []jsonCycle
 
 func (s sortableCycle) Len() int { return len(s) }
 
@@ -334,17 +369,17 @@ func (j *jsonConnector) GetPastCycles(start, end int) ([]*common.Cycle, error) {
 	idx := start
 	for i := 0; i < end && i+idx < len(past); i++ {
 		f := past[idx+i]
-		f.Watched = []*common.Movie{}
+		f.Watched = []int{}
 
 		fmt.Printf("[GetPastCycles] finding watched movies for cycle %d\n", f.Id)
 		for _, movie := range j.Movies {
 			if movie.CycleWatchedId == f.Id {
 				fmt.Printf("found movie with ID %d\n", movie.Id)
-				f.Watched = append(f.Watched, j.movieFromJson(movie))
+				f.Watched = append(f.Watched, movie.Id)
 			}
 		}
 
-		filtered = append(filtered, f)
+		filtered = append(filtered, j.cycleFromJson(f))
 	}
 
 	return filtered, nil
@@ -732,17 +767,16 @@ func (j *jsonConnector) UpdateCycle(cycle *common.Cycle) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
-	// clear these out
-	cycle.Watched = nil
-
-	newLst := []*common.Cycle{}
+	newLst := []jsonCycle{}
 	for _, c := range j.Cycles {
 		if c.Id == cycle.Id {
-			newLst = append(newLst, cycle)
+			newLst = append(newLst, j.jsonFromCycle(cycle))
 		} else {
 			newLst = append(newLst, c)
 		}
 	}
+
+	j.Cycles = newLst
 	return j.save()
 }
 
