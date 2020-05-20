@@ -85,9 +85,9 @@ type jsonConnector struct {
 	filename string `json:"-"`
 	lock     *sync.RWMutex
 
-	Cycles []jsonCycle
-	Movies []jsonMovie
-	Users  []*common.User
+	Cycles map[int]jsonCycle
+	Movies map[int]jsonMovie
+	Users  map[int]*common.User
 	Votes  []jsonVote
 
 	//Settings Configurator
@@ -112,6 +112,10 @@ func newJsonConnector(filename string) (*jsonConnector, error) {
 		Settings: map[string]configValue{
 			"Active": configValue{CVT_BOOL, true},
 		},
+
+		Cycles: map[int]jsonCycle{},
+		Movies: map[int]jsonMovie{},
+		Users:  map[int]*common.User{},
 	}
 
 	return j, j.save()
@@ -242,7 +246,7 @@ func (j *jsonConnector) AddCycle(plannedEnd *time.Time) (int, error) {
 	defer j.lock.Unlock()
 
 	if j.Cycles == nil {
-		j.Cycles = []jsonCycle{}
+		j.Cycles = map[int]jsonCycle{}
 	}
 
 	if plannedEnd != nil {
@@ -255,7 +259,7 @@ func (j *jsonConnector) AddCycle(plannedEnd *time.Time) (int, error) {
 		PlannedEnd: plannedEnd,
 	}
 
-	j.Cycles = append(j.Cycles, c)
+	j.Cycles[c.Id] = c
 
 	return c.Id, j.save()
 }
@@ -265,7 +269,7 @@ func (j *jsonConnector) AddOldCycle(c *common.Cycle) (int, error) {
 	defer j.lock.Unlock()
 
 	if j.Cycles == nil {
-		j.Cycles = []jsonCycle{}
+		j.Cycles = map[int]jsonCycle{}
 	}
 
 	c.Id = j.nextCycleId()
@@ -278,7 +282,7 @@ func (j *jsonConnector) AddOldCycle(c *common.Cycle) (int, error) {
 		c.Ended = &t
 	}
 
-	j.Cycles = append(j.Cycles, j.jsonFromCycle(c))
+	j.Cycles[c.Id] = j.jsonFromCycle(c)
 	return c.Id, j.save()
 }
 
@@ -307,11 +311,11 @@ func (j *jsonConnector) AddMovie(movie *common.Movie) (int, error) {
 	defer j.lock.Unlock()
 
 	if j.Movies == nil {
-		j.Movies = []jsonMovie{}
+		j.Movies = map[int]jsonMovie{}
 	}
 
 	m := j.newJsonMovie(movie)
-	j.Movies = append(j.Movies, m)
+	j.Movies[m.Id] = m
 
 	return m.Id, j.save()
 }
@@ -507,12 +511,25 @@ func (j *jsonConnector) GetUserVotes(userId int) ([]*common.Movie, error) {
 	return votes, nil
 }
 
+func sortCycles(cycles map[int]jsonCycle) []jsonCycle {
+	slc := []jsonCycle{}
+	for _, c := range cycles {
+		slc = append(slc, c)
+	}
+	sorted := sortableCycle(slc)
+	sort.Sort(sorted)
+
+	return sorted
+}
+
+// Find votes for currently active movies and remove the ones that have been
+// added more than `age` cycles ago.  Do not remove votes from movies that have
+// been watched. (FIXME: it's borked, lol)
 func (j *jsonConnector) DecayVotes(age int) error {
-	sortable := sortableCycle(j.Cycles)
-	sort.Sort(sortable)
+	sorted := sortCycles(j.Cycles)
 
 	idLimit := 0
-	for i, cycle := range sortable {
+	for i, cycle := range sorted {
 		if i >= age {
 			idLimit = cycle.Id
 			break
@@ -552,11 +569,16 @@ func (j *jsonConnector) AddUser(user *common.User) (int, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
+	if j.Users == nil {
+		j.Users = map[int]*common.User{}
+	}
+
+	if _, exists := j.Users[user.Id]; exists {
+		return 0, fmt.Errorf("User already exists with ID %d", user.Id)
+	}
+
 	name := strings.ToLower(user.Name)
 	for _, u := range j.Users {
-		if u.Id == user.Id {
-			return 0, fmt.Errorf("User already exists with ID %d", user.Id)
-		}
 		if strings.ToLower(u.Name) == name {
 			return 0, fmt.Errorf("User already exists with name %s", user.Name)
 		}
@@ -564,7 +586,7 @@ func (j *jsonConnector) AddUser(user *common.User) (int, error) {
 
 	user.Id = j.nextUserId()
 
-	j.Users = append(j.Users, user)
+	j.Users[user.Id] = user
 	return user.Id, j.save()
 }
 
@@ -664,14 +686,12 @@ func (j *jsonConnector) findMovie(id int) *common.Movie {
 		return nil
 	}
 
-	for _, m := range j.Movies {
-		if m.Id == id {
-			movie := j.movieFromJson(m)
-			movie.CycleWatched = j.findCycle(m.CycleWatchedId)
-			movie.CycleAdded = j.findCycle(m.CycleAddedId)
-			//fmt.Printf("[findMovie] added:%s watched:%s\n", watched, added)
-			return movie
-		}
+	m, ok := j.Movies[id]
+	if ok {
+		movie := j.movieFromJson(m)
+		movie.CycleWatched = j.findCycle(m.CycleWatchedId)
+		movie.CycleAdded = j.findCycle(m.CycleAddedId)
+		return movie
 	}
 
 	fmt.Printf("findMovie() not found with ID %d\n", id)
@@ -683,22 +703,21 @@ func (j *jsonConnector) findCycle(id int) *common.Cycle {
 		return nil
 	}
 
-	for _, c := range j.Cycles {
-		if c.Id == id {
-			cycle := &common.Cycle{
-				Id: c.Id,
-			}
-			if c.PlannedEnd != nil {
-				t := (*c.PlannedEnd).Round(time.Second)
-				cycle.PlannedEnd = &t
-			}
-
-			if c.Ended != nil {
-				t := (*c.Ended).Round(time.Second)
-				cycle.Ended = &t
-			}
-			return cycle
+	c, ok := j.Cycles[id]
+	if ok {
+		cycle := &common.Cycle{
+			Id: c.Id,
 		}
+		if c.PlannedEnd != nil {
+			t := (*c.PlannedEnd).Round(time.Second)
+			cycle.PlannedEnd = &t
+		}
+
+		if c.Ended != nil {
+			t := (*c.Ended).Round(time.Second)
+			cycle.Ended = &t
+		}
+		return cycle
 	}
 	return nil
 }
@@ -733,16 +752,7 @@ func (j *jsonConnector) UpdateUser(user *common.User) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
-	newLst := []*common.User{}
-	for _, u := range j.Users {
-		if u.Id == user.Id {
-			newLst = append(newLst, user)
-		} else {
-			newLst = append(newLst, u)
-		}
-	}
-
-	j.Users = newLst
+	j.Users[user.Id] = user
 	return j.save()
 }
 
@@ -750,17 +760,9 @@ func (j *jsonConnector) UpdateMovie(movie *common.Movie) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
-	newLst := []jsonMovie{}
-	for _, m := range j.Movies {
-		if m.Id == movie.Id {
-			newM := j.newJsonMovie(movie)
-			newM.Id = m.Id
-			newLst = append(newLst, newM)
-		} else {
-			newLst = append(newLst, m)
-		}
-	}
-	j.Movies = newLst
+	m := j.newJsonMovie(movie)
+	m.Id = movie.Id
+	j.Movies[m.Id] = m
 
 	return j.save()
 }
@@ -769,16 +771,7 @@ func (j *jsonConnector) UpdateCycle(cycle *common.Cycle) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
-	newLst := []jsonCycle{}
-	for _, c := range j.Cycles {
-		if c.Id == cycle.Id {
-			newLst = append(newLst, j.jsonFromCycle(cycle))
-		} else {
-			newLst = append(newLst, c)
-		}
-	}
-
-	j.Cycles = newLst
+	j.Cycles[cycle.Id] = j.jsonFromCycle(cycle)
 	return j.save()
 }
 
@@ -945,25 +938,14 @@ func (j *jsonConnector) DeleteCfgKey(key string) error {
 }
 
 func (j *jsonConnector) DeleteUser(userId int) error {
-	found := false
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
-	newUsers := []*common.User{}
-
-	for _, user := range j.Users {
-		if user.Id == userId {
-			found = true
-		} else {
-			newUsers = append(newUsers, user)
-		}
-	}
-
-	if !found {
+	if _, exists := j.Users[userId]; !exists {
 		return fmt.Errorf("User with ID %d does not exist", userId)
 	}
 
-	j.Users = newUsers
+	delete(j.Users, userId)
 	return j.save()
 }
 
