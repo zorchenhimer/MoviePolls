@@ -236,6 +236,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				movie.Name = results[0]
 				movie.Description = results[1]
 				movie.Poster = results[2]
+				movie.AddedBy = s.getSessionUser(w, r)
 			}
 
 		} else {
@@ -256,6 +257,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 					movie.Poster = file
 				}
 			}
+			movie.AddedBy = s.getSessionUser(w, r)
 		}
 		var movieId int
 		if !data.isError() {
@@ -375,7 +377,7 @@ func (s *Server) handlerMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(movie)
+	// fmt.Println(movie)
 
 	data := dataMovieInfo{
 		dataPageBase: s.newPageBase(movie.Name, w, r),
