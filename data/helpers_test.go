@@ -178,14 +178,14 @@ func compareCycles(a, b *common.Cycle, t *testing.T) {
 	}
 
 	if (a.PlannedEnd == nil && b.PlannedEnd != nil) ||
-	   (a.PlannedEnd != nil && b.PlannedEnd == nil) {
+		(a.PlannedEnd != nil && b.PlannedEnd == nil) {
 		if a.PlannedEnd != nil && b.PlannedEnd != nil && !a.PlannedEnd.Equal(*b.PlannedEnd) {
 			t.Fatalf("Cycle planned end mismatch: %s vs %s", a.PlannedEnd, b.PlannedEnd)
 		}
 	}
 
 	if (a.Ended == nil && b.Ended != nil) ||
-	   (a.Ended != nil && b.Ended == nil) {
+		(a.Ended != nil && b.Ended == nil) {
 		if a.Ended != nil && b.Ended != nil && !a.Ended.Equal(*b.Ended) {
 			t.Fatalf("Cycle ended mismatch: %s vs %s", a.Ended, b.Ended)
 		}

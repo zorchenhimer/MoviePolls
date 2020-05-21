@@ -17,7 +17,7 @@
     {{if .Movie.CycleWatched}}
     <p>Watched: {{.Movie.CycleWatched.EndedString}}</p>
     {{end}}
-    <div>Added by: somebody{{/* .Movie.AddedBy */}}</div>
+	<div>Added by: {{if .Movie.AddedBy}} {{.Movie.AddedBy.Name}} {{else}} somebody {{end}}</div>
     {{if .Movie.Links}}<div><ul>{{range .Movie.Links}}<li><a href="{{.}}">{{.}}</a></li>{{end}}</ul></div>{{end}}
     <div>
         {{if .Movie.Votes}}

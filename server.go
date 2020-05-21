@@ -236,20 +236,28 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				movie.Name = results[0]
 				movie.Description = results[1]
 				movie.Poster = results[2]
+				movie.AddedBy = s.getSessionUser(w, r)
 			}
 
 		} else {
 			movie.Name = strings.TrimSpace(r.FormValue("MovieName"))
 			movie.Description = strings.TrimSpace(r.FormValue("Description"))
 
-			file, err := uploadFile(r, strings.TrimSpace(r.FormValue("MovieName")))
+			posterFileName := strings.TrimSpace(r.FormValue("MovieName"))
 
-			if err != nil {
-				data.ErrPoster = true
-				errText = append(errText, err.Error())
-			} else {
-				movie.Poster = file
+			posterFile, _, _ := r.FormFile("PosterFile")
+
+			if posterFile != nil {
+				file, err := uploadFile(r, posterFileName)
+
+				if err != nil {
+					data.ErrPoster = true
+					errText = append(errText, err.Error())
+				} else {
+					movie.Poster = file
+				}
 			}
+			movie.AddedBy = s.getSessionUser(w, r)
 		}
 		var movieId int
 		if !data.isError() {
@@ -369,7 +377,7 @@ func (s *Server) handlerMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(movie)
+	// fmt.Println(movie)
 
 	data := dataMovieInfo{
 		dataPageBase: s.newPageBase(movie.Name, w, r),
