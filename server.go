@@ -242,13 +242,19 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			movie.Name = strings.TrimSpace(r.FormValue("MovieName"))
 			movie.Description = strings.TrimSpace(r.FormValue("Description"))
 
-			file, err := uploadFile(r, strings.TrimSpace(r.FormValue("MovieName")))
+			posterFileName := strings.TrimSpace(r.FormValue("MovieName"))
 
-			if err != nil {
-				data.ErrPoster = true
-				errText = append(errText, err.Error())
-			} else {
-				movie.Poster = file
+			posterFile, _, _ := r.FormFile("PosterFile")
+
+			if posterFile != nil {
+				file, err := uploadFile(r, posterFileName)
+
+				if err != nil {
+					data.ErrPoster = true
+					errText = append(errText, err.Error())
+				} else {
+					movie.Poster = file
+				}
 			}
 		}
 		var movieId int
