@@ -23,6 +23,7 @@ type jsonMovie struct {
 	Removed        bool
 	Approved       bool
 	Poster         string
+	AddedBy        int
 }
 
 func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
@@ -49,6 +50,7 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 		Removed:        movie.Removed,
 		Approved:       movie.Approved,
 		Poster:         movie.Poster,
+		AddedBy:        movie.AddedBy.Id,
 	}
 }
 
@@ -390,6 +392,7 @@ func (j *jsonConnector) GetPastCycles(start, end int) ([]*common.Cycle, error) {
 }
 
 func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
+	user, _ := j.GetUser(jMovie.AddedBy)
 	movie := &common.Movie{
 		Id:          jMovie.Id,
 		Name:        jMovie.Name,
@@ -398,8 +401,9 @@ func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
 		Approved:    jMovie.Approved,
 		//CycleAdded:   j.findCycle(jMovie.CycleAddedId),
 		//CycleWatched: j.findCycle(jMovie.CycleWatchedId),
-		Links:  jMovie.Links,
-		Poster: jMovie.Poster,
+		Links:   jMovie.Links,
+		Poster:  jMovie.Poster,
+		AddedBy: user,
 	}
 
 	return movie
