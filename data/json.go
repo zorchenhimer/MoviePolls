@@ -172,9 +172,9 @@ func (j *jsonConnector) currentCycle() *common.Cycle {
 
 func (j *jsonConnector) cycleFromJson(cycle jsonCycle) *common.Cycle {
 	c := &common.Cycle{
-		Id: cycle.Id,
+		Id:         cycle.Id,
 		PlannedEnd: cycle.PlannedEnd,
-		Ended: cycle.Ended,
+		Ended:      cycle.Ended,
 	}
 
 	if cycle.PlannedEnd != nil {
@@ -199,9 +199,9 @@ func (j *jsonConnector) cycleFromJson(cycle jsonCycle) *common.Cycle {
 
 func (j *jsonConnector) jsonFromCycle(cycle *common.Cycle) jsonCycle {
 	c := jsonCycle{
-		Id: cycle.Id,
+		Id:         cycle.Id,
 		PlannedEnd: cycle.PlannedEnd,
-		Ended: cycle.Ended,
+		Ended:      cycle.Ended,
 	}
 
 	if cycle.PlannedEnd != nil {
