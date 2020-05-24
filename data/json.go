@@ -392,7 +392,7 @@ func (j *jsonConnector) GetPastCycles(start, end int) ([]*common.Cycle, error) {
 }
 
 func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
-	user, _ := j.GetUser(jMovie.AddedBy)
+	user := j.findUser(jMovie.AddedBy)
 	movie := &common.Movie{
 		Id:          jMovie.Id,
 		Name:        jMovie.Name,
