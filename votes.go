@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// Toggle votes?
+// Toggles votes
 func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
 	user := s.getSessionUser(w, r)
 	if user == nil {
@@ -34,9 +34,15 @@ func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := s.data.GetMovie(movieId); err != nil {
+	movie, err := s.data.GetMovie(movieId)
+	if err != nil {
 		s.doError(http.StatusBadRequest, "Invalid movie ID", w, r)
 		fmt.Printf("Movie with ID %d doesn't exist\n", movieId)
+		return
+	}
+	if movie.CycleWatched != nil {
+		s.doError(http.StatusBadRequest, "Movie already watched", w, r)
+		fmt.Printf("Attempted to vote on watched movie ID %d\n", movieId)
 		return
 	}
 

@@ -40,7 +40,7 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 
 	id := j.nextMovieId()
 
-	return jsonMovie{
+	jm := jsonMovie{
 		Id:             id,
 		Name:           movie.Name,
 		Links:          movie.Links,
@@ -50,8 +50,13 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 		Removed:        movie.Removed,
 		Approved:       movie.Approved,
 		Poster:         movie.Poster,
-		AddedBy:        movie.AddedBy.Id,
 	}
+
+	if movie.AddedBy != nil {
+		jm.AddedBy = movie.AddedBy.Id
+	}
+
+	return jm
 }
 
 type jsonVote struct {
