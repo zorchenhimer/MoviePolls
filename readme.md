@@ -7,11 +7,13 @@ suggest and vote on movies to watch.
 
 ## Specific features
 
+Note: not all of this stuff is implemented yet.
+
 - Twitch OAuth to verify users
 - Running totals (see below)
 - (optional) Email reminders on movies voted for
 - Links to movie details (IMDB, AniDB, MAL, etc.)
-- Info on the upcoming MovieNight
+- Info on the upcoming MovieNight (if a planned end date is set)
 - Link to MovieNight stream if live?
 - Movie history (selected movies and dates watched)
 - Votes decay (eg., only last for a given number of cycles)
@@ -60,8 +62,7 @@ assigned and re-add a vote point to the user that cast the vote.
 
 - MySQL (default b/c I can offload it on my hosting)
 - PostgreSQL
-- Flat file (JSON or something?)
-- SQLite (this is gonna be a pain cross-compiling b/c cgo)
+- Flat file JSON (meant mainly for developing and debugging)
 
 ## Mod/Admin differences
 

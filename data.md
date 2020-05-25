@@ -6,21 +6,20 @@ user and past movie data should be retrieved from the database when needed.
 
 ## Things to store
 
-- Past movies selected
-- Current movie selection
+- Past movies watched
 - Movie details
 - Users
 - Admin/Mod users
-- Current Votes
-- Cycle start/end
+- Votes
+- Cycle planned end
 
 ## Tables
 
 ### Cycles
 
 - ID
-- Date started
-- Date ending
+- Date planned end date
+- Date actual end date
 
 `Date ending` is just a suggestion.  Cycles must be manually reset by an admin
 or mod.
@@ -32,6 +31,7 @@ or mod.
 - Links
 - Short description
 - Cycle Added
+- Cycle Watched
 - Removed
 - Approved
 
@@ -48,20 +48,10 @@ re-added unless added by an admin or mod.
 If the setting requiring movies to be approved is set, `Approved` is required
 to be set before it can appear in a cycle.
 
-### Choices
-
-Defines the available choices for a cycle.  Choices without votes that were
-added before the current cycle are removed at the end of the current cycle.
-
-- ID
-- Movie ID
-- Cycle ID
-
 ### Users
 
 - ID
 - Name
-- OAuth Token
 - Email
 - Notify on cycle end
 - Notify on voted selection (if the selection at the end of a cycle is one the
@@ -83,8 +73,6 @@ Defines a user's vote for a cycle.
 
 #### Data stored
 
-- Current cycle ID (only once cycle is enabled at a time)
-- Default vote points (number of votes each user gets)
+- Max vote points (number of votes each user gets)
 - Voting open (boolean)
 - New choices require approval
-- (Other misc settings)

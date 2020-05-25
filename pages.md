@@ -20,7 +20,7 @@ Details of a given movie.  This should include:
 - If not watched (eg, in current cycle) list of user that voted for movie
 - User that added the movie
 
-## Cycle list
+## History
 
 Details of past cycles.  This should include:
 
@@ -28,7 +28,6 @@ Details of past cycles.  This should include:
 - Link to movie info page (described above)
 - Votes for movie
 - Date watched
-- Cycle start and end dates
 
 ## Login
 
@@ -51,3 +50,4 @@ prompted for on this page:
 - Movie name
 - Info links (IMDB, AniDB, MAL, etc.)
 - Short description
+- Poster image
