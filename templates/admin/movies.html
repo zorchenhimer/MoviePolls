@@ -1,0 +1,37 @@
+{{define "adminbody"}}
+{{if .RequireApproval}}
+    <h2>Pending approval</h2>
+    {{if .Pending}}
+        {{range .Pending}}
+        <div class="configItem">
+            <div><a href="#">Approve</a> | <a href="#">Reject</a></div>
+            <div><a href="/admin/movie/{{.Id}}">{{.Name}}</a></div>
+        </div>
+        {{end}}
+    {{else}}
+        <div>No movies awaiting approval</div>
+    {{end}}
+{{end}}
+<h2>Active</h2>
+{{if .Active}}
+{{range .Active}}
+<div class="configItem">
+    {{len .Votes}} <a href="/admin/movie/{{.Id}}">{{.Name}}</a>
+</div>
+{{end}}
+{{else}}
+<div>No active movies</div>
+{{end}}
+
+<h2>Past</h2>
+{{if .Past}}
+{{range .Past}}
+<div class="configItem">
+    {{len .Votes}} <a href="/admin/movie/{{.Id}}">{{.Name}}</a>
+</div>
+{{end}}
+{{else}}
+<div>No active movies</div>
+{{end}}
+
+{{end}}

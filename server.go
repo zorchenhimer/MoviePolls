@@ -115,6 +115,7 @@ func NewServer(options Options) (*Server, error) {
 	// mux.HandleFunc("/admin/nextcycle", server.handlerAdminNextCycle)
 	mux.HandleFunc("/admin/user/", server.handlerAdminUserEdit)
 	mux.HandleFunc("/admin/users", server.handlerAdminUsers)
+	mux.HandleFunc("/admin/movies", server.handlerAdminMovies)
 
 	hs.Handler = mux
 	server.s = hs

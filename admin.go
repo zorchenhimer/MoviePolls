@@ -195,12 +195,14 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 				fmt.Sprintf("MaxUserVotes invalid: %v", err))
 			data.ErrMaxUserVotes = true
 		} else {
-			s.data.SetCfgInt("MaxUserVotes", int(maxVotes))
+			s.data.SetCfgInt(ConfigMaxUserVotes, int(maxVotes))
 		}
 
 		appReqStr := r.PostFormValue("EntriesRequireApproval")
-		if appReqStr != "" {
-			s.data.SetCfgInt("EntriesRequireApproval", int(maxVotes))
+		if appReqStr == "" {
+			s.data.SetCfgBool(ConfigEntriesRequireApproval, false)
+		} else {
+			s.data.SetCfgBool(ConfigEntriesRequireApproval, true)
 		}
 
 		clearPass := r.PostFormValue("ClearPassSalt")
@@ -223,7 +225,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		}
 
 		tmdbToken := r.PostFormValue("TmdbToken")
-		s.data.SetCfgString("TmdbToken", tmdbToken)
+		s.data.SetCfgString(ConfigTmdbToken, tmdbToken)
 
 	}
 
@@ -231,7 +233,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Printf("Error getting configuration value for MaxUserVotes: %s\n", err)
 
-		err = s.data.SetCfgInt("MaxUserVotes", data.MaxUserVotes)
+		err = s.data.SetCfgInt(ConfigMaxUserVotes, data.MaxUserVotes)
 		if err != nil {
 			fmt.Printf("Error saving new configuration value for MaxUserVotes: %s\n", err)
 		}
@@ -263,13 +265,56 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Error getting configuration value for TmdbToken: %s\n", err)
 
 		// try to resave new value
-		err = s.data.SetCfgString("TmdbToken", data.TmdbToken)
+		err = s.data.SetCfgString(ConfigTmdbToken, data.TmdbToken)
 		if err != nil {
 			fmt.Printf("Error saving new configuration value for TmdbToken: %s\n", err)
 		}
 	}
 
 	if err := s.executeTemplate(w, "adminConfig", data); err != nil {
+		fmt.Printf("Error rendering template: %v\n", err)
+	}
+}
+
+func (s *Server) handlerAdminMovies(w http.ResponseWriter, r *http.Request) {
+	if !s.checkAdminRights(w, r) {
+		return
+	}
+
+	active, err := s.data.GetActiveMovies()
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			fmt.Sprintf("Unable to get active movies: %v", err),
+			w, r)
+		return
+	}
+
+	approval, err := s.data.GetCfgBool(ConfigEntriesRequireApproval, DefaultEntriesRequireApproval)
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			fmt.Sprintf("Unable to get entries require approval setting: %v", err),
+			w, r)
+		return
+	}
+
+	data := struct {
+		dataPageBase
+		Active  []*common.Movie
+		Past    []*common.Movie
+		Pending []*common.Movie
+
+		RequireApproval bool
+	}{
+		dataPageBase: s.newPageBase("Admin - Movies", w, r),
+		Active:       common.SortMoviesByName(active),
+		//Pending:      common.SortMoviesByName(active),
+
+		RequireApproval: approval,
+	}
+
+	if err := s.executeTemplate(w, "adminMovies", data); err != nil {
 		fmt.Printf("Error rendering template: %v\n", err)
 	}
 }
@@ -394,11 +439,11 @@ func (s *Server) cycleStage1(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.data.SetCfgString("CycleStage", "ended")
-	if err != nil {
-		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to set CycleStage: %v", err), w, r)
-		return
-	}
+	//err = s.data.SetCfgString("CycleStage", "ended")
+	//if err != nil {
+	//	s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to set CycleStage: %v", err), w, r)
+	//	return
+	//}
 
 	currentCycle, err := s.data.GetCurrentCycle()
 	if err != nil || currentCycle == nil {
