@@ -3,7 +3,6 @@ package moviepoll
 import (
 	"fmt"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -395,9 +394,6 @@ func (s *Server) cycleStage1(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ml := common.MovieList(movies)
-	sort.Sort(sort.Reverse(ml))
-
 	err = s.data.SetCfgString("CycleStage", "ended")
 	if err != nil {
 		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to set CycleStage: %v", err), w, r)
@@ -424,7 +420,7 @@ func (s *Server) cycleStage1(w http.ResponseWriter, r *http.Request) {
 	}{
 		dataPageBase: s.newPageBase("Admin - End Cycle", w, r),
 
-		Movies: ml,
+		Movies: common.SortMoviesByVotes(movies),
 		Stage:  1,
 	}
 

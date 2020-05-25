@@ -220,8 +220,8 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			Name:        strings.TrimSpace(r.FormValue("MovieName")),
 			Description: strings.TrimSpace(r.FormValue("Description")),
 			Votes:       []*common.Vote{},
-			Links:  links,
-			Poster: "data/unknown.jpg", // 165x250
+			Links:       links,
+			Poster:      "data/unknown.jpg", // 165x250
 		}
 
 		if r.FormValue("AutofillBox") == "on" {
@@ -330,6 +330,7 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
 	data := struct {
 		dataPageBase
 
@@ -341,7 +342,7 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		dataPageBase: s.newPageBase("Current Cycle", w, r),
 
 		Cycle:  &common.Cycle{}, //s.data.GetCurrentCycle(),
-		Movies: movieList,
+		Movies: common.SortMoviesByName(movieList),
 	}
 
 	data.VotingEnabled, _ = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
