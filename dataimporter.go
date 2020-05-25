@@ -162,7 +162,7 @@ func (j jikan) getTitle() (string, error) {
 
 		title = dat["title"].(string)
 
-		if dat["title_english"] != nil {
+		if dat["title_english"] != nil && dat["title_english"].(string) != dat["title"].(string) {
 			title += " (" + dat["title_english"].(string) + ")"
 		}
 	}
