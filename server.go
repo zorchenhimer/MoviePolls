@@ -159,6 +159,12 @@ func (s *Server) handlerPoster(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
+	user := s.getSessionUser(w, r)
+	if user == nil {
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+
 	data := dataAddMovie{
 		dataPageBase: s.newPageBase("Add Movie", w, r),
 	}
@@ -214,8 +220,8 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			Name:        strings.TrimSpace(r.FormValue("MovieName")),
 			Description: strings.TrimSpace(r.FormValue("Description")),
 			Votes:       []*common.Vote{},
-			Links:       links,
-			Poster:      "data/unknown.jpg", // 165x250
+			Links:  links,
+			Poster: "data/unknown.jpg", // 165x250
 		}
 
 		if r.FormValue("AutofillBox") == "on" {
@@ -236,7 +242,6 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				movie.Name = results[0]
 				movie.Description = results[1]
 				movie.Poster = results[2]
-				movie.AddedBy = s.getSessionUser(w, r)
 			}
 
 		} else {
@@ -257,10 +262,11 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 					movie.Poster = file
 				}
 			}
-			movie.AddedBy = s.getSessionUser(w, r)
 		}
 		var movieId int
+
 		if !data.isError() {
+			movie.AddedBy = user
 			movieId, err = s.data.AddMovie(movie)
 		}
 
