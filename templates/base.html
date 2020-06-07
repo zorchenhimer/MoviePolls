@@ -1,3 +1,4 @@
+{{$cycle := .CurrentCycle}}
 <!doctype html>
 <html>
     <head>
@@ -14,11 +15,11 @@
                 {{if .User}}
                     {{if .User.CheckPriv "ADMIN"}}<a href="/admin">Admin</a>
                     {{else if .User.CheckPriv "MOD"}}<a href="/admin">Mod</a>{{end}}
-                <a href="/add">Add Movie</a>
-                <a href="/user">Account</a>
-                <a href="/user/logout">Logout</a>
+                    {{if $cycle}}<a href="/add">Add Movie</a>{{end}}
+                    <a href="/user">Account</a>
+                    <a href="/user/logout">Logout</a>
                 {{else}}
-                <a href="/user/login">Login</a>
+                    <a href="/user/login">Login</a>
                 {{end}}
             </div>
         </div>

@@ -166,11 +166,30 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	current, err := s.data.GetCurrentCycle()
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			"Something went wrong :C",
+			w, r)
+
+		fmt.Printf("Unable to get current cycle: %v\n", err)
+		return
+	}
+
+	if current == nil {
+		s.doError(
+			http.StatusInternalServerError,
+			"No cycle active!",
+			w, r)
+		return
+	}
+
 	data := dataAddMovie{
 		dataPageBase: s.newPageBase("Add Movie", w, r),
 	}
 
-	err := r.ParseMultipartForm(4096)
+	err = r.ParseMultipartForm(4096)
 	if err != nil {
 		fmt.Printf("Error parsing movie form: %v\n", err)
 	}
