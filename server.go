@@ -33,8 +33,10 @@ const (
 )
 
 type Options struct {
-	Listen string // eg, "127.0.0.1:8080" or ":8080" (defaults to 0.0.0.0:8080)
-	Debug  bool   // debug logging to console
+	Listen   string // eg, "127.0.0.1:8080" or ":8080" (defaults to 0.0.0.0:8080)
+	Debug    bool   // debug logging to console
+	LogLevel common.LogLevel
+	LogFile  string
 }
 
 type Server struct {
@@ -49,11 +51,18 @@ type Server struct {
 	// For claiming the first admin account
 	adminTokenUrl string
 	adminTokenKey string
+
+	l *common.Logger
 }
 
 func NewServer(options Options) (*Server, error) {
 	if options.Listen == "" {
 		options.Listen = ":8090"
+	}
+
+	l, err := common.NewLogger(options.LogLevel, options.LogFile)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to setup logger: %v", err)
 	}
 
 	data, err := mpd.GetDataConnector("json", "db/data.json")
@@ -86,6 +95,7 @@ func NewServer(options Options) (*Server, error) {
 		data:  data,
 
 		cookies: sessions.NewCookieStore([]byte(authKey), []byte(encryptKey)),
+		l:       l,
 	}
 
 	server.passwordSalt, err = server.data.GetCfgString("PassSalt", "")

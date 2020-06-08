@@ -7,6 +7,7 @@ SOURCES = \
 		  admin.go \
 		  api.go \
 		  common/cycle.go \
+		  common/logger.go \
 		  common/movie.go \
 		  common/user.go \
 		  common/util.go \
