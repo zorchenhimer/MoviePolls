@@ -3,12 +3,15 @@ package moviepoll
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/zorchenhimer/MoviePolls/common"
 )
+
+var re_auth = regexp.MustCompile(`^/auth/([^/#?]+)$`)
 
 type dataAdminHome struct {
 	dataPageBase
@@ -571,4 +574,66 @@ func (s *Server) cycleStage2(w http.ResponseWriter, r *http.Request) {
 
 	// Redirect to admin page
 	http.Redirect(w, r, "/admin/cycles", http.StatusSeeOther)
+}
+
+func (s *Server) handlerAuth(w http.ResponseWriter, r *http.Request) {
+	user := s.getSessionUser(w, r)
+	if user == nil {
+		s.doError(http.StatusNotFound, fmt.Sprintf("%q not found", r.URL.Path), w, r)
+		return
+	}
+
+	if s.adminTokenUrl == "" || s.adminTokenKey == "" {
+		s.doError(http.StatusNotFound, fmt.Sprintf("%q not found", r.URL.Path), w, r)
+		return
+	}
+
+	matches := re_auth.FindStringSubmatch(r.URL.Path)
+	if len(matches) == 0 {
+		s.doError(http.StatusNotFound, fmt.Sprintf("%q not found", r.URL.Path), w, r)
+		return
+	}
+
+	if !(len(matches) == 2 && matches[1] == s.adminTokenUrl) {
+		s.doError(http.StatusNotFound, fmt.Sprintf("%q not found", r.URL.Path), w, r)
+		return
+	}
+
+	var formError string
+	if r.Method == "POST" {
+		key := r.PostFormValue("Key")
+		if key == s.adminTokenKey {
+			user.Privilege = 2
+			err := s.data.UpdateUser(user)
+			if err != nil {
+				s.doError(
+					http.StatusInternalServerError,
+					fmt.Sprintf("Unable to update user: %v", err),
+					w, r)
+				return
+			}
+
+			// Clear out values so they cannot be used again
+			s.adminTokenUrl = ""
+			s.adminTokenKey = ""
+
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+		formError = "Invaild Key"
+	}
+
+	data := struct {
+		dataPageBase
+		Url   string
+		Error string
+	}{
+		dataPageBase: s.newPageBase("Auth", w, r),
+		Url:          s.adminTokenUrl,
+		Error:        formError,
+	}
+
+	if err := s.executeTemplate(w, "auth", data); err != nil {
+		fmt.Printf("Error rendering template: %v\n", err)
+	}
 }

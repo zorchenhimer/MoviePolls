@@ -1,0 +1,9 @@
+{{define "header"}}{{end}}
+
+{{define "body"}}
+<form method="POST" action="/auth/{{.Url}}">
+{{if .Error}}<div class="errorMessage">{{.Error}}</div>{{end}}
+    <input type="password" name="Key" />
+    <input type="submit" value="Submit" />
+</form>
+{{end}}

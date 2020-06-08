@@ -45,6 +45,10 @@ type Server struct {
 
 	cookies      *sessions.CookieStore
 	passwordSalt string
+
+	// For claiming the first admin account
+	adminTokenUrl string
+	adminTokenKey string
 }
 
 func NewServer(options Options) (*Server, error) {
@@ -90,6 +94,28 @@ func NewServer(options Options) (*Server, error) {
 		server.data.SetCfgString("PassSalt", server.passwordSalt)
 	}
 
+	adminExists, err := server.CheckAdminExists()
+	if err != nil {
+		return nil, err
+	}
+
+	if !adminExists {
+		url, err := generatePass()
+		if err != nil {
+			return nil, fmt.Errorf("Error generating admin token URL: %v", err)
+		}
+
+		key, err := generatePass()
+		if err != nil {
+			return nil, fmt.Errorf("Error generating admin token key: %v", err)
+		}
+
+		server.adminTokenUrl = url
+		server.adminTokenKey = key
+
+		fmt.Printf("Claim admin: http://<host>/auth/%s Password: %s\n", url, key)
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiHandler{})
 	mux.HandleFunc("/movie/", server.handlerMovie)
@@ -109,6 +135,7 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/", server.handlerRoot)
 	mux.HandleFunc("/favicon.ico", server.handlerFavicon)
 
+	mux.HandleFunc("/auth/", server.handlerAuth)
 	mux.HandleFunc("/admin/", server.handlerAdmin)
 	mux.HandleFunc("/admin/config", server.handlerAdminConfig)
 	mux.HandleFunc("/admin/cycles", server.handlerAdminCycles)
@@ -133,6 +160,43 @@ func (server *Server) Run() error {
 		fmt.Printf("Listening on address %s\n", server.s.Addr)
 	}
 	return server.s.ListenAndServe()
+}
+
+func (s *Server) CheckAdminExists() (bool, error) {
+	found, end := false, false
+
+	start := 0
+	count := 20
+	for !found && !end {
+		users, err := s.data.GetUsers(start, 20)
+		if err != nil {
+			return false, err
+		}
+		start += count
+
+		if err != nil {
+			return false, nil
+		}
+
+		if len(users) == 0 {
+			return false, nil
+		}
+
+		for _, u := range users {
+			if u.IsAdmin() {
+				return true, nil
+			}
+		}
+	}
+
+	fmt.Println("[CheckAdminExists] end of loop")
+	return false, nil
+}
+
+func (s *Server) AddUser(user *common.User) error {
+	user.Password = s.hashPassword(user.Password)
+	_, err := s.data.AddUser(user)
+	return err
 }
 
 func (s *Server) handlerFavicon(w http.ResponseWriter, r *http.Request) {

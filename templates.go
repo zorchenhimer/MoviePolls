@@ -24,6 +24,7 @@ var templateDefs map[string][]string = map[string][]string{
 	"newaccount":  []string{"newaccount.html"},
 	"error":       []string{"error.html"},
 	"history":     []string{"history.html"},
+	"auth":        []string{"auth.html"},
 
 	"adminHome":     []string{"admin/base.html", "admin/home.html"},
 	"adminConfig":   []string{"admin/base.html", "admin/config.html"},
@@ -75,16 +76,23 @@ func (s *Server) executeTemplate(w http.ResponseWriter, key string, data interfa
 }
 
 func (s *Server) newPageBase(title string, w http.ResponseWriter, r *http.Request) dataPageBase {
+	cycle, err := s.data.GetCurrentCycle()
+	if err != nil {
+		fmt.Printf("[newPageBase] Unable to get current sessinon: %v\n", err)
+	}
+
 	return dataPageBase{
-		PageTitle: title,
-		User:      s.getSessionUser(w, r),
+		PageTitle:    title,
+		User:         s.getSessionUser(w, r),
+		CurrentCycle: cycle,
 	}
 }
 
 type dataPageBase struct {
 	PageTitle string
 
-	User *common.User
+	User         *common.User
+	CurrentCycle *common.Cycle
 }
 
 type dataMovieInfo struct {
