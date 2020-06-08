@@ -417,16 +417,11 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		dataPageBase
-
-		Cycle  *common.Cycle
-		Movies []*common.Movie
-
+		Movies        []*common.Movie
 		VotingEnabled bool
 	}{
 		dataPageBase: s.newPageBase("Current Cycle", w, r),
-
-		Cycle:  &common.Cycle{}, //s.data.GetCurrentCycle(),
-		Movies: common.SortMoviesByName(movieList),
+		Movies:       common.SortMoviesByName(movieList),
 	}
 
 	data.VotingEnabled, _ = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
