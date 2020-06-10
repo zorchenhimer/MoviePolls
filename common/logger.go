@@ -55,15 +55,15 @@ func (l *Logger) Debug(s string, v ...interface{}) {
 }
 
 func NewLogger(level LogLevel, file string) (*Logger, error) {
+	l := &Logger{}
 
 	switch LogLevel(strings.ToLower(string(level))) {
 	case LLSilent:
 		fmt.Println("[SILENT] Nothing to see here, please leave the area!")
-		return &Logger{}, nil
+		return l, nil
 
 	case LLError:
 		fmt.Println(logPrefixError + "Logging enabled")
-		l := &Logger{}
 		if file != "" {
 			f, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
@@ -74,11 +74,9 @@ func NewLogger(level LogLevel, file string) (*Logger, error) {
 		} else {
 			l.lError = log.New(os.Stderr, logPrefixError, log.LstdFlags)
 		}
-		return l, nil
 
 	case LLInfo:
 		fmt.Println(logPrefixInfo + "Logging enabled")
-		l := &Logger{}
 		if file != "" {
 			f, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
@@ -92,11 +90,8 @@ func NewLogger(level LogLevel, file string) (*Logger, error) {
 			l.lInfo = log.New(os.Stdout, logPrefixInfo, log.LstdFlags)
 		}
 
-		return l, nil
-
 	case LLDebug:
 		fmt.Println(logPrefixDebug + "Logging enabled")
-		l := &Logger{}
 
 		if file != "" {
 			f, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -113,8 +108,15 @@ func NewLogger(level LogLevel, file string) (*Logger, error) {
 			l.lDebug = log.New(os.Stdout, logPrefixDebug, log.LstdFlags)
 		}
 
-		return l, nil
+	default:
+		return nil, fmt.Errorf("Invalid log level: %q", level)
 	}
 
-	return nil, fmt.Errorf("Invalid log level: %q", level)
+	if file != "" {
+		l.Info("Logging to file " + file)
+	} else {
+		l.Info("Logging to console only")
+	}
+
+	return l, nil
 }
