@@ -7,17 +7,17 @@ import (
 	"github.com/zorchenhimer/MoviePolls/common"
 )
 
-type constructor func(string) (DataConnector, error)
+type constructor func(string, *common.Logger) (DataConnector, error)
 
 var registeredConnectors map[string]constructor
 
-func GetDataConnector(backend, connectionString string) (DataConnector, error) {
+func GetDataConnector(backend, connectionString string, l *common.Logger) (DataConnector, error) {
 	dc, ok := registeredConnectors[backend]
 	if !ok {
 		return nil, fmt.Errorf("Backend %s is not available", backend)
 	}
 
-	return dc(connectionString)
+	return dc(connectionString, l)
 }
 
 func register(backend string, initFunc constructor) {

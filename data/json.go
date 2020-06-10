@@ -99,16 +99,18 @@ type jsonConnector struct {
 
 	//Settings Configurator
 	Settings map[string]configValue
+
+	l *common.Logger
 }
 
 func init() {
-	register("json", func(connStr string) (DataConnector, error) {
-		dc, err := newJsonConnector(connStr)
+	register("json", func(connStr string, l *common.Logger) (DataConnector, error) {
+		dc, err := newJsonConnector(connStr, l)
 		return DataConnector(dc), err
 	})
 }
 
-func newJsonConnector(filename string) (*jsonConnector, error) {
+func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error) {
 	if common.FileExists(filename) {
 		return loadJson(filename)
 	}

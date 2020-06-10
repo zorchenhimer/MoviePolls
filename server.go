@@ -65,7 +65,7 @@ func NewServer(options Options) (*Server, error) {
 		return nil, fmt.Errorf("Unable to setup logger: %v", err)
 	}
 
-	data, err := mpd.GetDataConnector("json", "db/data.json")
+	data, err := mpd.GetDataConnector("json", "db/data.json", l)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to load json data: %v", err)
 	}
