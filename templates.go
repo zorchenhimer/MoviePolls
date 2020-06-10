@@ -78,7 +78,7 @@ func (s *Server) executeTemplate(w http.ResponseWriter, key string, data interfa
 func (s *Server) newPageBase(title string, w http.ResponseWriter, r *http.Request) dataPageBase {
 	cycle, err := s.data.GetCurrentCycle()
 	if err != nil {
-		fmt.Printf("[newPageBase] Unable to get current sessinon: %v\n", err)
+		s.l.Error("[newPageBase] Unable to get current cycle: %v\n", err)
 	}
 
 	return dataPageBase{

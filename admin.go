@@ -74,7 +74,7 @@ func (s *Server) handlerAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "adminHome", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }
 
@@ -98,7 +98,7 @@ func (s *Server) handlerAdminUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "adminUsers", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }
 
@@ -128,7 +128,7 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 
 	totalVotes, err := s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
 	if err != nil {
-		fmt.Printf("Error getting MaxUserVotes config setting: %v\n", err)
+		s.l.Error("Error getting MaxUserVotes config setting: %v\n", err)
 	}
 
 	votes, err := s.data.GetUserVotes(uid)
@@ -153,7 +153,7 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "adminUserEdit", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }
 
@@ -182,7 +182,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "POST" {
 		if err = r.ParseForm(); err != nil {
-			fmt.Printf("Unable to parse form: %v\n", err)
+			s.l.Error("Unable to parse form: %v\n", err)
 			s.doError(
 				http.StatusInternalServerError,
 				fmt.Sprintf("Unable to parse form: %v", err),
@@ -234,48 +234,48 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 
 	data.MaxUserVotes, err = s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
 	if err != nil {
-		fmt.Printf("Error getting configuration value for MaxUserVotes: %s\n", err)
+		s.l.Error("Error getting configuration value for MaxUserVotes: %s\n", err)
 
 		err = s.data.SetCfgInt(ConfigMaxUserVotes, data.MaxUserVotes)
 		if err != nil {
-			fmt.Printf("Error saving new configuration value for MaxUserVotes: %s\n", err)
+			s.l.Error("Error saving new configuration value for MaxUserVotes: %s\n", err)
 		}
 	}
 
 	data.EntriesRequireApproval, err = s.data.GetCfgBool("EntriesRequireApproval", DefaultEntriesRequireApproval)
 	if err != nil {
-		fmt.Printf("Error getting configuration value for EntriesRequireApproval: %s\n", err)
+		s.l.Error("Error getting configuration value for EntriesRequireApproval: %s\n", err)
 
 		err = s.data.SetCfgBool(ConfigEntriesRequireApproval, data.EntriesRequireApproval)
 		if err != nil {
-			fmt.Printf("Error saving new configuration value for EntriesRequireApproval: %s\n", err)
+			s.l.Error("Error saving new configuration value for EntriesRequireApproval: %s\n", err)
 		}
 	}
 
 	data.VotingEnabled, err = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
 	if err != nil {
-		fmt.Printf("Error getting configuration value for VotingEnabled: %s\n", err)
+		s.l.Error("Error getting configuration value for VotingEnabled: %s\n", err)
 
 		// try to resave new value
 		err = s.data.SetCfgBool(ConfigVotingEnabled, data.VotingEnabled)
 		if err != nil {
-			fmt.Printf("Error saving new configuration value for VotingEnabled: %s\n", err)
+			s.l.Error("Error saving new configuration value for VotingEnabled: %s\n", err)
 		}
 	}
 
 	data.TmdbToken, err = s.data.GetCfgString("TmdbToken", DefaultTmdbToken)
 	if err != nil {
-		fmt.Printf("Error getting configuration value for TmdbToken: %s\n", err)
+		s.l.Error("Error getting configuration value for TmdbToken: %s\n", err)
 
 		// try to resave new value
 		err = s.data.SetCfgString(ConfigTmdbToken, data.TmdbToken)
 		if err != nil {
-			fmt.Printf("Error saving new configuration value for TmdbToken: %s\n", err)
+			s.l.Error("Error saving new configuration value for TmdbToken: %s\n", err)
 		}
 	}
 
 	if err := s.executeTemplate(w, "adminConfig", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }
 
@@ -318,7 +318,7 @@ func (s *Server) handlerAdminMovies(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "adminMovies", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }
 
@@ -337,7 +337,7 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 		action = val
 	}
 
-	fmt.Printf("action: %q\n", r.URL.Query().Get("action"))
+	s.l.Debug("action: %q\n", r.URL.Query().Get("action"))
 	switch action {
 	case "end":
 		//adminEndCycle(w, r)
@@ -345,7 +345,7 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case "cancel":
-		fmt.Println("Canceling cycle end")
+		s.l.Info("Canceling cycle end")
 		err := s.data.SetCfgBool(ConfigVotingEnabled, true)
 		if err != nil {
 			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to enable voting: %v", err), w, r)
@@ -364,9 +364,9 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if r.Method == "POST" {
-		fmt.Println("Cycle post")
+		s.l.Debug("Cycle post")
 		if err = r.ParseForm(); err != nil {
-			fmt.Printf("Unable to parse form: %v\n", err)
+			s.l.Error("Unable to parse form: %v\n", err)
 			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to parse form: %v", err), w, r)
 			return
 		}
@@ -374,7 +374,7 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 		var plannedEnd *time.Time
 		end, err := time.Parse("2006-01-02", r.PostFormValue("endDate"))
 		if err != nil {
-			fmt.Println(err)
+			s.l.Error(err.Error())
 		} else {
 			t := (&end).Round(time.Second)
 			plannedEnd = &t
@@ -382,7 +382,7 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 
 		_, err = s.data.AddCycle(plannedEnd)
 		if err != nil {
-			fmt.Printf("Unable to add cycle: %v\n", err)
+			s.l.Error("Unable to add cycle: %v\n", err)
 			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to add cycle: %v", err), w, r)
 			return
 		}
@@ -419,17 +419,17 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.Past = pastCycles
-	fmt.Printf("found %d past cycles: %s\n", len(pastCycles), pastCycles)
+	s.l.Debug("found %d past cycles: %s\n", len(pastCycles), pastCycles)
 
-	fmt.Println("Executing admin cycles template")
+	s.l.Debug("Executing admin cycles template")
 	if err := s.executeTemplate(w, "adminCycles", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }
 
 // display movies to select
 func (s *Server) cycleStage1(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("cycleStage1")
+	s.l.Debug("cycleStage1")
 	err := s.data.SetCfgBool(ConfigVotingEnabled, false)
 	if err != nil {
 		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to disable voting: %v", err), w, r)
@@ -473,12 +473,12 @@ func (s *Server) cycleStage1(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "adminEndCycle", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }
 
 func (s *Server) cycleStage2(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("cycleStage2")
+	s.l.Debug("cycleStage2")
 
 	// No data received.  re-display list.
 	if r.Method != "POST" {
@@ -510,7 +510,7 @@ func (s *Server) cycleStage2(w http.ResponseWriter, r *http.Request) {
 		s.doError(http.StatusInternalServerError, fmt.Sprintf("Parse form error: %v", err), w, r)
 		return
 	}
-	//fmt.Printf("sumbit value: %s\n", r.PostForm.Get("submit"))
+	//s.l.Debug("sumbit value: %s\n", r.PostForm.Get("submit"))
 
 	cycle, err := s.data.GetCurrentCycle()
 	if err != nil {
@@ -522,20 +522,20 @@ func (s *Server) cycleStage2(w http.ResponseWriter, r *http.Request) {
 
 	// Get movie IDs from checkboxes
 	for key, vals := range r.PostForm {
-		//fmt.Printf("%s : (%d) [%s]\n", key, len(vals), strings.Join(vals, " "))
+		//s.l.Debug("%s : (%d) [%s]\n", key, len(vals), strings.Join(vals, " "))
 		if len(vals) > 0 && strings.HasPrefix(key, "cb_") && vals[0] != "" {
-			fmt.Println("scanning for ID")
+			s.l.Debug("scanning for ID")
 			var id int
 			_, err = fmt.Sscanf(key, "cb_%d", &id)
 			if err != nil {
-				fmt.Printf("Error scanning cb_<id> from %q: %v\n", key, err)
+				s.l.Error("Error scanning cb_<id> from %q: %v\n", key, err)
 				continue
 			}
 
-			fmt.Printf("selecting movie %s: %d\n", key, id)
+			s.l.Debug("selecting movie %s: %d\n", key, id)
 			movie, err := s.data.GetMovie(id)
 			if err != nil {
-				fmt.Printf("Unable to get movie with ID %d: %v", id, err)
+				s.l.Error("Unable to get movie with ID %d: %v", id, err)
 				continue
 			}
 
@@ -546,11 +546,11 @@ func (s *Server) cycleStage2(w http.ResponseWriter, r *http.Request) {
 	// Set movie as "watched" today
 	watched := time.Now().Local().Round(time.Hour)
 	for _, movie := range movies {
-		fmt.Printf("> setting watched on %s\n", movie.Name)
+		s.l.Debug("> setting watched on %s\n", movie.Name)
 		movie.CycleWatched = cycle
 		err = s.data.UpdateMovie(movie)
 		if err != nil {
-			fmt.Printf("Unable to update movie with ID %d: %v", movie.Id, err)
+			s.l.Error("Unable to update movie with ID %d: %v", movie.Id, err)
 			continue
 		}
 	}
@@ -566,10 +566,6 @@ func (s *Server) cycleStage2(w http.ResponseWriter, r *http.Request) {
 	//if err != nil {
 	//	s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to set CycleStage: %v", err), w, r)
 	//	return
-	//}
-
-	//if err := s.executeTemplate(w, "adminEndCycle", data); err != nil {
-	//	fmt.Printf("Error rendering template: %v\n", err)
 	//}
 
 	// Redirect to admin page
@@ -634,6 +630,6 @@ func (s *Server) handlerAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "auth", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }

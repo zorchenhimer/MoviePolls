@@ -18,7 +18,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 
 	totalVotes, err := s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
 	if err != nil {
-		fmt.Printf("Error getting MaxUserVotes config setting: %v\n", err)
+		s.l.Error("Error getting MaxUserVotes config setting: %v\n", err)
 		totalVotes = DefaultMaxUserVotes
 	}
 
@@ -42,7 +42,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		err := r.ParseForm()
 		if err != nil {
-			fmt.Printf("ParseForm() error: %v\n", err)
+			s.l.Error("ParseForm() error: %v\n", err)
 			s.doError(http.StatusInternalServerError, "Form error", w, r)
 			return
 		}
@@ -75,17 +75,17 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 				user.Password = s.hashPassword(newPass1_raw)
 				user.PassDate = time.Now()
 
-				fmt.Printf("new PassDate: %s\n", user.PassDate)
+				s.l.Info("new PassDate: %s\n", user.PassDate)
 
 				err = s.login(user, w, r)
 				if err != nil {
-					fmt.Println("Unable to login to session:", err)
+					s.l.Error("Unable to login to session:", err)
 					s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
 					return
 				}
 
 				if err = s.data.UpdateUser(user); err != nil {
-					fmt.Println("Unable to save User with new password:", err)
+					s.l.Error("Unable to save User with new password:", err)
 					s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
 					return
 				}
@@ -97,13 +97,13 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "account", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }
 func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		fmt.Printf("Error parsing login form: %v\n", err)
+		s.l.Error("Error parsing login form: %v\n", err)
 	}
 
 	user := s.getSessionUser(w, r)
@@ -128,13 +128,13 @@ func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else {
-		fmt.Printf("> no post: %s\n", r.Method)
+		s.l.Info("> no post: %s\n", r.Method)
 	}
 
 	if user != nil {
 		err = s.login(user, w, r)
 		if err != nil {
-			fmt.Printf("Unable to login: %v", err)
+			s.l.Error("Unable to login: %v", err)
 			s.doError(http.StatusInternalServerError, "Unable to login", w, r)
 			return
 		}
@@ -149,14 +149,14 @@ func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 	data.dataPageBase = s.newPageBase("Login", w, r) // set this last to get correct login status
 
 	if err := s.executeTemplate(w, "simplelogin", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }
 
 func (s *Server) handlerUserLogout(w http.ResponseWriter, r *http.Request) {
 	err := s.logout(w, r)
 	if err != nil {
-		fmt.Printf("Error logging out: %v", err)
+		s.l.Error("Error logging out: %v", err)
 	}
 
 	http.Redirect(w, r, "/", http.StatusFound)
@@ -178,7 +178,7 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		err := r.ParseForm()
 		if err != nil {
-			fmt.Printf("Error parsing login form: %v\n", err)
+			s.l.Error("Error parsing login form: %v\n", err)
 			data.ErrorMessage = append(data.ErrorMessage, err.Error())
 		}
 
@@ -236,7 +236,7 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 		} else {
 			err = s.login(newUser, w, r)
 			if err != nil {
-				fmt.Printf("Unable to login to session: %v\n", err)
+				s.l.Error("Unable to login to session: %v\n", err)
 				s.doError(http.StatusInternalServerError, "Login error", w, r)
 				return
 			}
@@ -250,6 +250,6 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "newaccount", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }

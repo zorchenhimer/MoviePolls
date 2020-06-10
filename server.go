@@ -87,7 +87,7 @@ func NewServer(options Options) (*Server, error) {
 	}
 
 	if options.Debug {
-		fmt.Println("Debug mode turned on")
+		l.Info("Debug mode turned on")
 	}
 
 	server := &Server{
@@ -123,6 +123,7 @@ func NewServer(options Options) (*Server, error) {
 		server.adminTokenUrl = url
 		server.adminTokenKey = key
 
+		// Print directly to the console, not through the logger.
 		fmt.Printf("Claim admin: http://<host>/auth/%s Password: %s\n", url, key)
 	}
 
@@ -165,11 +166,9 @@ func NewServer(options Options) (*Server, error) {
 	return server, nil
 }
 
-func (server *Server) Run() error {
-	if server.debug {
-		fmt.Printf("Listening on address %s\n", server.s.Addr)
-	}
-	return server.s.ListenAndServe()
+func (s *Server) Run() error {
+	s.l.Info("Listening on address %s", s.s.Addr)
+	return s.s.ListenAndServe()
 }
 
 func (s *Server) CheckAdminExists() (bool, error) {
@@ -199,7 +198,7 @@ func (s *Server) CheckAdminExists() (bool, error) {
 		}
 	}
 
-	fmt.Println("[CheckAdminExists] end of loop")
+	s.l.Debug("[CheckAdminExists] end of loop")
 	return false, nil
 }
 
@@ -220,7 +219,7 @@ func (s *Server) handlerFavicon(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handlerStatic(w http.ResponseWriter, r *http.Request) {
 	file := "static/" + filepath.Base(r.URL.Path)
 	if s.debug {
-		fmt.Printf("Attempting to serve file %q\n", file)
+		s.l.Info("Attempting to serve file %q", file)
 	}
 	http.ServeFile(w, r, file)
 }
@@ -228,7 +227,7 @@ func (s *Server) handlerStatic(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handlerPoster(w http.ResponseWriter, r *http.Request) {
 	file := "posters/" + filepath.Base(r.URL.Path)
 	if s.debug {
-		fmt.Printf("Attempting to serve file %q\n", file)
+		s.l.Info("Attempting to serve file %q", file)
 	}
 	http.ServeFile(w, r, file)
 }
@@ -247,7 +246,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			"Something went wrong :C",
 			w, r)
 
-		fmt.Printf("Unable to get current cycle: %v\n", err)
+		s.l.Error("Unable to get current cycle: %v\n", err)
 		return
 	}
 
@@ -265,7 +264,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 	err = r.ParseMultipartForm(4096)
 	if err != nil {
-		fmt.Printf("Error parsing movie form: %v\n", err)
+		s.l.Error("Error parsing movie form: %v\n", err)
 	}
 
 	if r.Method == "POST" {
@@ -277,7 +276,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		links := strings.Split(linktext, "\n")
 		links, err = common.VerifyLinks(links)
 		if err != nil {
-			fmt.Printf("bad link: %v\n", err)
+			s.l.Error("bad link: %v\n", err)
 			data.ErrLinks = true
 			errText = append(errText, "Invalid link(s) given.")
 		}
@@ -294,7 +293,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 		if movieExists {
 			data.ErrTitle = true
-			fmt.Println("Movie exists")
+			s.l.Debug("Movie exists")
 			errText = append(errText, "Movie already exists")
 		}
 
@@ -328,7 +327,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				if rerenderSite {
 					data.ErrorMessage = errText
 					if err := s.executeTemplate(w, "addmovie", data); err != nil {
-						fmt.Printf("Error rendering template: %v\n", err)
+						s.l.Error("Error rendering template: %v\n", err)
 					}
 					return
 				}
@@ -347,7 +346,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			posterFile, _, _ := r.FormFile("PosterFile")
 
 			if posterFile != nil {
-				file, err := uploadFile(r, posterFileName)
+				file, err := s.uploadFile(r, posterFileName)
 
 				if err != nil {
 					data.ErrPoster = true
@@ -371,16 +370,16 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 		//data.ErrorMessage = strings.Join(errText, "<br />")
 		data.ErrorMessage = errText
-		fmt.Printf("Movie not added. isError(): %t\nerr: %v\n", data.isError(), err)
+		s.l.Error("Movie not added. isError(): %t\nerr: %v\n", data.isError(), err)
 	}
 
 	if err := s.executeTemplate(w, "addmovie", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }
 
 func (s *Server) doError(code int, message string, w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("%d for %q\n", code, r.URL.Path)
+	s.l.Debug("%d for %q\n", code, r.URL.Path)
 	dataErr := dataError{
 		dataPageBase: s.newPageBase("Error", w, r),
 		Message:      message,
@@ -389,7 +388,7 @@ func (s *Server) doError(code int, message string, w http.ResponseWriter, r *htt
 
 	w.WriteHeader(http.StatusNotFound)
 	if err := s.executeTemplate(w, "error", dataErr); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }
 
@@ -404,19 +403,19 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 	if r.Body != http.NoBody {
 		err := r.ParseForm()
 		if err != nil {
-			fmt.Printf("[ERR] %v\n", err)
+			s.l.Error(err.Error())
 		}
 		searchVal := r.FormValue("search")
 
 		movieList, err = s.data.SearchMovieTitles(searchVal)
 		if err != nil {
-			fmt.Printf("[ERR] %v\n", err)
+			s.l.Error(err.Error())
 		}
 	} else {
 		var err error = nil
 		movieList, err = s.data.GetActiveMovies()
 		if err != nil {
-			fmt.Printf("[ERR] %v\n", err)
+			s.l.Error(err.Error())
 			s.doError(
 				http.StatusBadRequest,
 				fmt.Sprintf("Cannot get active movies. Please contact the server admin."),
@@ -437,8 +436,7 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 	data.VotingEnabled, _ = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
 
 	if err := s.executeTemplate(w, "cyclevotes", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
-		//http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }
 
@@ -454,7 +452,7 @@ func (s *Server) handlerMovie(w http.ResponseWriter, r *http.Request) {
 
 		if err := s.executeTemplate(w, "movieError", dataError); err != nil {
 			http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
-			fmt.Println(err)
+			s.l.Error(err.Error())
 		}
 		return
 	}
@@ -468,12 +466,10 @@ func (s *Server) handlerMovie(w http.ResponseWriter, r *http.Request) {
 
 		if err := s.executeTemplate(w, "movieError", dataError); err != nil {
 			http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
-			fmt.Println("movie not found: " + err.Error())
+			s.l.Error("movie not found: " + err.Error())
 		}
 		return
 	}
-
-	// fmt.Println(movie)
 
 	data := dataMovieInfo{
 		dataPageBase: s.newPageBase(movie.Name, w, r),
@@ -596,25 +592,25 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 	return results, errors, rerenderSite
 }
 
-func uploadFile(r *http.Request, name string) (filepath string, err error) {
+func (s *Server) uploadFile(r *http.Request, name string) (filepath string, err error) {
 	// 10 MB upload limit
 	r.ParseMultipartForm(10 << 20)
 
 	file, handler, err := r.FormFile("PosterFile")
 
 	if err != nil {
-		fmt.Printf("%v\n", err.Error())
-		return "", fmt.Errorf("Unalbe to retrive the file")
+		s.l.Error(err.Error())
+		return "", fmt.Errorf("Unable to retrive the file")
 	}
 
 	defer file.Close()
 
-	fmt.Printf("Uploaded File: %v - Size %v\n", handler.Filename, handler.Size)
+	s.l.Info("Uploaded File: %v - Size %v", handler.Filename, handler.Size)
 
 	tempFile, err := ioutil.TempFile("posters", name+"-*.png")
 
 	if err != nil {
-		return "", fmt.Errorf("Error while saving file to disk\n%v\n", err)
+		return "", fmt.Errorf("Error while saving file to disk\n%v", err)
 	}
 	defer tempFile.Close()
 
@@ -626,7 +622,7 @@ func uploadFile(r *http.Request, name string) (filepath string, err error) {
 
 	tempFile.Write(fileBytes)
 
-	fmt.Printf("Filename: %v\n", tempFile.Name())
+	s.l.Debug("Filename: %v\n", tempFile.Name())
 
 	return tempFile.Name(), nil
 }
@@ -639,7 +635,7 @@ func (s *Server) handlerHistory(w http.ResponseWriter, r *http.Request) {
 			http.StatusInternalServerError,
 			fmt.Sprintf("something went wrong :C"),
 			w, r)
-		fmt.Println("Unable to get past cycles: ", err)
+		s.l.Error("Unable to get past cycles: ", err)
 		return
 	}
 
@@ -652,6 +648,6 @@ func (s *Server) handlerHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "history", data); err != nil {
-		fmt.Printf("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v\n", err)
 	}
 }

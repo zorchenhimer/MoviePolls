@@ -45,10 +45,10 @@ func delSession(session *sessions.Session, w http.ResponseWriter, r *http.Reques
 func (s *Server) getSessionUser(w http.ResponseWriter, r *http.Request) *common.User {
 	session, err := s.cookies.Get(r, SessionName)
 	if err != nil {
-		fmt.Printf("Unable to get session from store: %v\n", err)
+		s.l.Error("Unable to get session from store: %v\n", err)
 		err = delSession(session, w, r)
 		if err != nil {
-			fmt.Printf("Unable to delete cookie: %v\n", err)
+			s.l.Error("Unable to delete cookie: %v\n", err)
 		}
 		return nil
 	}
@@ -60,17 +60,17 @@ func (s *Server) getSessionUser(w http.ResponseWriter, r *http.Request) *common.
 	if userId, ok = val.(int); !ok {
 		err = delSession(session, w, r)
 		if err != nil {
-			fmt.Printf("Unable to delete cookie: %v\n", err)
+			s.l.Error("Unable to delete cookie: %v\n", err)
 		}
 		return nil
 	}
 
 	user, err := s.data.GetUser(userId)
 	if err != nil {
-		fmt.Printf("Unable to get user with ID %d: %v\n", userId, err)
+		s.l.Error("Unable to get user with ID %d: %v\n", userId, err)
 		err = delSession(session, w, r)
 		if err != nil {
-			fmt.Printf("Unable to delete cookie: %v\n", err)
+			s.l.Error("Unable to delete cookie: %v\n", err)
 		}
 		return nil
 	}
@@ -79,10 +79,10 @@ func (s *Server) getSessionUser(w http.ResponseWriter, r *http.Request) *common.
 	gobbed, err := user.PassDate.GobEncode()
 
 	if err != nil || fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed))) != passDate {
-		fmt.Println("User's PassDate did not match stored value")
+		s.l.Info("User's PassDate did not match stored value")
 		err = delSession(session, w, r)
 		if err != nil {
-			fmt.Printf("Unable to delete cookie: %v\n", err)
+			s.l.Error("Unable to delete cookie: %v\n", err)
 		}
 		return nil
 	}
