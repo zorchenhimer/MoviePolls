@@ -15,7 +15,7 @@ func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
 
 	enabled, err := s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
 	if err != nil {
-		s.l.Error("Unable to get config value for VotingEnabled: %s\n", err)
+		s.l.Error("Unable to get config value for VotingEnabled: %s", err)
 	}
 
 	// this should be false if an error was returned
@@ -30,19 +30,19 @@ func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
 	var movieId int
 	if _, err := fmt.Sscanf(r.URL.Path, "/vote/%d", &movieId); err != nil {
 		s.doError(http.StatusBadRequest, "Invalid movie ID", w, r)
-		s.l.Info("invalid vote URL: %q\n", r.URL.Path)
+		s.l.Info("invalid vote URL: %q", r.URL.Path)
 		return
 	}
 
 	movie, err := s.data.GetMovie(movieId)
 	if err != nil {
 		s.doError(http.StatusBadRequest, "Invalid movie ID", w, r)
-		s.l.Info("Movie with ID %d doesn't exist\n", movieId)
+		s.l.Info("Movie with ID %d doesn't exist", movieId)
 		return
 	}
 	if movie.CycleWatched != nil {
 		s.doError(http.StatusBadRequest, "Movie already watched", w, r)
-		s.l.Error("Attempted to vote on watched movie ID %d\n", movieId)
+		s.l.Error("Attempted to vote on watched movie ID %d", movieId)
 		return
 	}
 
@@ -57,7 +57,7 @@ func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
 		//s.doError(http.StatusBadRequest, "You already voted for that movie!", w, r)
 		if err := s.data.DeleteVote(user.Id, movieId); err != nil {
 			s.doError(http.StatusBadRequest, "Something went wrong :c", w, r)
-			s.l.Error("Unable to remove vote: %v\n", err)
+			s.l.Error("Unable to remove vote: %v", err)
 			return
 		}
 	} else {
@@ -82,7 +82,7 @@ func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
 
 		maxVotes, err := s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
 		if err != nil {
-			s.l.Error("Error getting MaxUserVotes config setting: %v\n", err)
+			s.l.Error("Error getting MaxUserVotes config setting: %v", err)
 			maxVotes = DefaultMaxUserVotes
 		}
 
@@ -95,7 +95,7 @@ func (s *Server) handlerVote(w http.ResponseWriter, r *http.Request) {
 
 		if err := s.data.AddVote(user.Id, movieId); err != nil {
 			s.doError(http.StatusBadRequest, "Something went wrong :c", w, r)
-			s.l.Error("Unable to cast vote: %v\n", err)
+			s.l.Error("Unable to cast vote: %v", err)
 			return
 		}
 	}

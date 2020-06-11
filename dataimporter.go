@@ -150,7 +150,7 @@ func (j jikan) getTitle() (string, error) {
 
 	resp, err := http.Get("https://api.jikan.moe/v3/anime/" + j.id)
 	if err != nil || resp.StatusCode != 200 {
-		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n\n")
+		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n")
 	} else {
 		body, _ := ioutil.ReadAll(resp.Body)
 
@@ -177,7 +177,7 @@ func (j jikan) getDesc() (string, error) {
 	resp, err := http.Get("https://api.jikan.moe/v3/anime/" + j.id)
 	if err != nil || resp.StatusCode != 200 {
 
-		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n\n")
+		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n")
 	} else {
 		body, _ := ioutil.ReadAll(resp.Body)
 
@@ -201,7 +201,7 @@ func (j jikan) getPoster() (string, error) {
 	// get the file url form the api
 	resp, err := http.Get("https://api.jikan.moe/v3/anime/" + j.id)
 	if err != nil || resp.StatusCode != 200 {
-		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n\n")
+		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n")
 	} else {
 		body, _ := ioutil.ReadAll(resp.Body)
 

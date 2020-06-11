@@ -18,7 +18,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 
 	totalVotes, err := s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
 	if err != nil {
-		s.l.Error("Error getting MaxUserVotes config setting: %v\n", err)
+		s.l.Error("Error getting MaxUserVotes config setting: %v", err)
 		totalVotes = DefaultMaxUserVotes
 	}
 
@@ -42,7 +42,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		err := r.ParseForm()
 		if err != nil {
-			s.l.Error("ParseForm() error: %v\n", err)
+			s.l.Error("ParseForm() error: %v", err)
 			s.doError(http.StatusInternalServerError, "Form error", w, r)
 			return
 		}
@@ -75,7 +75,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 				user.Password = s.hashPassword(newPass1_raw)
 				user.PassDate = time.Now()
 
-				s.l.Info("new PassDate: %s\n", user.PassDate)
+				s.l.Info("new PassDate: %s", user.PassDate)
 
 				err = s.login(user, w, r)
 				if err != nil {
@@ -97,13 +97,13 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "account", data); err != nil {
-		s.l.Error("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v", err)
 	}
 }
 func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		s.l.Error("Error parsing login form: %v\n", err)
+		s.l.Error("Error parsing login form: %v", err)
 	}
 
 	user := s.getSessionUser(w, r)
@@ -128,7 +128,7 @@ func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else {
-		s.l.Info("> no post: %s\n", r.Method)
+		s.l.Info("> no post: %s", r.Method)
 	}
 
 	if user != nil {
@@ -149,7 +149,7 @@ func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 	data.dataPageBase = s.newPageBase("Login", w, r) // set this last to get correct login status
 
 	if err := s.executeTemplate(w, "simplelogin", data); err != nil {
-		s.l.Error("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v", err)
 	}
 }
 
@@ -178,7 +178,7 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		err := r.ParseForm()
 		if err != nil {
-			s.l.Error("Error parsing login form: %v\n", err)
+			s.l.Error("Error parsing login form: %v", err)
 			data.ErrorMessage = append(data.ErrorMessage, err.Error())
 		}
 
@@ -236,7 +236,7 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 		} else {
 			err = s.login(newUser, w, r)
 			if err != nil {
-				s.l.Error("Unable to login to session: %v\n", err)
+				s.l.Error("Unable to login to session: %v", err)
 				s.doError(http.StatusInternalServerError, "Login error", w, r)
 				return
 			}
@@ -250,6 +250,6 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "newaccount", data); err != nil {
-		s.l.Error("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v", err)
 	}
 }
