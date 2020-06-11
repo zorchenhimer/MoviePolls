@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -63,6 +64,11 @@ func NewServer(options Options) (*Server, error) {
 	l, err := common.NewLogger(options.LogLevel, options.LogFile)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to setup logger: %v", err)
+	}
+
+	err = os.MkdirAll("posters", 0755)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to create posters directory: %v", err)
 	}
 
 	data, err := mpd.GetDataConnector("json", "db/data.json", l)
