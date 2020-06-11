@@ -6,6 +6,7 @@
 {{ $voteListSize := 10 }}
 {{ $user := .User }}
 {{ $votingEnabled := .VotingEnabled }}
+{{ $votesAvailable := .AvailableVotes }}
 
 
 <div class="searchbar">
@@ -46,7 +47,8 @@
                         {{if .UserVoted $user.Id }}
                         Voted! {{if and $votingEnabled (not .CycleWatched)}}(<a href="/vote/{{.Id}}">Remove</a>){{end}}
                         {{else}}
-                        {{if and $votingEnabled (not .CycleWatched) }}<a href="/vote/{{.Id}}">Vote</a>{{end}}
+                        {{ if lt $votesAvailable 1}}No votes<br />available
+                        {{else if and (gt $votesAvailable 0) (and $votingEnabled (not .CycleWatched)) }}<a href="/vote/{{.Id}}">Vote</a>{{end}}
                         {{end}}
                     </div>
                     {{end}}

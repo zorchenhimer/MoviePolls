@@ -406,6 +406,15 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 
 	movieList := []*common.Movie{}
 
+	data := struct {
+		dataPageBase
+		Movies         []*common.Movie
+		VotingEnabled  bool
+		AvailableVotes int
+	}{
+		dataPageBase: s.newPageBase("Current Cycle", w, r),
+	}
+
 	if r.Body != http.NoBody {
 		err := r.ParseForm()
 		if err != nil {
@@ -430,15 +439,31 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	data := struct {
-		dataPageBase
-		Movies        []*common.Movie
-		VotingEnabled bool
-	}{
-		dataPageBase: s.newPageBase("Current Cycle", w, r),
-		Movies:       common.SortMoviesByName(movieList),
+	votedMovies, err := s.data.GetUserVotes(data.User.Id)
+	if err != nil {
+		s.doError(
+			http.StatusBadRequest,
+			fmt.Sprintf("Cannot get user votes: %v", err),
+			w, r)
+		return
 	}
 
+	count := 0
+	for _, movie := range votedMovies {
+		// Only count active movies
+		if movie.CycleWatched == nil && movie.Removed == false {
+			count++
+		}
+	}
+
+	maxVotes, err := s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
+	if err != nil {
+		s.l.Error("Error getting MaxUserVotes config setting: %v\n", err)
+		maxVotes = DefaultMaxUserVotes
+	}
+
+	data.Movies = common.SortMoviesByName(movieList)
+	data.AvailableVotes = maxVotes - count
 	data.VotingEnabled, _ = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
 
 	if err := s.executeTemplate(w, "cyclevotes", data); err != nil {
