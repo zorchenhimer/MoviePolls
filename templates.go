@@ -156,20 +156,6 @@ func (a dataAccount) IsErrored() bool {
 	return a.ErrCurrentPass || a.ErrNewPass || a.ErrEmail
 }
 
-type dataNewAccount struct {
-	dataPageBase
-
-	ErrorMessage []string
-	ErrName      bool
-	ErrPass      bool
-	ErrEmail     bool
-
-	ValName           string
-	ValEmail          string
-	ValNotifyEnd      bool
-	ValNotifySelected bool
-}
-
 type dataError struct {
 	dataPageBase
 

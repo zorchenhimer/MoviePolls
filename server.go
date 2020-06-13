@@ -23,6 +23,8 @@ const (
 	DefaultEntriesRequireApproval bool   = false
 	DefaultVotingEnabled          bool   = false
 	DefaultTmdbToken              string = ""
+	DefaultMaxNameLength          int    = 100
+	DefaultMinNameLength          int    = 4
 )
 
 // configuration keys
@@ -31,6 +33,8 @@ const (
 	ConfigMaxUserVotes           string = "MaxUserVotes"
 	ConfigEntriesRequireApproval string = "EntriesRequireApproval"
 	ConfigTmdbToken              string = "TmdbToken"
+	ConfigMaxNameLength          string = "MaxNameLength"
+	ConfigMinNameLength          string = "MinNameLength"
 )
 
 type Options struct {

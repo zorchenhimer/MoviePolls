@@ -12,7 +12,7 @@
     <div id="login">
         <div>
             <div{{if .ErrName}} class="errorMessage"{{end}}><label for="Username">Username<label></div>
-            <div><input type="text" name="Username" id="Username" required /></div>
+            <div><input type="text" name="Username" id="Username" required value="{{.ValName}}" /></div>
         </div>
         <div>
             <div{{if .ErrPass}} class="errorMessage"{{end}}><label for="Password1">Password<label></div>
@@ -24,7 +24,7 @@
         </div>
         <div>
             <div{{if .ErrEmail}} class="errorMessage"{{end}}><label for="Email">Email<label></div>
-            <div><input type="email" name="Email" id="Email" /></div>
+            <div><input type="email" name="Email" id="Email" value="{{.ValEmail}}" /></div>
         </div>
         <div>
             <input type="checkbox" name="NotifyEnd" id="NotifyEnd"{{if .ValNotifyEnd}} checked{{end}} />

@@ -169,7 +169,19 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := dataNewAccount{
+	data := struct {
+		dataPageBase
+
+		ErrorMessage []string
+		ErrName      bool
+		ErrPass      bool
+		ErrEmail     bool
+
+		ValName           string
+		ValEmail          string
+		ValNotifyEnd      bool
+		ValNotifySelected bool
+	}{
 		dataPageBase: s.newPageBase("Create Account", w, r),
 	}
 
@@ -183,6 +195,8 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 		}
 
 		un := strings.TrimSpace(r.PostFormValue("Username"))
+		data.ValName = un
+
 		// TODO: password requirements
 		pw1 := r.PostFormValue("Password1")
 		pw2 := r.PostFormValue("Password2")
@@ -191,6 +205,32 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 
 		if un == "" {
 			data.ErrorMessage = append(data.ErrorMessage, "Username cannot be blank!")
+			data.ErrName = true
+		}
+
+		maxlen, err := s.data.GetCfgInt(ConfigMaxNameLength, DefaultMaxNameLength)
+		if err != nil {
+			s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+			s.l.Error("Unable to get MaxNameLength config value: %v", err)
+			return
+		}
+
+		minlen, err := s.data.GetCfgInt(ConfigMinNameLength, DefaultMinNameLength)
+		if err != nil {
+			s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+			s.l.Error("Unable to get MinNameLength config value: %v", err)
+			return
+		}
+
+		s.l.Debug("New user: %s (%d) maxlen: %d", un, len(un), maxlen)
+
+		if len(un) > maxlen {
+			data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Username cannot be longer than %d characters", maxlen))
+			data.ErrName = true
+		}
+
+		if len(un) < minlen {
+			data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Username cannot be shorter than %d characters", minlen))
 			data.ErrName = true
 		}
 
@@ -221,26 +261,28 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 			data.ErrorMessage = append(data.ErrorMessage, "Email required for notifications")
 		}
 
-		newUser := &common.User{
-			Name:                un,
-			Password:            s.hashPassword(pw1),
-			Email:               email,
-			NotifyCycleEnd:      data.ValNotifyEnd,
-			NotifyVoteSelection: data.ValNotifySelected,
-			PassDate:            time.Now(),
-		}
-
-		_, err = s.data.AddUser(newUser)
-		if err != nil {
-			data.ErrorMessage = append(data.ErrorMessage, err.Error())
-		} else {
-			err = s.login(newUser, w, r)
-			if err != nil {
-				s.l.Error("Unable to login to session: %v", err)
-				s.doError(http.StatusInternalServerError, "Login error", w, r)
-				return
+		if len(data.ErrorMessage) == 0 {
+			newUser := &common.User{
+				Name:                un,
+				Password:            s.hashPassword(pw1),
+				Email:               email,
+				NotifyCycleEnd:      data.ValNotifyEnd,
+				NotifyVoteSelection: data.ValNotifySelected,
+				PassDate:            time.Now(),
 			}
-			doRedirect = true
+
+			_, err = s.data.AddUser(newUser)
+			if err != nil {
+				data.ErrorMessage = append(data.ErrorMessage, err.Error())
+			} else {
+				err = s.login(newUser, w, r)
+				if err != nil {
+					s.l.Error("Unable to login to session: %v", err)
+					s.doError(http.StatusInternalServerError, "Login error", w, r)
+					return
+				}
+				doRedirect = true
+			}
 		}
 	}
 
