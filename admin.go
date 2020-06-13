@@ -171,8 +171,12 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		EntriesRequireApproval bool
 		VotingEnabled          bool
 		TmdbToken              string
+		MaxNameLength          int
+		MinNameLength          int
 
-		ErrMaxUserVotes bool
+		ErrMaxUserVotes  bool
+		ErrMaxNameLength bool
+		ErrMinNameLength bool
 	}{
 		dataPageBase: s.newPageBase("Admin - Config", w, r),
 		ErrorMessage: []string{},
@@ -230,6 +234,41 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		tmdbToken := r.PostFormValue("TmdbToken")
 		s.data.SetCfgString(ConfigTmdbToken, tmdbToken)
 
+		maxNameLengthStr := r.PostFormValue("MaxNameLength")
+		maxNameLength, err := strconv.ParseInt(maxNameLengthStr, 10, 32)
+		if err != nil {
+			data.ErrMaxNameLength = true
+			data.ErrorMessage = append(
+				data.ErrorMessage,
+				fmt.Sprintf("MaxNameLength invalid: %v", err))
+
+		} else if maxNameLength < 10 {
+			data.ErrMaxNameLength = true
+			data.ErrorMessage = append(
+				data.ErrorMessage,
+				"Max name length must be at least 10")
+
+		} else {
+			s.data.SetCfgInt(ConfigMaxNameLength, int(maxNameLength))
+		}
+
+		minNameLengthStr := r.PostFormValue("MinNameLength")
+		minNameLength, err := strconv.ParseInt(minNameLengthStr, 10, 32)
+		if err != nil {
+			data.ErrMinNameLength = true
+			data.ErrorMessage = append(
+				data.ErrorMessage,
+				fmt.Sprintf("MinNameLength invalid: %v", err))
+
+		} else if minNameLength < 4 {
+			data.ErrMinNameLength = true
+			data.ErrorMessage = append(
+				data.ErrorMessage,
+				"Min name length must be at least 4")
+
+		} else {
+			s.data.SetCfgInt(ConfigMinNameLength, int(minNameLength))
+		}
 	}
 
 	data.MaxUserVotes, err = s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
@@ -271,6 +310,26 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		err = s.data.SetCfgString(ConfigTmdbToken, data.TmdbToken)
 		if err != nil {
 			s.l.Error("Error saving new configuration value for TmdbToken: %s", err)
+		}
+	}
+
+	data.MaxNameLength, err = s.data.GetCfgInt(ConfigMaxNameLength, DefaultMaxNameLength)
+	if err != nil {
+		s.l.Error("Error getting configuration value for %s: %v", ConfigMaxNameLength, err)
+
+		err = s.data.SetCfgInt(ConfigMaxNameLength, DefaultMaxNameLength)
+		if err != nil {
+			s.l.Error("Unable to save configuration value for %s: %v", ConfigMaxNameLength, err)
+		}
+	}
+
+	data.MinNameLength, err = s.data.GetCfgInt(ConfigMinNameLength, DefaultMinNameLength)
+	if err != nil {
+		s.l.Error("Error getting configuration value for %s: %v", ConfigMinNameLength, err)
+
+		err = s.data.SetCfgInt(ConfigMinNameLength, DefaultMinNameLength)
+		if err != nil {
+			s.l.Error("Unable to save configuration value for %s: %v", ConfigMinNameLength, err)
 		}
 	}
 

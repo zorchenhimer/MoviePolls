@@ -20,11 +20,20 @@
         <input type="checkbox" id="VotingEnabled" name="VotingEnabled" {{if .VotingEnabled}}checked {{end}}/>
     </div>
 
-	<div class="configItem">
+    <div class="configItem rowAlt">
         <label for="TmdbToken">Your tMDB Token</label>
-		<input type="password" id="TmdbToken" name="TmdbToken" value="{{.TmdbToken}}"/>
+        <input type="password" id="TmdbToken" name="TmdbToken" value="{{.TmdbToken}}"/>
     </div>
 
+    <div class="configItem">
+        <label for="MinNameLength">Min Username Length</label>
+        <input type="number" id="MinNameLength" name="MinNameLength" value="{{.MinNameLength}}"/>
+    </div>
+
+    <div class="configItem rowAlt">
+        <label for="MaxNameLength">Max Username Length</label>
+        <input type="number" id="MaxNameLength" name="MaxNameLength" value="{{.MaxNameLength}}"/>
+    </div>
 
     <div class="configItem">
         <hr style="width:100%" />
