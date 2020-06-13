@@ -18,7 +18,10 @@ SOURCES = \
 		  dataimporter.go \
 		  server.go \
 		  session.go \
-		  templates.go
+		  templates.go \
+		  user.go \
+		  util.go \
+		  votes.go
 
 .PHONY: all data fmt server
 
