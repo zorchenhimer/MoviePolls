@@ -1,5 +1,6 @@
 {{define "adminbody"}}
 <div style="margin: 0 auto">
+    <h1>{{.User.Name}}</h1>
     <div>
         <form method="POST" action="/admin/user/{{.User.Id}}">
             <input type="hidden" name="Form" value="ChangePassword" />
