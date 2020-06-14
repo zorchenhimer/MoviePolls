@@ -1,0 +1,12 @@
+{{define "header"}}
+        <link rel="stylesheet" type="text/css" href="/static/admin.css">
+{{end}}
+
+{{define "adminbody"}}
+    <h1>Confirmation</h1>
+    <div>{{.Message}}</div>
+    <div id="confirmChoices">
+        <div id="confirmTrue"><a href="{{.TrueLink}}">{{.TrueMessage}}</a></div>
+        <div id="confirmFalse"><a href="{{.FalseLink}}">{{.FalseMessage}}</a></div>
+    </div>
+{{end}}

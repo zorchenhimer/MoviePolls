@@ -74,6 +74,9 @@ type DataConnector interface {
 
 	// Admin stuff
 	GetUsers(start, count int) ([]*common.User, error)
+	// Delete a user and their associated votes.  Should this include votes for
+	// past cycles or just the current? (currently removes all)
+	PurgeUser(userId int) error
 
 	// Configuration stuff
 	// The default value must be passed in.  If no key is found, the default

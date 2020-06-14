@@ -102,6 +102,143 @@ func (s *Server) handlerAdminUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// "deletes" a user.  The account will still exist along with the votes, but
+// the name, password, email, and notification settings will all be removed.
+func (s *Server) adminDeleteUser(w http.ResponseWriter, r *http.Request, user *common.User) {
+	confirm := r.URL.Query().Get("confirm")
+	if confirm == "yes" {
+		s.l.Info("Deleting user %s", user)
+		origName := user.Name
+		user.Name = "[deleted]"
+		user.Password = ""
+		user.PassDate = time.Now()
+		user.Email = ""
+		user.NotifyCycleEnd = false
+		user.NotifyVoteSelection = false
+		user.Privilege = 0
+		user.RateLimitOverride = false
+
+		err := s.data.UpdateUser(user)
+		if err != nil {
+			s.doError(
+				http.StatusBadRequest,
+				fmt.Sprintf("Unable to update user: %v", err),
+				w, r)
+			return
+		}
+
+		data := struct {
+			dataPageBase
+
+			Message  string
+			Link     string
+			LinkText string
+		}{
+			dataPageBase: s.newPageBase("Admin - Delete User", w, r),
+
+			Message:  fmt.Sprintf("The user %q has been removed.", origName),
+			Link:     "/admin/users",
+			LinkText: "Ok",
+		}
+
+		if err := s.executeTemplate(w, "adminNotice", data); err != nil {
+			s.l.Error("Error rendering template: %v", err)
+		}
+		return
+	}
+
+	s.l.Info("Confirm deleting user %s", user)
+
+	data := struct {
+		dataPageBase
+
+		Message      string
+		TrueMessage  string
+		FalseMessage string
+		TrueLink     string
+		FalseLink    string
+	}{
+		dataPageBase: s.newPageBase("Admin - Delete User", w, r),
+		Message:      fmt.Sprintf("Are you sure you want to remove the account of %q?  Its votes will stay intact, but everything else will be cleared.", user.Name),
+		TrueMessage:  "Delete",
+		FalseMessage: "Cancel",
+		TrueLink:     fmt.Sprintf("/admin/user/%d?action=delete&confirm=yes", user.Id),
+		FalseLink:    "/admin/users",
+	}
+
+	if err := s.executeTemplate(w, "adminConfirm", data); err != nil {
+		s.l.Error("Error rendering template: %v", err)
+	}
+}
+
+// Ban deletes a user and adds them to a ban list.  Users on this list can view
+// the site but cannot create an account.
+func (s *Server) adminBanUser(w http.ResponseWriter, r *http.Request, user *common.User) {
+	s.doError(
+		http.StatusBadRequest,
+		"Ban user not implemented yet.",
+		w, r)
+}
+
+// Purge removes the account entirely, including all of the account's votes.
+// Should this add the user to the banlist?  Maybe add an option?
+func (s *Server) adminPurgeUser(w http.ResponseWriter, r *http.Request, user *common.User) {
+	confirm := r.URL.Query().Get("confirm")
+	if confirm == "yes" {
+		s.l.Info("Purging user %s", user)
+		origName := user.Name
+		err := s.data.PurgeUser(user.Id)
+		if err != nil {
+			s.doError(
+				http.StatusBadRequest,
+				fmt.Sprintf("Unable to purge user: %v", err),
+				w, r)
+			return
+		}
+
+		data := struct {
+			dataPageBase
+
+			Message  string
+			Link     string
+			LinkText string
+		}{
+			dataPageBase: s.newPageBase("Admin - Purge User", w, r),
+
+			Message:  fmt.Sprintf("The user %q has been purged.", origName),
+			Link:     "/admin/users",
+			LinkText: "Ok",
+		}
+
+		if err := s.executeTemplate(w, "adminNotice", data); err != nil {
+			s.l.Error("Error rendering template: %v", err)
+		}
+		return
+	}
+
+	s.l.Info("Confirm purging user %s", user)
+	data := struct {
+		dataPageBase
+
+		Message      string
+		TrueMessage  string
+		FalseMessage string
+		TrueLink     string
+		FalseLink    string
+	}{
+		dataPageBase: s.newPageBase("Admin - Perge User", w, r),
+		Message:      fmt.Sprintf("Are you sure you want to PURGE the account of %q?  Votes will be deleted.", user.Name),
+		TrueMessage:  "PURGE",
+		FalseMessage: "Cancel",
+		TrueLink:     fmt.Sprintf("/admin/user/%d?action=purge&confirm=yes", user.Id),
+		FalseLink:    "/admin/users",
+	}
+
+	if err := s.executeTemplate(w, "adminConfirm", data); err != nil {
+		s.l.Error("Error rendering template: %v", err)
+	}
+}
+
 func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 	if !s.checkAdminRights(w, r) {
 		return
@@ -123,6 +260,21 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 			http.StatusBadRequest,
 			fmt.Sprintf("Cannot get user: %v", err),
 			w, r)
+		return
+	}
+
+	action := r.URL.Query().Get("action")
+	switch action {
+	//case "edit":
+	//	// current function
+	case "delete":
+		s.adminDeleteUser(w, r, user)
+		return
+	case "ban":
+		s.adminBanUser(w, r, user)
+		return
+	case "purge":
+		s.adminPurgeUser(w, r, user)
 		return
 	}
 

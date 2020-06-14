@@ -1,0 +1,9 @@
+{{define "header"}}
+        <link rel="stylesheet" type="text/css" href="/static/admin.css">
+{{end}}
+
+{{define "adminbody"}}
+    <h1>Notice</h1>
+    <div>{{.Message}}</div>
+    <div><a href="{{.Link}}">{{.LinkText}}</a></div>
+{{end}}

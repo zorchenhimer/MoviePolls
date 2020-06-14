@@ -33,6 +33,8 @@ var templateDefs map[string][]string = map[string][]string{
 	"adminCycles":   []string{"admin/base.html", "admin/cycles.html"},
 	"adminEndCycle": []string{"admin/base.html", "admin/endcycle.html"},
 	"adminMovies":   []string{"admin/base.html", "admin/movies.html"},
+	"adminNotice":   []string{"admin/base.html", "admin/notice.html"},
+	"adminConfirm":  []string{"admin/base.html", "admin/confirmation.html"},
 }
 
 func (s *Server) registerTemplates() error {

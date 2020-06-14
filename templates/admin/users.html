@@ -1,17 +1,31 @@
+{{define "header"}}
+        <link rel="stylesheet" type="text/css" href="/static/admin.css">
+{{end}}
+
 {{define "adminbody"}}
+<h1>User List</h1>
 {{if .Users}}
 {{range .Users}}
 <div class="configItem">
-    <a href="/admin/user/{{.Id}}">{{.Name}}</a>
-    {{if .CheckPriv "ADMIN"}}
-        <b>Admin</b>
-    {{else}}
-        {{if .CheckPriv "MOD"}}
-        <i>Mod</i>
+    <div class="adminRowItem">{{.Name}}</div>
+    <div class="adminRowItem">
+        <div class="adminRowSubItem"><a href="#">Votes</a></div>
+        <div class="adminRowSubItem"><a href="/admin/user/{{.Id}}">Edit</a></div>
+        <div class="adminRowSubItem"><a href="/admin/user/{{.Id}}?action=ban">Ban</a></div>
+        <div class="adminRowSubItem"><a href="/admin/user/{{.Id}}?action=delete">Delete</a></div>
+        <div class="adminRowSubItem"><a href="/admin/user/{{.Id}}?action=purge">PURGE</a></div>
+        <div class="adminRowSubItem">
+        {{if .CheckPriv "ADMIN"}}
+            <b>Admin</b>
         {{else}}
-        User
+            {{if .CheckPriv "MOD"}}
+            <i>Mod</i>
+            {{else}}
+            User
+            {{end}}
         {{end}}
-    {{end}}
+        </div>
+    </div>
 </div>
 {{end}}
 {{else}}

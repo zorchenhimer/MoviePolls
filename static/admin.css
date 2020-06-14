@@ -1,0 +1,11 @@
+.adminRowItem {
+    display: flex;
+    justify-content: space-between;
+    width: 50%;
+}
+
+.adminRowSubItem {
+    display: flex;
+    justify-content: space-between;
+    width: 100px;
+}

@@ -962,6 +962,26 @@ func (j *jsonConnector) DeleteUser(userId int) error {
 	return j.save()
 }
 
+func (j *jsonConnector) PurgeUser(userId int) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	count := 0
+	newVotes := []jsonVote{}
+	for _, vote := range j.Votes {
+		if vote.UserId != userId {
+			newVotes = append(newVotes, vote)
+		} else {
+			count++
+		}
+	}
+	j.Votes = newVotes
+	j.l.Info("Purged %d votes", count)
+
+	delete(j.Users, userId)
+	return j.save()
+}
+
 func (j *jsonConnector) SearchMovieTitles(query string) ([]*common.Movie, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
