@@ -844,6 +844,8 @@ func (s *Server) handlerAuth(w http.ResponseWriter, r *http.Request) {
 			s.adminTokenUrl = ""
 			s.adminTokenKey = ""
 
+			s.l.Info("%s has claimed Admin", user.Name)
+
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
