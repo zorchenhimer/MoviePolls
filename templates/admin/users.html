@@ -11,9 +11,11 @@
     <div class="adminRowItem">
         <div class="adminRowSubItem"><a href="#">Votes</a></div>
         <div class="adminRowSubItem"><a href="/admin/user/{{.Id}}">Edit</a></div>
+        {{if not (or (.CheckPriv "ADMIN") (.CheckPriv "MOD"))}}
         <div class="adminRowSubItem"><a href="/admin/user/{{.Id}}?action=ban">Ban</a></div>
         <div class="adminRowSubItem"><a href="/admin/user/{{.Id}}?action=delete">Delete</a></div>
         <div class="adminRowSubItem"><a href="/admin/user/{{.Id}}?action=purge">PURGE</a></div>
+        {{end}}
         <div class="adminRowSubItem">
         {{if .CheckPriv "ADMIN"}}
             <b>Admin</b>
