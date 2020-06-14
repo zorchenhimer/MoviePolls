@@ -112,7 +112,7 @@ func init() {
 
 func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error) {
 	if common.FileExists(filename) {
-		return loadJson(filename)
+		return loadJson(filename, l)
 	}
 
 	j := &jsonConnector{
@@ -125,12 +125,13 @@ func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error)
 		Cycles: map[int]jsonCycle{},
 		Movies: map[int]jsonMovie{},
 		Users:  map[int]*common.User{},
+		l:      l,
 	}
 
 	return j, j.save()
 }
 
-func loadJson(filename string) (*jsonConnector, error) {
+func loadJson(filename string, l *common.Logger) (*jsonConnector, error) {
 	raw, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -144,6 +145,7 @@ func loadJson(filename string) (*jsonConnector, error) {
 
 	data.filename = filename
 	data.lock = &sync.RWMutex{}
+	data.l = l
 
 	return data, nil
 }
