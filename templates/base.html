@@ -23,6 +23,7 @@
                 {{end}}
             </div>
         </div>
+        {{if .Notice}}<div id="notice">{{.Notice}}</div>{{end}}
         <div id="root">
             {{template "body" . }}
         </div>

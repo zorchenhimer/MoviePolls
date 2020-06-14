@@ -35,6 +35,7 @@ const (
 	ConfigTmdbToken              string = "TmdbToken"
 	ConfigMaxNameLength          string = "MaxNameLength"
 	ConfigMinNameLength          string = "MinNameLength"
+	ConfigNoticeBanner           string = "NoticeBanner"
 )
 
 type Options struct {

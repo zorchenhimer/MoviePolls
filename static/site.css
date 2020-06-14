@@ -236,3 +236,13 @@ a:hover {
   border: none;
   cursor: pointer;
 }
+
+#notice {
+    width: 75%;
+    background-color: red;
+    margin: auto;
+    text-align: center;
+    color: white;
+    padding: 5px 0px;
+    margin-bottom: 10px;
+}

@@ -83,8 +83,15 @@ func (s *Server) newPageBase(title string, w http.ResponseWriter, r *http.Reques
 		s.l.Error("[newPageBase] Unable to get current cycle: %v\n", err)
 	}
 
+	notice, err := s.data.GetCfgString(ConfigNoticeBanner, "")
+	if err != nil {
+		s.l.Error("Unable to get notice message from database: %v", err)
+	}
+
 	return dataPageBase{
-		PageTitle:    title,
+		PageTitle: title,
+		Notice:    notice,
+
 		User:         s.getSessionUser(w, r),
 		CurrentCycle: cycle,
 	}
@@ -92,6 +99,7 @@ func (s *Server) newPageBase(title string, w http.ResponseWriter, r *http.Reques
 
 type dataPageBase struct {
 	PageTitle string
+	Notice    string
 
 	User         *common.User
 	CurrentCycle *common.Cycle

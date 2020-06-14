@@ -325,6 +325,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		TmdbToken              string
 		MaxNameLength          int
 		MinNameLength          int
+		NoticeMessage          string
 
 		ErrMaxUserVotes  bool
 		ErrMaxNameLength bool
@@ -401,7 +402,10 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 				"Max name length must be at least 10")
 
 		} else {
-			s.data.SetCfgInt(ConfigMaxNameLength, int(maxNameLength))
+			err = s.data.SetCfgInt(ConfigMaxNameLength, int(maxNameLength))
+			if err != nil {
+				s.l.Error("Unable to set %q: %v", ConfigMaxNameLength, err)
+			}
 		}
 
 		minNameLengthStr := r.PostFormValue("MinNameLength")
@@ -419,10 +423,16 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 				"Min name length must be at least 4")
 
 		} else {
-			s.data.SetCfgInt(ConfigMinNameLength, int(minNameLength))
+			err = s.data.SetCfgInt(ConfigMinNameLength, int(minNameLength))
+			if err != nil {
+				s.l.Error("Unable to set %q: %v", ConfigMinNameLength, err)
+			}
 		}
+
+		s.data.SetCfgString(ConfigNoticeBanner, strings.TrimSpace(r.PostFormValue("NoticeMessage")))
 	}
 
+	// TODO: Show these errors in the UI.
 	data.MaxUserVotes, err = s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
 	if err != nil {
 		s.l.Error("Error getting configuration value for MaxUserVotes: %s", err)
@@ -482,6 +492,16 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		err = s.data.SetCfgInt(ConfigMinNameLength, DefaultMinNameLength)
 		if err != nil {
 			s.l.Error("Unable to save configuration value for %s: %v", ConfigMinNameLength, err)
+		}
+	}
+
+	data.NoticeMessage, err = s.data.GetCfgString(ConfigNoticeBanner, "")
+	if err != nil {
+		s.l.Error("Error getting configuration value for %s: %v", ConfigNoticeBanner, err)
+
+		err = s.data.SetCfgString(ConfigNoticeBanner, "")
+		if err != nil {
+			s.l.Error("Unable to save configuration value for %s: %v", ConfigNoticeBanner, err)
 		}
 	}
 
