@@ -256,7 +256,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			"Something went wrong :C",
 			w, r)
 
-		s.l.Error("Unable to get current cycle: %v\n", err)
+		s.l.Error("Unable to get current cycle: %v", err)
 		return
 	}
 
@@ -274,7 +274,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 	err = r.ParseMultipartForm(4096)
 	if err != nil {
-		s.l.Error("Error parsing movie form: %v\n", err)
+		s.l.Error("Error parsing movie form: %v", err)
 	}
 
 	if r.Method == "POST" {
@@ -286,7 +286,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		links := strings.Split(linktext, "\n")
 		links, err = common.VerifyLinks(links)
 		if err != nil {
-			s.l.Error("bad link: %v\n", err)
+			s.l.Error("bad link: %v", err)
 			data.ErrLinks = true
 			errText = append(errText, "Invalid link(s) given.")
 		}
@@ -337,7 +337,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				if rerenderSite {
 					data.ErrorMessage = errText
 					if err := s.executeTemplate(w, "addmovie", data); err != nil {
-						s.l.Error("Error rendering template: %v\n", err)
+						s.l.Error("Error rendering template: %v", err)
 					}
 					return
 				}
@@ -380,16 +380,16 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 		//data.ErrorMessage = strings.Join(errText, "<br />")
 		data.ErrorMessage = errText
-		s.l.Error("Movie not added. isError(): %t\nerr: %v\n", data.isError(), err)
+		s.l.Error("Movie not added. isError(): %t\nerr: %v", data.isError(), err)
 	}
 
 	if err := s.executeTemplate(w, "addmovie", data); err != nil {
-		s.l.Error("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v", err)
 	}
 }
 
 func (s *Server) doError(code int, message string, w http.ResponseWriter, r *http.Request) {
-	s.l.Debug("%d for %q\n", code, r.URL.Path)
+	s.l.Debug("%d for %q", code, r.URL.Path)
 	dataErr := dataError{
 		dataPageBase: s.newPageBase("Error", w, r),
 		Message:      message,
@@ -398,7 +398,7 @@ func (s *Server) doError(code int, message string, w http.ResponseWriter, r *htt
 
 	w.WriteHeader(http.StatusNotFound)
 	if err := s.executeTemplate(w, "error", dataErr); err != nil {
-		s.l.Error("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v", err)
 	}
 }
 
@@ -463,7 +463,7 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 
 		maxVotes, err := s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
 		if err != nil {
-			s.l.Error("Error getting MaxUserVotes config setting: %v\n", err)
+			s.l.Error("Error getting MaxUserVotes config setting: %v", err)
 			maxVotes = DefaultMaxUserVotes
 		}
 		data.AvailableVotes = maxVotes - count
@@ -473,7 +473,7 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 	data.VotingEnabled, _ = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
 
 	if err := s.executeTemplate(w, "cyclevotes", data); err != nil {
-		s.l.Error("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v", err)
 	}
 }
 
@@ -647,7 +647,7 @@ func (s *Server) uploadFile(r *http.Request, name string) (filepath string, err 
 	tempFile, err := ioutil.TempFile("posters", name+"-*.png")
 
 	if err != nil {
-		return "", fmt.Errorf("Error while saving file to disk\n%v", err)
+		return "", fmt.Errorf("Error while saving file to disk: %v", err)
 	}
 	defer tempFile.Close()
 
@@ -659,7 +659,7 @@ func (s *Server) uploadFile(r *http.Request, name string) (filepath string, err 
 
 	tempFile.Write(fileBytes)
 
-	s.l.Debug("Filename: %v\n", tempFile.Name())
+	s.l.Debug("Filename: %v", tempFile.Name())
 
 	return tempFile.Name(), nil
 }
@@ -685,6 +685,6 @@ func (s *Server) handlerHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "history", data); err != nil {
-		s.l.Error("Error rendering template: %v\n", err)
+		s.l.Error("Error rendering template: %v", err)
 	}
 }
