@@ -7,3 +7,7 @@ cmd/mkdata.exe
 db/*
 bin/*
 posters/*
+
+# Test data for the JSON backend.  Deleted and
+# rewritten every time the tests are run.
+data/test.json
