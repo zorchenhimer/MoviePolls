@@ -14,6 +14,7 @@ import (
 
 var (
 	err error
+	l *common.Logger
 )
 
 var testConnectors = map[string]func() (TestableDataConnector, error){
@@ -22,12 +23,18 @@ var testConnectors = map[string]func() (TestableDataConnector, error){
 	//	return TestableDataConnector(dc), err
 	//},
 	"json": func() (TestableDataConnector, error) {
-		dc, err := newJsonConnector("test.json")
+		dc, err := newJsonConnector("test.json", l)
 		return TestableDataConnector(dc), err
 	},
 }
 
 func TestMain(m *testing.M) {
+	l, err = common.NewLogger(common.LLDebug, "")
+	if err != nil {
+		fmt.Println("Error getting logger for tests: ", err.Error())
+		os.Exit(1)
+	}
+
 	failval := 0
 	for name, connector := range testConnectors {
 		fmt.Println("Running " + name + " tests")
@@ -190,4 +197,14 @@ func compareCycles(a, b *common.Cycle, t *testing.T) {
 			t.Fatalf("Cycle ended mismatch: %s vs %s", a.Ended, b.Ended)
 		}
 	}
+}
+
+func containsInt(t *testing.T, haystack []int, needle int) bool {
+	t.Helper()
+	for _, hay := range haystack {
+		if hay == needle {
+			return true
+		}
+	}
+	return false
 }

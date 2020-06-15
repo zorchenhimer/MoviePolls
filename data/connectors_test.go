@@ -399,82 +399,184 @@ func Test_CfgString(t *testing.T) {
 	}
 }
 
-// TODO: fix this test
-//func nope_TestJson_DecayVotes(t *testing.T) {
-//	now := time.Now().Local()
-//	uid, err := conn.AddUser(&common.User{Name: "Test User"})
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	for i := 0; i < 4; i++ {
-//		end := now.Add(-1 * time.Hour * 24 * (time.Duration(i) + 1))
-//		cid, err := conn.AddCycle(nil)
-//		if err != nil {
-//			t.Fatal(err)
-//		}
-//
-//		cycle, err := conn.GetCycle(cid)
-//		if err != nil {
-//			t.Fatal(err)
-//		}
-//
-//		//fmt.Printf("adding movie %d\n", i+1)
-//		mid, err := conn.AddMovie(&common.Movie{Name: fmt.Sprintf("Movie %d", i+1), Links: []string{"http://example.com"}, CycleAdded: cycle})
-//		if err != nil {
-//			t.Fatal(err)
-//		}
-//
-//		err = conn.AddVote(uid, mid)
-//		if err != nil {
-//			t.Fatal(err)
-//		}
-//
-//		if i < 3 {
-//			movie, err := conn.GetMovie(mid)
-//			if err != nil {
-//				t.Fatal(err)
-//			}
-//			movie.CycleWatched = cycle
-//
-//			err = conn.UpdateMovie(movie)
-//			if err != nil {
-//				t.Fatal(err)
-//			}
-//
-//			//fmt.Printf("ending cycle %d\n", cycle.Id)
-//			cycle.End = &end
-//			err = conn.UpdateCycle(cycle)
-//			if err != nil {
-//				t.Fatal(err)
-//			}
-//		}
-//	}
-//
-//	// test actually starts here, lol
-//	before, err := conn.Test_GetUserVotes(uid)
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	err = conn.DecayVotes(2)
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	after, err := conn.Test_GetUserVotes(uid)
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	beforeString := []string{}
-//	for _, v := range before {
-//		beforeString = append(beforeString, v.String())
-//	}
-//
-//	fmt.Println(before)
-//	fmt.Println(after)
-//}
+//  - Add 4 cycles w/ 2 movies each cycle, each having a vote.
+//  - Close each cycle selecting a single movie to watch (leaving 1 movie added
+//    each cycle w/ a vote and still active).
+//  - Decay votes older than 2 cycles.
+func TestJson_DecayVotes(t *testing.T) {
+	now := time.Now().Local()
+	uid, err := conn.AddUser(&common.User{Name: "Test User"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	moviesDecay := []int{}
+	moviesNoDecay := []int{}
+	//var lastMovieId int = -1
+	for i := 0; i < 4; i++ {
+		end := now
+		curr, err := conn.GetCurrentCycle()
+		if err != nil {
+			t.Fatal(err)
+		}
+		//fmt.Println("current cycle: ", curr)
+		if curr != nil {
+
+			// add two movies to the current cycle
+			m1 := &common.Movie{
+				Name: fmt.Sprintf("Movie %d.a Selected", i),
+				Links: []string{"http://example.com/"},
+				Description: "",
+				CycleAdded: curr,
+				Removed: false,
+				Approved: true,
+				Votes: []*common.Vote{},
+				Poster: "",
+			}
+
+			m1_id, err := conn.AddMovie(m1)
+			if err != nil {
+				movieFail = true
+				t.Fatal(err)
+			}
+			moviesNoDecay = append(moviesNoDecay, m1_id)
+
+			m2 := &common.Movie{
+				Name: fmt.Sprintf("Movie %d.b", i),
+				Links: []string{"http://example.com/"},
+				Description: "",
+				CycleAdded: curr,
+				Removed: false,
+				Approved: true,
+				Votes: []*common.Vote{},
+				Poster: "",
+			}
+
+			m2_id, err := conn.AddMovie(m2)
+			if err != nil {
+				movieFail = true
+				t.Fatal(err)
+			}
+
+			if i < 2 {
+				moviesDecay = append(moviesDecay, m2_id)
+			} else {
+				moviesNoDecay = append(moviesNoDecay, m2_id)
+			}
+
+			// Vote for both movies
+			err = conn.AddVote(uid, m1_id)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			err = conn.AddVote(uid, m2_id)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// End the cycle
+			m, err := conn.GetMovie(m1_id)
+			if err != nil {
+				t.Fatal(err)
+			}
+			m.CycleWatched = curr
+
+			err = conn.UpdateMovie(m)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			curr.Watched = []*common.Movie{m}
+			curr.Ended = &end
+
+			err = conn.UpdateCycle(curr)
+			if err != nil {
+				t.Fatal(err)
+			}
+			//fmt.Println("")
+		}
+
+		// Start a new cycle
+		_, err = conn.AddCycle(&end)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Setup cycle's end
+		now = now.Add(time.Hour * 24 * (time.Duration(i) + 1))
+	}
+
+	// test actually starts here, lol
+	before, err := conn.Test_GetUserVotes(uid)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = conn.DecayVotes(2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	after, err := conn.Test_GetUserVotes(uid)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(after) == 0 {
+		t.Log("User has no votes")
+		t.Fail()
+	}
+
+	voteIds := []int{}
+	for _, v := range after {
+		for _, m := range moviesDecay {
+			if m == v.Movie.Id {
+				t.Logf("Failed to decay vote with movie ID %d", m)
+				t.Fail()
+			}
+		}
+
+		voteIds = append(voteIds, v.Movie.Id)
+	}
+
+	for _, m := range moviesNoDecay {
+		if !containsInt(t, voteIds, m) {
+			t.Logf("Decayed wrong vote with movie ID %d", m)
+			t.Fail()
+		}
+	}
+
+	if t.Failed() {
+		t.Log("moviesNoDecay ", moviesNoDecay)
+		t.Log("moviesDecay ", moviesDecay)
+
+		past, err := conn.GetPastCycles(0, 5)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		watched := []*common.Movie{}
+		for _, p := range past {
+			watched = append(watched, p.Watched...)
+		}
+
+		fmt.Println("Watched")
+		for _, m := range watched {
+			fmt.Printf("  [%d] %s\n", m.Id, m.Name)
+		}
+
+		fmt.Println("Before")
+		for _, v := range before {
+			fmt.Printf("  [%d] %s\n", v.Movie.Id, v.Movie.Name)
+		}
+
+		fmt.Println("After")
+		for _, v := range after {
+			fmt.Printf("  [%d] %s\n", v.Movie.Id, v.Movie.Name)
+		}
+	}
+}
 
 /*
 	Cleanup

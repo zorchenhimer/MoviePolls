@@ -235,6 +235,18 @@ func (j *jsonConnector) jsonFromCycle(cycle *common.Cycle) jsonCycle {
 	return c
 }
 
+func (j *jsonConnector) jsonFromVote(vote *common.Vote) jsonVote {
+	if vote.User == nil || vote.Movie == nil || vote.CycleAdded == nil {
+		panic("Invalid vote.  Missing user, move, or cycle")
+	}
+
+	return jsonVote{
+		UserId:  vote.User.Id,
+		MovieId: vote.Movie.Id,
+		CycleId: vote.CycleAdded.Id,
+	}
+}
+
 func (j *jsonConnector) GetCurrentCycle() (*common.Cycle, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
@@ -537,10 +549,15 @@ func sortCycles(cycles map[int]jsonCycle) []jsonCycle {
 
 // Find votes for currently active movies and remove the ones that have been
 // added more than `age` cycles ago.  Do not remove votes from movies that have
-// been watched. (FIXME: it's borked, lol)
+// been watched.
 func (j *jsonConnector) DecayVotes(age int) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	// Older cycles will have a lower ID
 	sorted := sortCycles(j.Cycles)
 
+	// Get the ID of the cycle that's at the age boundary.
 	idLimit := 0
 	for i, cycle := range sorted {
 		if i >= age {
@@ -549,23 +566,32 @@ func (j *jsonConnector) DecayVotes(age int) error {
 		}
 	}
 
-	active, err := j.GetActiveMovies()
-	if err != nil {
-		return fmt.Errorf("Error getting active movies: %v", err)
-	}
+	newVotes := []jsonVote{} // non-decayed votes
+	mcache := map[int]bool{} // movie watched true/false
 
-	for _, movie := range active {
-		for _, vote := range movie.Votes {
-			if vote.CycleAdded.Id < idLimit {
-				err = j.DeleteVote(vote.User.Id, vote.Movie.Id)
-				if err != nil {
-					return fmt.Errorf("Error deleting vote by user ID %d for movie ID %d: %v", vote.User.Id, vote.Movie.Id, err)
-				}
-			}
+	for _, vote := range j.Votes {
+		// Figure out if the movie has been watched
+		var watched bool
+		if w, ok := mcache[vote.MovieId]; ok {
+			watched = w
+		} else {
+			m := j.findMovie(vote.MovieId)
+			watched = (m.CycleWatched != nil)
+			mcache[vote.MovieId] = watched
+		}
+
+		// If the movie hasn't been watched and the vote was added below the
+		// cycle ID limit, decay the vote.
+		if !watched && vote.CycleId < idLimit {
+			j.l.Debug("Decaying vote for movie ID %d", vote.MovieId)
+		} else {
+			newVotes = append(newVotes, vote)
 		}
 	}
 
-	return nil
+	// Remember to save the new vote list
+	j.Votes = newVotes
+	return j.save()
 }
 
 func (j *jsonConnector) nextUserId() int {
@@ -1043,7 +1069,6 @@ func (j *jsonConnector) Test_GetUserVotes(userId int) ([]*common.Vote, error) {
 		m := j.findMovie(vote.MovieId)
 		c := j.findCycle(vote.CycleId)
 
-		//fmt.Printf("Test_GetUserVotes() movie: %s\n", m)
 		votes = append(votes, &common.Vote{CycleAdded: c, Movie: m, User: u})
 	}
 	return votes, nil
