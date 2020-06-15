@@ -9,3 +9,11 @@
     justify-content: space-between;
     width: 100px;
 }
+
+.adminRow {
+    display: flex;
+    justify-content: space-between;
+    width: 50%;
+    margin: 0 auto;
+    padding: 5px;
+}

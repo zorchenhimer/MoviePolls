@@ -1,12 +1,8 @@
-{{define "header"}}
-        <link rel="stylesheet" type="text/css" href="/static/admin.css">
-{{end}}
-
 {{define "adminbody"}}
 <h1>User List</h1>
 {{if .Users}}
 {{range .Users}}
-<div class="configItem">
+<div class="adminRow">
     <div class="adminRowItem">{{.Name}}</div>
     <div class="adminRowItem">
         <div class="adminRowSubItem"><a href="#">Votes</a></div>
