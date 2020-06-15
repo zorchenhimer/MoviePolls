@@ -8,6 +8,17 @@
 {{ $votingEnabled := .VotingEnabled }}
 {{ $votesAvailable := .AvailableVotes }}
 
+{{if .LastCycle}}
+<div class="cycleHistory">
+	In the last Movienight on {{.LastCycle.EndedString}} we watched:
+	<ul>
+	{{range .LastCycle.Watched}}
+	<li><a href="/movie/{{.Id}}">{{.Name}}</li>
+	{{end}}
+	</ul>
+</div>
+{{end}}
+
 
 <div class="searchbar">
 	<form action="/" method="post">
@@ -15,9 +26,6 @@
 		<button type="submit">Submit</button>
 	</form>
 </div>
-
-
-
 
 <div class="cycleCard">
     {{if not $votingEnabled}}
