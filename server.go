@@ -325,7 +325,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			Description: strings.TrimSpace(r.FormValue("Description")),
 			Votes:       []*common.Vote{},
 			Links:       links,
-			Poster:      "data/unknown.jpg", // 165x250
+			Poster:      "unknown.jpg", // 165x250
 		}
 
 		if r.FormValue("AutofillBox") == "on" {
@@ -367,6 +367,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+
 		var movieId int
 
 		if !data.isError() {
