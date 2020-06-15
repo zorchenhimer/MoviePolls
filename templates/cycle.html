@@ -11,9 +11,11 @@
 {{if .LastCycle}}
 <div class="cycleHistory">
 	In the last Movienight on {{.LastCycle.EndedString}} we watched:
+	<ul>
 	{{range .LastCycle.Watched}}
-	</br>* <a href="/movie/{{.Id}}">{{.Name}}</a>
+	<li><a href="/movie/{{.Id}}">{{.Name}}</li>
 	{{end}}
+	</ul>
 </div>
 {{end}}
 

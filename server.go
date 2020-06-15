@@ -474,7 +474,10 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 	data.Movies = common.SortMoviesByName(movieList)
 	data.VotingEnabled, _ = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
 
-	cycles, _ := s.data.GetPastCycles(0, 1)
+	cycles, err := s.data.GetPastCycles(0, 1)
+	if err != nil {
+		s.l.Error("Error getting PastCycle: %v", err)
+	}
 	if cycles != nil {
 		if len(cycles) != 0 {
 			data.LastCycle = cycles[0]
