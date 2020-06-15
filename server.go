@@ -416,6 +416,7 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		Movies         []*common.Movie
 		VotingEnabled  bool
 		AvailableVotes int
+		LastCycle      *common.Cycle
 	}{
 		dataPageBase: s.newPageBase("Current Cycle", w, r),
 	}
@@ -472,6 +473,11 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 
 	data.Movies = common.SortMoviesByName(movieList)
 	data.VotingEnabled, _ = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
+
+	cycles, _ := s.data.GetPastCycles(0, 1)
+	if cycles != nil {
+		data.LastCycle = cycles[0]
+	}
 
 	if err := s.executeTemplate(w, "cyclevotes", data); err != nil {
 		s.l.Error("Error rendering template: %v", err)
