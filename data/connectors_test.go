@@ -424,14 +424,14 @@ func TestJson_DecayVotes(t *testing.T) {
 
 			// add two movies to the current cycle
 			m1 := &common.Movie{
-				Name: fmt.Sprintf("Movie %d.a Selected", i),
-				Links: []string{"http://example.com/"},
+				Name:        fmt.Sprintf("Movie %d.a Selected", i),
+				Links:       []string{"http://example.com/"},
 				Description: "",
-				CycleAdded: curr,
-				Removed: false,
-				Approved: true,
-				Votes: []*common.Vote{},
-				Poster: "",
+				CycleAdded:  curr,
+				Removed:     false,
+				Approved:    true,
+				Votes:       []*common.Vote{},
+				Poster:      "",
 			}
 
 			m1_id, err := conn.AddMovie(m1)
@@ -442,14 +442,14 @@ func TestJson_DecayVotes(t *testing.T) {
 			moviesNoDecay = append(moviesNoDecay, m1_id)
 
 			m2 := &common.Movie{
-				Name: fmt.Sprintf("Movie %d.b", i),
-				Links: []string{"http://example.com/"},
+				Name:        fmt.Sprintf("Movie %d.b", i),
+				Links:       []string{"http://example.com/"},
 				Description: "",
-				CycleAdded: curr,
-				Removed: false,
-				Approved: true,
-				Votes: []*common.Vote{},
-				Poster: "",
+				CycleAdded:  curr,
+				Removed:     false,
+				Approved:    true,
+				Votes:       []*common.Vote{},
+				Poster:      "",
 			}
 
 			m2_id, err := conn.AddMovie(m2)

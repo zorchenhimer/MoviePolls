@@ -14,7 +14,7 @@ import (
 
 var (
 	err error
-	l *common.Logger
+	l   *common.Logger
 )
 
 var testConnectors = map[string]func() (TestableDataConnector, error){
