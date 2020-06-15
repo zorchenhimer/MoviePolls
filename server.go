@@ -476,7 +476,9 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 
 	cycles, _ := s.data.GetPastCycles(0, 1)
 	if cycles != nil {
-		data.LastCycle = cycles[0]
+		if len(cycles) != 0 {
+			data.LastCycle = cycles[0]
+		}
 	}
 
 	if err := s.executeTemplate(w, "cyclevotes", data); err != nil {
