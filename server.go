@@ -142,7 +142,7 @@ func NewServer(options Options) (*Server, error) {
 	mux.Handle("/api/", apiHandler{})
 	mux.HandleFunc("/movie/", server.handlerMovie)
 	mux.HandleFunc("/static/", server.handlerStatic)
-	mux.HandleFunc("/poster/", server.handlerPoster)
+	mux.HandleFunc("/posters/", server.handlerPoster)
 	mux.HandleFunc("/add", server.handlerAddMovie)
 
 	// list of past cycles
@@ -229,7 +229,7 @@ func (s *Server) handlerFavicon(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlerStatic(w http.ResponseWriter, r *http.Request) {
-	file := "static/" + filepath.Base(r.URL.Path)
+	file := strings.TrimLeft(filepath.Clean("/"+r.URL.Path), "/\\")
 	if s.debug {
 		s.l.Info("Attempting to serve file %q", file)
 	}
@@ -237,7 +237,7 @@ func (s *Server) handlerStatic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlerPoster(w http.ResponseWriter, r *http.Request) {
-	file := "posters/" + filepath.Base(r.URL.Path)
+	file := strings.TrimLeft(filepath.Clean("/"+r.URL.Path), "/\\")
 	if s.debug {
 		s.l.Info("Attempting to serve file %q", file)
 	}
