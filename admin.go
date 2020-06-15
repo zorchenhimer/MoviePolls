@@ -300,8 +300,8 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 	}
 	data.AvailableVotes = totalVotes - len(data.CurrentVotes)
 
+	// FIXME: implement this
 	if r.Method == "POST" {
-		// do a thing
 	}
 
 	if err := s.executeTemplate(w, "adminUserEdit", data); err != nil {
@@ -506,6 +506,106 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.executeTemplate(w, "adminConfig", data); err != nil {
+		s.l.Error("Error rendering template: %v", err)
+	}
+}
+
+func (s *Server) handlerAdminMovieEdit(w http.ResponseWriter, r *http.Request) {
+	if !s.checkAdminRights(w, r) {
+		return
+	}
+
+	var mid int
+	_, err := fmt.Sscanf(r.URL.Path, "/admin/movie/%d", &mid)
+	if err != nil {
+		s.doError(
+			http.StatusBadRequest,
+			fmt.Sprintf("Unable to parse movie ID: %v", err),
+			w, r)
+		return
+	}
+
+	// TODO: this
+	//action := r.URL.Query().Get("action")
+	//switch action {
+	//case "remove":
+	//}
+
+	if r.Method == "POST" {
+		err = r.ParseMultipartForm(4096)
+		if err != nil {
+			s.l.Error("Unable to parse form: %v", err)
+			s.doError(
+				http.StatusInternalServerError,
+				fmt.Sprintf("Unable to parse form: %v", err),
+				w, r)
+			return
+		}
+
+		movie, err := s.data.GetMovie(mid)
+		if err != nil {
+			s.doError(
+				http.StatusBadRequest,
+				fmt.Sprintf("Cannot get movie: %v", err),
+				w, r)
+			return
+		}
+
+		movie.Name = r.PostFormValue("MovieName")
+		movie.Description = r.PostFormValue("MovieDescr")
+
+		linktext := strings.ReplaceAll(r.FormValue("MovieLinks"), "\r", "")
+
+		links := strings.Split(linktext, "\n")
+		//links, err = common.VerifyLinks(links)
+		//if err != nil {
+		//	s.l.Error("bad link: %v", err)
+		//	errText = append(errText, "Invalid link(s) given.")
+		//} else {
+		s.l.Debug("Links: %s", links)
+		movie.Links = links
+		//}
+
+		posterFileName := strings.TrimSpace(r.FormValue("MovieName"))
+		posterFile, _, _ := r.FormFile("PosterFile")
+		if posterFile != nil {
+			file, err := s.uploadFile(r, posterFileName)
+
+			if err != nil {
+				//data.ErrPoster = true
+				//errText = append(errText, err.Error())
+				s.l.Error("Unable to upload file: %v", err)
+			} else {
+				movie.Poster = file
+			}
+		}
+
+		err = s.data.UpdateMovie(movie)
+		if err != nil {
+			s.l.Error("Unable to update movie: %v", err)
+		}
+	}
+
+	movie, err := s.data.GetMovie(mid)
+	if err != nil {
+		s.doError(
+			http.StatusBadRequest,
+			fmt.Sprintf("Cannot get movie: %v", err),
+			w, r)
+		return
+	}
+
+	data := struct {
+		dataPageBase
+		Movie    *common.Movie
+		LinkText string
+	}{
+		dataPageBase: s.newPageBase("Admin - Movies", w, r),
+		Movie:        movie,
+		LinkText:     strings.Join(movie.Links, "\n"),
+	}
+
+	if err := s.executeTemplate(w, "adminMovieEdit", data); err != nil {
 		s.l.Error("Error rendering template: %v", err)
 	}
 }

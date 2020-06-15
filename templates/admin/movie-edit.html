@@ -1,0 +1,26 @@
+{{define "adminbody"}}
+<h1>Edit Movie</h1>
+<form method="POST" action="/admin/movie/{{.Movie.Id}}" enctype="multipart/form-data">
+    <div>
+        <label for="MovieName">Title</label>
+        <input type="text" id="MovieName" name="MovieName" value="{{.Movie.Name}}" />
+    </div>
+    <div>
+        <label for="MovieDescr">Description</label>
+        <textarea id="MovieDescr" name="MovieDescr">{{.Movie.Description}}</textarea>
+    </div>
+    <div>
+        <label for="MovieLinks">Links</label>
+        <textarea id="MovieLinks" name="MovieLinks">{{.LinkText}}</textarea>
+    </div>
+    <div>
+        <label for="MoviePoster">Poster Image</label>
+        <input type="file" name="PosterFile" id="MoviePoster" accept="image/*" />
+    </div>
+    <div>
+        <img src="/poster/{{.Movie.Poster}}" />
+    </div>
+
+    <input type="submit" />
+</form>
+{{end}}

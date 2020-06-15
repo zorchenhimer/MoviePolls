@@ -12,15 +12,22 @@
         <div>No movies awaiting approval</div>
     {{end}}
 {{end}}
+
 <h2>Active</h2>
 {{if .Active}}
-{{range .Active}}
-<div class="configItem">
-    {{len .Votes}} <a href="/admin/movie/{{.Id}}">{{.Name}}</a>
-</div>
-{{end}}
+    {{range .Active}}
+    <div class="adminRow">
+        <div class="adminRowItem">{{.Name}}</div>
+        <div class="adminRowItem">
+            <div class="adminRowSubItem">{{len .Votes}}</div>
+            <div class="adminRowSubItem"><a href="/admin/movie/{{.Id}}">Edit</a></div>
+            <div class="adminRowSubItem"><a href="/admin/movie/{{.Id}}?action=remove">Remove</a></div>
+            <div class="adminRowSubItem"><a href="#">Ban</a></div>
+        </div>
+    </div>
+    {{end}}
 {{else}}
-<div>No active movies</div>
+    <div>No active movies</div>
 {{end}}
 
 <h2>Past</h2>

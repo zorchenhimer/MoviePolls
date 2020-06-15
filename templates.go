@@ -26,15 +26,16 @@ var templateDefs map[string][]string = map[string][]string{
 	"history":     []string{"history.html"},
 	"auth":        []string{"auth.html"},
 
-	"adminHome":     []string{"admin/base.html", "admin/home.html"},
-	"adminConfig":   []string{"admin/base.html", "admin/config.html"},
-	"adminUsers":    []string{"admin/base.html", "admin/users.html"},
-	"adminUserEdit": []string{"admin/base.html", "admin/user-edit.html"},
-	"adminCycles":   []string{"admin/base.html", "admin/cycles.html"},
-	"adminEndCycle": []string{"admin/base.html", "admin/endcycle.html"},
-	"adminMovies":   []string{"admin/base.html", "admin/movies.html"},
-	"adminNotice":   []string{"admin/base.html", "admin/notice.html"},
-	"adminConfirm":  []string{"admin/base.html", "admin/confirmation.html"},
+	"adminHome":      []string{"admin/base.html", "admin/home.html"},
+	"adminConfig":    []string{"admin/base.html", "admin/config.html"},
+	"adminUsers":     []string{"admin/base.html", "admin/users.html"},
+	"adminUserEdit":  []string{"admin/base.html", "admin/user-edit.html"},
+	"adminCycles":    []string{"admin/base.html", "admin/cycles.html"},
+	"adminEndCycle":  []string{"admin/base.html", "admin/endcycle.html"},
+	"adminMovies":    []string{"admin/base.html", "admin/movies.html"},
+	"adminMovieEdit": []string{"admin/base.html", "admin/movie-edit.html"},
+	"adminNotice":    []string{"admin/base.html", "admin/notice.html"},
+	"adminConfirm":   []string{"admin/base.html", "admin/confirmation.html"},
 }
 
 func (s *Server) registerTemplates() error {
