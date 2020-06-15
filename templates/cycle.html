@@ -10,9 +10,9 @@
 
 {{if .LastCycle}}
 <div class="cycleHistory">
-	In the last Movienight on {{.LastCycle.EndedString}} we watched
+	In the last Movienight on {{.LastCycle.EndedString}} we watched:
 	{{range .LastCycle.Watched}}
-		<a href="/movie/{{.Id}}">{{.Name}}</a>
+	</br>* <a href="/movie/{{.Id}}">{{.Name}}</a>
 	{{end}}
 </div>
 {{end}}
