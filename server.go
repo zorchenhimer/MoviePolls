@@ -274,12 +274,12 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		dataPageBase: s.newPageBase("Add Movie", w, r),
 	}
 
-	err = r.ParseMultipartForm(4096)
-	if err != nil {
-		s.l.Error("Error parsing movie form: %v", err)
-	}
-
 	if r.Method == "POST" {
+		err = r.ParseMultipartForm(4096)
+		if err != nil {
+			s.l.Error("Error parsing movie form: %v", err)
+		}
+
 		errText := []string{}
 
 		linktext := strings.ReplaceAll(r.FormValue("Links"), "\r", "")
@@ -330,6 +330,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if r.FormValue("AutofillBox") == "on" {
+			s.l.Debug("Autofill checked")
 			results, errors, rerenderSite := s.handleAutofill(links, w, r)
 
 			if len(errors) > 0 {
@@ -346,10 +347,11 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			} else {
 				movie.Name = results[0]
 				movie.Description = results[1]
-				movie.Poster = results[2]
+				movie.Poster = filepath.Base(results[2])
 			}
 
 		} else {
+			s.l.Debug("Autofill not checked")
 			movie.Name = strings.TrimSpace(r.FormValue("MovieName"))
 			movie.Description = strings.TrimSpace(r.FormValue("Description"))
 
@@ -364,7 +366,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 					data.ErrPoster = true
 					errText = append(errText, err.Error())
 				} else {
-					movie.Poster = file
+					movie.Poster = filepath.Base(file)
 				}
 			}
 		}
@@ -555,6 +557,7 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 			// Return early when the title already exists
 			title, err := sourceAPI.getTitle()
 			if err == nil {
+				s.l.Error("getTitle(): " + err.Error())
 				exists, _ := s.data.CheckMovieExists(title)
 				if err == nil {
 					if exists {
@@ -643,7 +646,9 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 	return results, errors, rerenderSite
 }
 
-func (s *Server) uploadFile(r *http.Request, name string) (filepath string, err error) {
+func (s *Server) uploadFile(r *http.Request, name string) (string, error) {
+	s.l.Debug("[uploadFile] Start")
+	var err error
 	// 10 MB upload limit
 	r.ParseMultipartForm(10 << 20)
 
@@ -673,7 +678,7 @@ func (s *Server) uploadFile(r *http.Request, name string) (filepath string, err 
 
 	tempFile.Write(fileBytes)
 
-	s.l.Debug("Filename: %v", tempFile.Name())
+	s.l.Debug("[uploadFile] Filename: %v", tempFile.Name())
 
 	return tempFile.Name(), nil
 }
