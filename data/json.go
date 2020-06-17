@@ -398,10 +398,10 @@ func (j *jsonConnector) GetPastCycles(start, end int) ([]*common.Cycle, error) {
 		f := past[idx+i]
 		f.Watched = []int{}
 
-		fmt.Printf("[GetPastCycles] finding watched movies for cycle %d\n", f.Id)
+		j.l.Debug("[GetPastCycles] finding watched movies for cycle %d", f.Id)
 		for _, movie := range j.Movies {
 			if movie.CycleWatchedId == f.Id {
-				fmt.Printf("found movie with ID %d\n", movie.Id)
+				j.l.Debug("  found movie with ID %d", movie.Id)
 				f.Watched = append(f.Watched, movie.Id)
 			}
 		}
@@ -465,11 +465,11 @@ func (j *jsonConnector) UserLogin(name, hashedPw string) (*common.User, error) {
 			if hashedPw == user.Password {
 				return user, nil
 			}
-			fmt.Printf("Bad password for user %s\n", name)
+			j.l.Info("Bad password for user %s\n", name)
 			return nil, fmt.Errorf("Invalid login credentials")
 		}
 	}
-	fmt.Printf("User with name %s not found\n", name)
+	j.l.Info("User with name %s not found\n", name)
 	return nil, fmt.Errorf("Invalid login credentials")
 }
 
@@ -733,7 +733,7 @@ func (j *jsonConnector) findMovie(id int) *common.Movie {
 		return movie
 	}
 
-	fmt.Printf("findMovie() not found with ID %d\n", id)
+	j.l.Info("findMovie() not found with ID %d\n", id)
 	return nil
 }
 
