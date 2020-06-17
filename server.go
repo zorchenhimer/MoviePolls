@@ -557,7 +557,6 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 			// Return early when the title already exists
 			title, err := sourceAPI.getTitle()
 			if err == nil {
-				s.l.Error("getTitle(): " + err.Error())
 				exists, _ := s.data.CheckMovieExists(title)
 				if err == nil {
 					if exists {
@@ -565,7 +564,11 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 						rerenderSite = true
 						return nil, errors, rerenderSite
 					}
+				} else {
+					s.l.Error("CheckMovieExsists(): " + err.Error())
 				}
+			} else {
+				s.l.Error("getTitle(): " + err.Error())
 			}
 
 			results, err = getMovieData(sourceAPI)
