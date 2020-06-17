@@ -1,9 +1,11 @@
 {{define "adminbody"}}
 <h2>Current Cycle</h2>
+<form method="POST" action="/admin/cyclepost">
 {{if .Cycle }}
 <div>
     ID: {{.Cycle.Id}}<br />
-    PlannedEnd: {{.Cycle.PlannedEndString}}<br />
+    PlannedEnd: {{.Cycle.PlannedEndString}} -
+    <input type="date" name="modEndDate" id="modEndDate" /><button value="update" name="actionType">Update Planned End</button><br />
     Ended: {{.Cycle.EndedString}}<br />
 </div>
 {{else}}
@@ -14,9 +16,8 @@
     {{if .Cycle}}<a href="/admin/cycles?action=end">End Cycle</a>{{else}}
 
 <h2>New Cycle</h2>
-<form method="POST" action="/admin/cycles">
     <div>Planned End: <input name="endDate" id="endDate" type="date" /></div>
-    <div><input type="submit" value="Create" /></div>
+    <div><button value="create" name="actionType">Create New</button></div>
 </form>
 
     {{end}}

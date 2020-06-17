@@ -653,6 +653,87 @@ func (s *Server) handlerAdminMovies(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Server) handlerAdminCycles_Post(w http.ResponseWriter, r *http.Request) {
+	if !s.checkAdminRights(w, r) {
+		return
+	}
+
+	if r.Method != "POST" {
+		http.Redirect(w, r, "/admin/cycles", http.StatusSeeOther)
+		return
+	}
+
+	s.l.Debug("Cycle post")
+
+	err := r.ParseForm()
+	if err != nil {
+		s.l.Error("Unable to parse form: %v", err)
+		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to parse form: %v", err), w, r)
+		return
+	}
+
+	var plannedEnd *time.Time
+	action := r.PostFormValue("actionType")
+	s.l.Debug("Form action: %s", action)
+
+	switch action {
+	case "update":
+		dateStr := strings.TrimSpace(r.PostFormValue("modEndDate"))
+		if dateStr == "" {
+			s.l.Debug("No date given in update")
+			http.Redirect(w, r, "/admin/cycles", http.StatusSeeOther)
+			return
+		}
+
+		cycle, err := s.data.GetCurrentCycle()
+		if err != nil {
+			s.l.Error(err.Error())
+			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to get current cycle: %v", err), w, r)
+			return
+		}
+
+		end, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			s.l.Error(err.Error())
+		} else {
+			t := (&end).Round(time.Second)
+			cycle.PlannedEnd = &t
+		}
+
+		err = s.data.UpdateCycle(cycle)
+		if err != nil {
+			s.l.Error(err.Error())
+			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to get current cycle: %v", err), w, r)
+			return
+		}
+
+	case "create":
+		end, err := time.Parse("2006-01-02", r.PostFormValue("endDate"))
+		if err != nil {
+			s.l.Error(err.Error())
+		} else {
+			t := (&end).Round(time.Second)
+			plannedEnd = &t
+		}
+
+		_, err = s.data.AddCycle(plannedEnd)
+		if err != nil {
+			s.l.Error("Unable to add cycle: %v", err)
+			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to add cycle: %v", err), w, r)
+			return
+		}
+
+		// Re-enable voting after successfully starting a new cycle
+		err = s.data.SetCfgBool(ConfigVotingEnabled, true)
+		if err != nil {
+			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to enable voting: %v", err), w, r)
+			return
+		}
+	}
+
+	http.Redirect(w, r, "/admin/cycles", http.StatusSeeOther)
+}
+
 func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 	if !s.checkAdminRights(w, r) {
 		return
@@ -660,7 +741,9 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 
 	var action string
 	if r.Method == "POST" {
+		r.ParseForm()
 		action = r.PostFormValue("action")
+		s.l.Debug("POSTed values: %s", r.PostForm)
 	}
 
 	// URL parameters override POST
@@ -690,40 +773,6 @@ func (s *Server) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 	case "select":
 		s.cycleStage2(w, r)
 		return
-	}
-
-	var err error
-
-	if r.Method == "POST" {
-		s.l.Debug("Cycle post")
-		if err = r.ParseForm(); err != nil {
-			s.l.Error("Unable to parse form: %v", err)
-			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to parse form: %v", err), w, r)
-			return
-		}
-
-		var plannedEnd *time.Time
-		end, err := time.Parse("2006-01-02", r.PostFormValue("endDate"))
-		if err != nil {
-			s.l.Error(err.Error())
-		} else {
-			t := (&end).Round(time.Second)
-			plannedEnd = &t
-		}
-
-		_, err = s.data.AddCycle(plannedEnd)
-		if err != nil {
-			s.l.Error("Unable to add cycle: %v", err)
-			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to add cycle: %v", err), w, r)
-			return
-		}
-
-		// Re-enable voting after successfully starting a new cycle
-		err = s.data.SetCfgBool(ConfigVotingEnabled, true)
-		if err != nil {
-			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to enable voting: %v", err), w, r)
-			return
-		}
 	}
 
 	cycle, err := s.data.GetCurrentCycle()
