@@ -5,6 +5,11 @@
 
     {{if .ErrorMessage}}<div class="errorMessage"><ul>{{range .ErrorMessage}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
 
+    <div class="configItem rowAlt">
+        <label for="HostAddress">Server Address</label>
+        <input type="text" id="HostAddress" name="HostAddress" value="{{.HostAddress}}"/>
+    </div>
+
     <div class="configItem{{if .ErrMaxUserVotes}} errorMessage{{end}}">
         <label for="MaxUserVotes">MaxUserVotes</label>
         <input type="number" id="MaxUserVotes" name="MaxUserVotes" value="{{.MaxUserVotes}}" />

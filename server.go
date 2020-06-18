@@ -36,6 +36,7 @@ const (
 	ConfigMaxNameLength          string = "MaxNameLength"
 	ConfigMinNameLength          string = "MinNameLength"
 	ConfigNoticeBanner           string = "NoticeBanner"
+	ConfigHostAddress            string = "HostAddress"
 )
 
 type Options struct {

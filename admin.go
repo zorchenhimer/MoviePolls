@@ -326,6 +326,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		MaxNameLength          int
 		MinNameLength          int
 		NoticeMessage          string
+		HostAddress            string
 
 		ErrMaxUserVotes  bool
 		ErrMaxNameLength bool
@@ -428,8 +429,14 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 				s.l.Error("Unable to set %q: %v", ConfigMinNameLength, err)
 			}
 		}
-
 		s.data.SetCfgString(ConfigNoticeBanner, strings.TrimSpace(r.PostFormValue("NoticeMessage")))
+
+		hostAddress := strings.TrimSpace(r.PostFormValue("HostAddress"))
+		err = s.data.SetCfgString(ConfigHostAddress, hostAddress)
+		if err != nil {
+			s.l.Error("Unable to set %q: %v", ConfigHostAddress, err)
+		}
+		s.l.Debug("hostAddress: %q", hostAddress)
 	}
 
 	// TODO: Show these errors in the UI.
@@ -502,6 +509,16 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		err = s.data.SetCfgString(ConfigNoticeBanner, "")
 		if err != nil {
 			s.l.Error("Unable to save configuration value for %s: %v", ConfigNoticeBanner, err)
+		}
+	}
+
+	data.HostAddress, err = s.data.GetCfgString(ConfigHostAddress, "")
+	if err != nil {
+		s.l.Error("Error getting configuration value for %s: %v", ConfigHostAddress, err)
+
+		err = s.data.SetCfgString(ConfigHostAddress, "")
+		if err != nil {
+			s.l.Error("Unable to save configuration value for %s: %v", ConfigHostAddress, err)
 		}
 	}
 
