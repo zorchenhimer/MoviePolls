@@ -2,23 +2,16 @@
 <div style="margin: 0 auto">
     <h1>{{.User.Name}}</h1>
     <div>
-        <form method="POST" action="/admin/user/{{.User.Id}}">
-            <input type="hidden" name="Form" value="ChangePassword" />
-
             <div class="sectionTitle">Change password</div>
-            {{if .PassError}}<div class="errorMessage"><ul>{{range .PassError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
-
-            <div><label for="PasswordNew1">New Password</label></div>
-            <div><input type="password" name="PasswordNew1" id="PasswordNew1" /></div>
-            <div><label for="PasswordNew2">New Password</label></div>
-            <div><input type="password" name="PasswordNew2" id="PasswordNew2" /></div>
-
-            <div><input type="submit" value="Change Password" /></div>
-        </form>
+            {{if .UrlKey}}
+            Password reset link:<br /><input type="text" value="{{.Host}}/auth/{{.UrlKey.Url}}?{{.UrlKey.Key}}" />
+            {{else}}
+            <a href="/admin/user/{{.User.Id}}?action=password">Generate password reset URL/Key pair</a>
+            {{end}}
     </div>
 
     <div>
-        <form method="POST" action="/account">
+        <form method="POST" action="/admin/user/{{.User.Id}}">
             <input type="hidden" name="Form" value="Notifications" />
             <div class="sectionTitle">Notifications</div>
             {{if .NotifyError}}<div class="errorMessage"><ul>{{range .NotifyError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}

@@ -6,6 +6,7 @@ endif
 SOURCES = \
 		  admin.go \
 		  api.go \
+		  auth.go \
 		  common/cycle.go \
 		  common/logger.go \
 		  common/movie.go \

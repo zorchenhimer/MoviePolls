@@ -15,16 +15,17 @@ const TEMPLATE_BASE = TEMPLATE_DIR + "base.html"
 
 // templateDefs is static throughout the life of the server process
 var templateDefs map[string][]string = map[string][]string{
-	"movieinfo":   []string{"movie-info.html"},
-	"cyclevotes":  []string{"cycle.html"},
-	"movieError":  []string{"movie-error.html"},
-	"simplelogin": []string{"plain-login.html"},
-	"addmovie":    []string{"add-movie.html"},
-	"account":     []string{"account.html"},
-	"newaccount":  []string{"newaccount.html"},
-	"error":       []string{"error.html"},
-	"history":     []string{"history.html"},
-	"auth":        []string{"auth.html"},
+	"movieinfo":     []string{"movie-info.html"},
+	"cyclevotes":    []string{"cycle.html"},
+	"movieError":    []string{"movie-error.html"},
+	"simplelogin":   []string{"plain-login.html"},
+	"addmovie":      []string{"add-movie.html"},
+	"account":       []string{"account.html"},
+	"newaccount":    []string{"newaccount.html"},
+	"error":         []string{"error.html"},
+	"history":       []string{"history.html"},
+	"auth":          []string{"auth.html"},
+	"passwordReset": []string{"password.html"},
 
 	"adminHome":      []string{"admin/base.html", "admin/home.html"},
 	"adminConfig":    []string{"admin/base.html", "admin/config.html"},

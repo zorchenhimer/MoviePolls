@@ -3,7 +3,6 @@ package moviepoll
 import (
 	"fmt"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -11,18 +10,10 @@ import (
 	"github.com/zorchenhimer/MoviePolls/common"
 )
 
-var re_auth = regexp.MustCompile(`^/auth/([^/#?]+)$`)
-
 type dataAdminHome struct {
 	dataPageBase
 
 	Cycle *common.Cycle
-}
-
-type dataAdminUsers struct {
-	dataPageBase
-
-	Users []*common.User
 }
 
 type dataAdminUserEdit struct {
@@ -34,6 +25,8 @@ type dataAdminUserEdit struct {
 
 	PassError   []string
 	NotifyError []string
+	UrlKey      *common.UrlKey
+	Host        string
 }
 
 func (s *Server) checkAdminRights(w http.ResponseWriter, r *http.Request) bool {
@@ -92,7 +85,11 @@ func (s *Server) handlerAdminUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := dataAdminUsers{
+	data := struct {
+		dataPageBase
+
+		Users []*common.User
+	}{
 		dataPageBase: s.newPageBase("Admin - Users", w, r),
 		Users:        ulist,
 	}
@@ -264,6 +261,7 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	action := r.URL.Query().Get("action")
+	var urlKey *common.UrlKey
 	switch action {
 	//case "edit":
 	//	// current function
@@ -276,6 +274,19 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 	case "purge":
 		s.adminPurgeUser(w, r, user)
 		return
+	case "password":
+		urlKey, err = common.NewPasswordResetKey(user.Id)
+		if err != nil {
+			s.l.Error("Unable to generate UrlKey pair for user password reset: %v", err)
+			s.doError(
+				http.StatusBadRequest,
+				fmt.Sprintf("Unable to generate UrlKey pair for user password reset: %v", err),
+				w, r)
+			return
+		}
+
+		s.l.Debug("Saving new urlKey with URL %s", urlKey.Url)
+		s.urlKeys[urlKey.Url] = urlKey
 	}
 
 	totalVotes, err := s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
@@ -292,13 +303,24 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	host, err := s.data.GetCfgString(ConfigHostAddress, "http://<host>")
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			fmt.Sprintf("Unable to get server host address: %v", err),
+			w, r)
+		return
+	}
+
 	data := dataAdminUserEdit{
 		dataPageBase: s.newPageBase("Admin - User Edit", w, r),
 
-		User:         user,
-		CurrentVotes: votes,
+		User:           user,
+		CurrentVotes:   votes,
+		AvailableVotes: totalVotes - len(votes),
+		UrlKey:         urlKey,
+		Host:           host,
 	}
-	data.AvailableVotes = totalVotes - len(data.CurrentVotes)
 
 	// FIXME: implement this
 	if r.Method == "POST" {
@@ -967,68 +989,4 @@ func (s *Server) cycleStage2(w http.ResponseWriter, r *http.Request) {
 
 	// Redirect to admin page
 	http.Redirect(w, r, "/admin/cycles", http.StatusSeeOther)
-}
-
-func (s *Server) handlerAuth(w http.ResponseWriter, r *http.Request) {
-	user := s.getSessionUser(w, r)
-	if user == nil {
-		s.doError(http.StatusNotFound, fmt.Sprintf("%q not found", r.URL.Path), w, r)
-		return
-	}
-
-	if s.adminTokenUrl == "" || s.adminTokenKey == "" {
-		s.doError(http.StatusNotFound, fmt.Sprintf("%q not found", r.URL.Path), w, r)
-		return
-	}
-
-	matches := re_auth.FindStringSubmatch(r.URL.Path)
-	if len(matches) == 0 {
-		s.doError(http.StatusNotFound, fmt.Sprintf("%q not found", r.URL.Path), w, r)
-		return
-	}
-
-	if !(len(matches) == 2 && matches[1] == s.adminTokenUrl) {
-		s.doError(http.StatusNotFound, fmt.Sprintf("%q not found", r.URL.Path), w, r)
-		return
-	}
-
-	var formError string
-	if r.Method == "POST" {
-		key := r.PostFormValue("Key")
-		if key == s.adminTokenKey {
-			user.Privilege = 2
-			err := s.data.UpdateUser(user)
-			if err != nil {
-				s.doError(
-					http.StatusInternalServerError,
-					fmt.Sprintf("Unable to update user: %v", err),
-					w, r)
-				return
-			}
-
-			// Clear out values so they cannot be used again
-			s.adminTokenUrl = ""
-			s.adminTokenKey = ""
-
-			s.l.Info("%s has claimed Admin", user.Name)
-
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
-		formError = "Invaild Key"
-	}
-
-	data := struct {
-		dataPageBase
-		Url   string
-		Error string
-	}{
-		dataPageBase: s.newPageBase("Auth", w, r),
-		Url:          s.adminTokenUrl,
-		Error:        formError,
-	}
-
-	if err := s.executeTemplate(w, "auth", data); err != nil {
-		s.l.Error("Error rendering template: %v", err)
-	}
 }

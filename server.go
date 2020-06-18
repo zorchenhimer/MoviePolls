@@ -55,11 +55,9 @@ type Server struct {
 	cookies      *sessions.CookieStore
 	passwordSalt string
 
-	// For claiming the first admin account
-	adminTokenUrl string
-	adminTokenKey string
-
 	l *common.Logger
+
+	urlKeys map[string]*common.UrlKey
 }
 
 func NewServer(options Options) (*Server, error) {
@@ -108,6 +106,7 @@ func NewServer(options Options) (*Server, error) {
 
 		cookies: sessions.NewCookieStore([]byte(authKey), []byte(encryptKey)),
 		l:       l,
+		urlKeys: make(map[string]*common.UrlKey),
 	}
 
 	server.passwordSalt, err = server.data.GetCfgString("PassSalt", "")
@@ -122,21 +121,29 @@ func NewServer(options Options) (*Server, error) {
 	}
 
 	if !adminExists {
-		url, err := generatePass()
+		urlKey, err := common.NewAdminAuth()
 		if err != nil {
-			return nil, fmt.Errorf("Error generating admin token URL: %v", err)
+			return nil, fmt.Errorf("Unable to get Url/Key pair for admin auth: %v", err)
 		}
 
-		key, err := generatePass()
+		server.urlKeys[urlKey.Url] = urlKey
+
+		host, err := server.data.GetCfgString(ConfigHostAddress, "")
 		if err != nil {
-			return nil, fmt.Errorf("Error generating admin token key: %v", err)
+			return nil, fmt.Errorf("Unable to get host: %v", err)
 		}
 
-		server.adminTokenUrl = url
-		server.adminTokenKey = key
+		if host == "" {
+			host = "http://<host>"
+		}
+		host = strings.ToLower(host)
+
+		if !strings.HasPrefix(host, "http") {
+			host = "http://" + host
+		}
 
 		// Print directly to the console, not through the logger.
-		fmt.Printf("Claim admin: http://<host>/auth/%s Password: %s\n", url, key)
+		fmt.Printf("Claim admin: %s/auth/%s Password: %s\n", host, urlKey.Url, urlKey.Key)
 	}
 
 	mux := http.NewServeMux()
