@@ -1047,12 +1047,38 @@ func (j *jsonConnector) DeleteCycle(cycleId int) error {
 	return nil
 }
 
+func (j *jsonConnector) RemoveMovie(movieId int) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	// Verify movie is active (don't allow deleting watched movies)
+	if mov, ok := j.Movies[movieId]; ok {
+		if mov.CycleWatchedId != 0 {
+			return fmt.Errorf("Cannot remove movie, it has already been watched.")
+		}
+	}
+
+	// Delete votes
+	newVotes := []jsonVote{}
+	for _, vote := range j.Votes {
+		if vote.MovieId != movieId {
+			newVotes = append(newVotes, vote)
+		}
+	}
+	j.Votes = newVotes
+
+	// Delete movie
+	delete(j.Movies, movieId)
+
+	return j.save()
+}
+
 func (j *jsonConnector) DeleteMovie(movieId int) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
 	if _, exists := j.Movies[movieId]; !exists {
-		return fmt.Errorf("Cycle with ID %d does not exist!", movieId)
+		return fmt.Errorf("Movie with ID %d does not exist!", movieId)
 	}
 
 	delete(j.Movies, movieId)

@@ -557,6 +557,7 @@ func (s *Server) handlerAdminMovieEdit(w http.ResponseWriter, r *http.Request) {
 	var mid int
 	_, err := fmt.Sscanf(r.URL.Path, "/admin/movie/%d", &mid)
 	if err != nil {
+		s.l.Error("Unable to parse movie ID: %v", err)
 		s.doError(
 			http.StatusBadRequest,
 			fmt.Sprintf("Unable to parse movie ID: %v", err),
@@ -564,11 +565,24 @@ func (s *Server) handlerAdminMovieEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: this
-	//action := r.URL.Query().Get("action")
-	//switch action {
-	//case "remove":
-	//}
+	// TODO: Approve and Deny actions
+	action := r.URL.Query().Get("action")
+	switch action {
+	case "remove":
+		// TODO: Confirmation before removing
+		err = s.data.RemoveMovie(mid)
+		if err != nil {
+			s.l.Error("Unable to remove movie with ID %d: %v", mid, err)
+			s.doError(
+				http.StatusBadRequest,
+				fmt.Sprintf("Unable to remove movie with ID %d: %v", mid, err),
+				w, r)
+			return
+		}
+
+		http.Redirect(w, r, "/admin/movies", http.StatusSeeOther)
+		return
+	}
 
 	if r.Method == "POST" {
 		err = r.ParseMultipartForm(4096)
