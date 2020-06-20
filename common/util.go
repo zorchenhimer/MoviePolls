@@ -51,7 +51,7 @@ var re_cleanNameB = *regexp.MustCompile(`\s+`)
 
 func CleanMovieName(input string) string {
 	input = strings.ToLower(strings.TrimSpace(input))
-	input = re_cleanNameA.ReplaceAllString(input, "")
+	//input = re_cleanNameA.ReplaceAllString(input, "")
 	return re_cleanNameB.ReplaceAllString(input, " ")
 }
 

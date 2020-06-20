@@ -26,9 +26,9 @@ const (
 	DefaultMaxNameLength          int    = 100
 	DefaultMinNameLength          int    = 4
 
-	DefaultMaxTitleLength int = 100
+	DefaultMaxTitleLength       int = 100
 	DefaultMaxDescriptionLength int = 1000
-	DefaultMaxLinkLength int = 500 // length of all links combined
+	DefaultMaxLinkLength        int = 500 // length of all links combined
 )
 
 // configuration keys
@@ -42,9 +42,9 @@ const (
 	ConfigNoticeBanner           string = "NoticeBanner"
 	ConfigHostAddress            string = "HostAddress"
 
-	ConfigMaxTitleLength string = "MaxTitleLength"
+	ConfigMaxTitleLength       string = "MaxTitleLength"
 	ConfigMaxDescriptionLength string = "MaxDescriptionLength"
-	ConfigMaxLinkLength string = "MaxLinkLength"
+	ConfigMaxLinkLength        string = "MaxLinkLength"
 )
 
 type Options struct {
@@ -341,6 +341,10 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			s.l.Debug("Title too long: %d", len(data.ValTitle))
 			data.ErrTitle = true
 			errText = append(errText, "Title too long!")
+		} else if len(data.ValTitle) == 0 {
+			s.l.Debug("Title too short: %d", len(common.CleanMovieName(data.ValTitle)))
+			data.ErrTitle = true
+			errText = append(errText, "Title too short!")
 		}
 
 		movieExists, err := s.data.CheckMovieExists(r.FormValue("MovieName"))
