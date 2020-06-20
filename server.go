@@ -25,6 +25,10 @@ const (
 	DefaultTmdbToken              string = ""
 	DefaultMaxNameLength          int    = 100
 	DefaultMinNameLength          int    = 4
+
+	DefaultMaxTitleLength int = 100
+	DefaultMaxDescriptionLength int = 1000
+	DefaultMaxLinkLength int = 500 // length of all links combined
 )
 
 // configuration keys
@@ -37,6 +41,10 @@ const (
 	ConfigMinNameLength          string = "MinNameLength"
 	ConfigNoticeBanner           string = "NoticeBanner"
 	ConfigHostAddress            string = "HostAddress"
+
+	ConfigMaxTitleLength string = "MaxTitleLength"
+	ConfigMaxDescriptionLength string = "MaxDescriptionLength"
+	ConfigMaxLinkLength string = "MaxLinkLength"
 )
 
 type Options struct {
@@ -294,6 +302,22 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		linktext := strings.ReplaceAll(r.FormValue("Links"), "\r", "")
 		data.ValLinks = linktext
 
+		maxLinkLength, err := s.data.GetCfgInt(ConfigMaxLinkLength, DefaultMaxLinkLength)
+		if err != nil {
+			s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
+			s.doError(
+				http.StatusInternalServerError,
+				"something went wrong :C",
+				w, r)
+			return
+		}
+
+		if len(linktext) > maxLinkLength {
+			s.l.Debug("Links too long: %d", len(linktext))
+			data.ErrTitle = true
+			errText = append(errText, "Links too long!")
+		}
+
 		links := strings.Split(linktext, "\n")
 		links, err = common.VerifyLinks(links)
 		if err != nil {
@@ -302,7 +326,23 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			errText = append(errText, "Invalid link(s) given.")
 		}
 
+		maxTitleLength, err := s.data.GetCfgInt(ConfigMaxTitleLength, DefaultMaxTitleLength)
+		if err != nil {
+			s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
+			s.doError(
+				http.StatusInternalServerError,
+				"something went wrong :C",
+				w, r)
+			return
+		}
+
 		data.ValTitle = strings.TrimSpace(r.FormValue("MovieName"))
+		if len(data.ValTitle) > maxTitleLength {
+			s.l.Debug("Title too long: %d", len(data.ValTitle))
+			data.ErrTitle = true
+			errText = append(errText, "Title too long!")
+		}
+
 		movieExists, err := s.data.CheckMovieExists(r.FormValue("MovieName"))
 		if err != nil {
 			s.doError(
@@ -325,6 +365,23 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 		descr := strings.TrimSpace(r.FormValue("Description"))
 		data.ValDescription = descr
+
+		maxDescriptionLength, err := s.data.GetCfgInt(ConfigMaxDescriptionLength, DefaultMaxDescriptionLength)
+		if err != nil {
+			s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
+			s.doError(
+				http.StatusInternalServerError,
+				"something went wrong :C",
+				w, r)
+			return
+		}
+
+		if len(data.ValDescription) > maxDescriptionLength {
+			s.l.Debug("Description too long: %d", len(data.ValDescription))
+			data.ErrDescription = true
+			errText = append(errText, "Description too long!")
+		}
+
 		if len(descr) == 0 && !(r.FormValue("AutofillBox") == "on") {
 			data.ErrDescription = true
 			errText = append(errText, "Missing description")
