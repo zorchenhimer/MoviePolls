@@ -56,7 +56,11 @@ func (t tmdb) getTitle() (string, error) {
 	if err != nil || resp.StatusCode != 200 {
 		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\nMaybe check your tmdb api token")
 	} else {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, err := ioutil.ReadAll(resp.Body)
+
+		if err != nil {
+			return "", err
+		}
 
 		var dat map[string][]map[string]interface{}
 
@@ -88,8 +92,11 @@ func (t tmdb) getDesc() (string, error) {
 
 		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\nMaybe check your tmdb api token")
 	} else {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, err := ioutil.ReadAll(resp.Body)
 
+		if err != nil {
+			return "", err
+		}
 		var dat map[string][]map[string]interface{}
 
 		if err := json.Unmarshal(body, &dat); err != nil {
@@ -115,7 +122,10 @@ func (t tmdb) getPoster() (string, error) {
 
 		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\nMaybe check your tmdb api token")
 	} else {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
 
 		var dat map[string][]map[string]interface{}
 
@@ -152,7 +162,10 @@ func (j jikan) getTitle() (string, error) {
 	if err != nil || resp.StatusCode != 200 {
 		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n")
 	} else {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
 
 		var dat map[string]interface{}
 
@@ -179,7 +192,10 @@ func (j jikan) getDesc() (string, error) {
 
 		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n")
 	} else {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
 
 		var dat map[string]interface{}
 
@@ -203,7 +219,10 @@ func (j jikan) getPoster() (string, error) {
 	if err != nil || resp.StatusCode != 200 {
 		return "", errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n")
 	} else {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
 
 		var dat map[string]interface{}
 
