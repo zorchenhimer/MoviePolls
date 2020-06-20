@@ -566,7 +566,7 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 			// Return early when the title already exists
 			title, err := sourceAPI.getTitle()
 			if err == nil {
-				exists, _ := s.data.CheckMovieExists(title)
+				exists, err := s.data.CheckMovieExists(title)
 				if err == nil {
 					if exists {
 						errors = append(errors, "Movie already exists")
