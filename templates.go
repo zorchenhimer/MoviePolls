@@ -140,6 +140,8 @@ type dataAddMovie struct {
 	ValDescription string
 	ValLinks       string
 	//ValPoster      bool
+
+	AutofillEnabled bool
 }
 
 func (d dataAddMovie) isError() bool {

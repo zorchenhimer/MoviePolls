@@ -19,10 +19,12 @@
             <div{{if .ErrPoster}} class="errorMessage"{{end}}><label for="PosterFile">Poster Image<label></div>
             <div><input type="file" name="PosterFile" id="PosterFile" accept="image/*"/></div>
         </div>
+		{{if .AutofillEnabled}}
 		<div class="movieInput">
 			<div{{if .ErrAutofill}} class="errorMessage"{{end}}><label for="AutofillBox">Autofill Data with the provided Link<label></div>
 			<div><input type="checkbox" name="AutofillBox" id="AutofillBox" /></div>
 		</div>
+		{{end}}
         <div class="movieInput">
             <div><input type="submit" value="Add Movie" /></div>
         </div>

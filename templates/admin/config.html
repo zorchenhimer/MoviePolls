@@ -25,11 +25,6 @@
         <input type="checkbox" id="VotingEnabled" name="VotingEnabled" {{if .VotingEnabled}}checked {{end}}/>
     </div>
 
-    <div class="configItem rowAlt">
-        <label for="TmdbToken">Your tMDB Token</label>
-        <input type="password" id="TmdbToken" name="TmdbToken" value="{{.TmdbToken}}"/>
-    </div>
-
     <div class="configItem">
         <label for="MinNameLength">Min Username Length</label>
         <input type="number" id="MinNameLength" name="MinNameLength" value="{{.MinNameLength}}"/>
@@ -44,6 +39,32 @@
         <label for="NoticeMessage">Notice banner message (blank hides)</label>
         <input type="text" id="NoticeMessage" name="NoticeMessage" value="{{.NoticeMessage}}"/>
     </div>
+    <div class="configItem">
+        <hr style="width:100%" />
+    </div>
+	<div class="configItem">
+        <label for="AutofillEnabled">Enable Autofill from APIs</label>
+        <input type="checkbox" id="AutofillEnabled" name="AutofillEnabled" {{if .AutofillEnabled}}checked {{end}}/>
+    </div>
+
+	{{if .AutofillEnabled}}
+	 <div class="configItem">
+        <label for="JikanEnabled">Enable Jikan API usage</label>
+        <input type="checkbox" id="JikanEnabled" name="JikanEnabled" {{if .JikanEnabled}}checked {{end}}/>
+    </div>
+
+	 <div class="configItem">
+        <label for="TmdbEnabled">Enable Tmdb API usage (requires a valid API Key)</label>
+        <input type="checkbox" id="TmdbEnabled" name="TmdbEnabled" {{if .TmdbEnabled}}checked {{end}}/>
+    </div>
+
+	<div class="configItem rowAlt">
+        <label for="TmdbToken">Your tMDB API Key</label>
+        <input type="password" id="TmdbToken" name="TmdbToken" value="{{.TmdbToken}}"/>
+    </div>
+	{{end}}
+
+
 
     <div class="configItem">
         <hr style="width:100%" />

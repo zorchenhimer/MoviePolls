@@ -344,6 +344,9 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		MaxUserVotes           int
 		EntriesRequireApproval bool
 		VotingEnabled          bool
+		AutofillEnabled        bool
+		JikanEnabled           bool
+		TmdbEnabled            bool
 		TmdbToken              string
 		MaxNameLength          int
 		MinNameLength          int
@@ -407,6 +410,26 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 			s.data.SetCfgBool(ConfigVotingEnabled, true)
 		}
 
+		jikanEnabled := r.PostFormValue("JikanEnabled")
+		if jikanEnabled == "" {
+			s.data.SetCfgBool(ConfigJikanEnabled, false)
+		} else {
+			s.data.SetCfgBool(ConfigJikanEnabled, true)
+		}
+
+		tmdbEnabled := r.PostFormValue("TmdbEnabled")
+		if tmdbEnabled == "" {
+			s.data.SetCfgBool(ConfigTmdbEnabled, false)
+		} else {
+			s.data.SetCfgBool(ConfigTmdbEnabled, true)
+		}
+
+		autofillEnabled := r.PostFormValue("AutofillEnabled")
+		if autofillEnabled == "" {
+			s.data.SetCfgBool(ConfigAutofillEnabled, false)
+		} else {
+			s.data.SetCfgBool(ConfigAutofillEnabled, true)
+		}
 		tmdbToken := r.PostFormValue("TmdbToken")
 		s.data.SetCfgString(ConfigTmdbToken, tmdbToken)
 
@@ -490,6 +513,39 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		err = s.data.SetCfgBool(ConfigVotingEnabled, data.VotingEnabled)
 		if err != nil {
 			s.l.Error("Error saving new configuration value for VotingEnabled: %s", err)
+		}
+	}
+
+	data.AutofillEnabled, err = s.data.GetCfgBool(ConfigAutofillEnabled, DefaultAutofillEnabled)
+	if err != nil {
+		s.l.Error("Error getting configuration value for %s: %s", ConfigAutofillEnabled, err)
+
+		// try to resave new value
+		err = s.data.SetCfgBool(ConfigAutofillEnabled, data.AutofillEnabled)
+		if err != nil {
+			s.l.Error("Error saving new configuration value for %s: %s", ConfigAutofillEnabled, err)
+		}
+	}
+
+	data.JikanEnabled, err = s.data.GetCfgBool(ConfigJikanEnabled, DefaultJikanEnabled)
+	if err != nil {
+		s.l.Error("Error getting configuration value for %s: %s", ConfigJikanEnabled, err)
+
+		// try to resave new value
+		err = s.data.SetCfgBool(ConfigJikanEnabled, data.JikanEnabled)
+		if err != nil {
+			s.l.Error("Error saving new configuration value for %s: %s", ConfigJikanEnabled, err)
+		}
+	}
+
+	data.TmdbEnabled, err = s.data.GetCfgBool(ConfigTmdbEnabled, DefaultTmdbEnabled)
+	if err != nil {
+		s.l.Error("Error getting configuration value for %s: %s", ConfigTmdbToken, err)
+
+		// try to resave new value
+		err = s.data.SetCfgBool(ConfigTmdbEnabled, data.TmdbEnabled)
+		if err != nil {
+			s.l.Error("Error saving new configuration value for %s: %s", ConfigTmdbToken, err)
 		}
 	}
 
