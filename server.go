@@ -355,6 +355,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				movie.Name = results[0]
 				movie.Description = results[1]
 				movie.Poster = filepath.Base(results[2])
+				movie.Links = links
 			}
 		} else {
 			s.l.Debug("Autofill not checked")
