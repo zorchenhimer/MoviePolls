@@ -346,6 +346,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		VotingEnabled          bool
 		AutofillEnabled        bool
 		JikanEnabled           bool
+		JikanBannedTypes       string
 		TmdbEnabled            bool
 		TmdbToken              string
 		MaxNameLength          int
@@ -430,8 +431,12 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		} else {
 			s.data.SetCfgBool(ConfigAutofillEnabled, true)
 		}
+
 		tmdbToken := r.PostFormValue("TmdbToken")
 		s.data.SetCfgString(ConfigTmdbToken, tmdbToken)
+
+		jikanBannedTypes := r.PostFormValue("JikanBannedTypes")
+		s.data.SetCfgString(ConfigJikanBannedTypes, jikanBannedTypes)
 
 		maxNameLengthStr := r.PostFormValue("MaxNameLength")
 		maxNameLength, err := strconv.ParseInt(maxNameLengthStr, 10, 32)
@@ -557,6 +562,17 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		err = s.data.SetCfgString(ConfigTmdbToken, data.TmdbToken)
 		if err != nil {
 			s.l.Error("Error saving new configuration value for TmdbToken: %s", err)
+		}
+	}
+
+	data.JikanBannedTypes, err = s.data.GetCfgString(ConfigJikanBannedTypes, DefaultJikanBannedTypes)
+	if err != nil {
+		s.l.Error("Error getting configuration value for %s: %s", ConfigJikanBannedTypes, err)
+
+		// try to resave new value
+		err = s.data.SetCfgString(ConfigJikanBannedTypes, data.JikanBannedTypes)
+		if err != nil {
+			s.l.Error("Error saving new configuration value for %s: %s", ConfigJikanBannedTypes, err)
 		}
 	}
 

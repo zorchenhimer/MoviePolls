@@ -48,9 +48,13 @@
     </div>
 
 	{{if .AutofillEnabled}}
-	 <div class="configItem">
+	<div class="configItem">
         <label for="JikanEnabled">Enable Jikan API usage</label>
         <input type="checkbox" id="JikanEnabled" name="JikanEnabled" {{if .JikanEnabled}}checked {{end}}/>
+    </div>
+	<div class="configItem">
+		<label for="JikanBannedTypes">Types of anime to be restricted from being added. (For reference see <a href="https://jikan.docs.apiary.io/#reference/0/search">Jikan API Documentation</a>. Input is expected as a comma seperated list, i.e. TV,OVA,ONA</label>
+		<input type="text" id="JikanBannedTypes" name="JikanBannedTypes" value="{{.JikanBannedTypes}}"/>
     </div>
 
 	 <div class="configItem">
