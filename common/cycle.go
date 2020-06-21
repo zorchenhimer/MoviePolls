@@ -27,7 +27,7 @@ func (c Cycle) EndedString() string {
 	if c.Ended == nil {
 		return ""
 	}
-	return c.Ended.Format("Mon Jan 2")
+	return c.Ended.Format("Mon Jan 2, 2006")
 }
 
 func (c Cycle) String() string {
