@@ -173,10 +173,14 @@ func (j *jikan) requestResults() error {
 			}
 		}
 
-		episodes := dat["episodes"].(float64)
+		if dat["episodes"] != nil {
+			episodes := dat["episodes"].(float64)
 
-		if int(episodes) > int(j.maxEpisodes) && int(j.maxEpisodes) != 0 {
-			return fmt.Errorf("The anime has too many (%d) episodes. The site administrator only allowed animes up to %d episodes.", int(episodes), int(j.maxEpisodes))
+			if int(episodes) > int(j.maxEpisodes) && int(j.maxEpisodes) != 0 {
+				return fmt.Errorf("The anime has too many (%d) episodes. The site administrator only allowed animes up to %d episodes.", int(episodes), int(j.maxEpisodes))
+			}
+		} else {
+			return fmt.Errorf("The episode count of this anime has not been published yet. Therefore this anime can not be added.")
 		}
 
 		j.resp = &dat
