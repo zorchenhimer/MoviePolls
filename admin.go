@@ -350,9 +350,17 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		NoticeMessage          string
 		HostAddress            string
 
+		MaxTitleLength       int
+		MaxDescriptionLength int
+		MaxLinkLength        int
+
 		ErrMaxUserVotes  bool
 		ErrMaxNameLength bool
 		ErrMinNameLength bool
+
+		ErrMaxTitleLength       bool
+		ErrMaxLinkLength        bool
+		ErrMaxDescriptionLength bool
 	}{
 		dataPageBase: s.newPageBase("Admin - Config", w, r),
 		ErrorMessage: []string{},
@@ -458,7 +466,49 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			s.l.Error("Unable to set %q: %v", ConfigHostAddress, err)
 		}
-		s.l.Debug("hostAddress: %q", hostAddress)
+		//s.l.Debug("hostAddress: %q", hostAddress)
+
+		maxTitleLengthStr := r.PostFormValue("MaxTitleLength")
+		maxTitleLength, err := strconv.ParseInt(maxTitleLengthStr, 10, 32)
+		if err != nil {
+			data.ErrMaxTitleLength = true
+			data.ErrorMessage = append(
+				data.ErrorMessage,
+				fmt.Sprintf("MaxTitleLength invalid: %v", err))
+		} else {
+			err = s.data.SetCfgInt(ConfigMaxTitleLength, int(maxTitleLength))
+			if err != nil {
+				s.l.Error("Unable to set %q: %v", ConfigMinNameLength, err)
+			}
+		}
+
+		maxDescriptionLengthStr := r.PostFormValue("MaxDescriptionLength")
+		maxDescriptionLength, err := strconv.ParseInt(maxDescriptionLengthStr, 10, 32)
+		if err != nil {
+			data.ErrMaxDescriptionLength = true
+			data.ErrorMessage = append(
+				data.ErrorMessage,
+				fmt.Sprintf("MaxDescriptionLength invalid: %v", err))
+		} else {
+			err = s.data.SetCfgInt(ConfigMaxDescriptionLength, int(maxDescriptionLength))
+			if err != nil {
+				s.l.Error("Unable to set %q: %v", ConfigMinNameLength, err)
+			}
+		}
+
+		maxLinkLengthStr := r.PostFormValue("MaxLinkLength")
+		maxLinkLength, err := strconv.ParseInt(maxLinkLengthStr, 10, 32)
+		if err != nil {
+			data.ErrMaxLinkLength = true
+			data.ErrorMessage = append(
+				data.ErrorMessage,
+				fmt.Sprintf("MaxLinkLength invalid: %v", err))
+		} else {
+			err = s.data.SetCfgInt(ConfigMaxLinkLength, int(maxLinkLength))
+			if err != nil {
+				s.l.Error("Unable to set %q: %v", ConfigMinNameLength, err)
+			}
+		}
 	}
 
 	// TODO: Show these errors in the UI.
@@ -541,6 +591,36 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		err = s.data.SetCfgString(ConfigHostAddress, "")
 		if err != nil {
 			s.l.Error("Unable to save configuration value for %s: %v", ConfigHostAddress, err)
+		}
+	}
+
+	data.MaxTitleLength, err = s.data.GetCfgInt(ConfigMaxTitleLength, DefaultMaxTitleLength)
+	if err != nil {
+		s.l.Error("Error getting configuration value for %s: %v", ConfigMaxTitleLength, err)
+
+		err = s.data.SetCfgString(ConfigMaxTitleLength, "")
+		if err != nil {
+			s.l.Error("Unable to save configuration value for %s: %v", ConfigMaxTitleLength, err)
+		}
+	}
+
+	data.MaxDescriptionLength, err = s.data.GetCfgInt(ConfigMaxDescriptionLength, DefaultMaxDescriptionLength)
+	if err != nil {
+		s.l.Error("Error getting configuration value for %s: %v", ConfigMaxDescriptionLength, err)
+
+		err = s.data.SetCfgString(ConfigMaxDescriptionLength, "")
+		if err != nil {
+			s.l.Error("Unable to save configuration value for %s: %v", ConfigMaxDescriptionLength, err)
+		}
+	}
+
+	data.MaxLinkLength, err = s.data.GetCfgInt(ConfigMaxLinkLength, DefaultMaxLinkLength)
+	if err != nil {
+		s.l.Error("Error getting configuration value for %s: %v", ConfigMaxLinkLength, err)
+
+		err = s.data.SetCfgString(ConfigMaxLinkLength, "")
+		if err != nil {
+			s.l.Error("Unable to save configuration value for %s: %v", ConfigMaxLinkLength, err)
 		}
 	}
 
