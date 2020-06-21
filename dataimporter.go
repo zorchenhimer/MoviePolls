@@ -32,6 +32,7 @@ type jikan struct {
 	id            string
 	excludedTypes []string
 	resp          *map[string]interface{}
+	maxEpisodes   int
 }
 
 func getMovieData(api dataapi) ([]string, error) {
@@ -170,6 +171,12 @@ func (j *jikan) requestResults() error {
 			if strings.ToLower(thisType) == strings.ToLower(etype) {
 				return fmt.Errorf("The anime type %s was banned by the sites administrator. Please choose a different type!", thisType)
 			}
+		}
+
+		episodes := dat["episodes"].(float64)
+
+		if int(episodes) > int(j.maxEpisodes) && int(j.maxEpisodes) != 0 {
+			return fmt.Errorf("The anime has too many (%d) episodes. The site administrator only allowed animes up to %d episodes.", int(episodes), int(j.maxEpisodes))
 		}
 
 		j.resp = &dat

@@ -640,7 +640,7 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 	// make sure we have a link to look at
 	if len(links) >= 1 {
 		sourcelink := links[0]
-		autofillEnabled, err := s.data.GetCfgBool(ConfigAutofillEnabled, DefaultJikanEnabled)
+		autofillEnabled, err := s.data.GetCfgBool(ConfigAutofillEnabled, DefaultAutofillEnabled)
 		if err != nil {
 			s.l.Error("Error while retriving config value %s:\n %v", ConfigAutofillEnabled, err)
 			errors = append(errors, "Something went wrong :C")
@@ -679,7 +679,16 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 
 					bannedTypes := strings.Split(bannedTypesString, ",")
 
-					sourceAPI := jikan{id: id, l: s.l, excludedTypes: bannedTypes}
+					maxEpisodes, err := s.data.GetCfgInt(ConfigJikanMaxEpisodes, DefaultJikanMaxEpisodes)
+
+					if err != nil {
+						s.l.Error("Error while retriving config value 'JikanMaxEpisodes':\n %v", err)
+						errors = append(errors, "Something went wrong :C")
+						rerenderSite = true
+						return nil, errors, rerenderSite
+					}
+
+					sourceAPI := jikan{id: id, l: s.l, excludedTypes: bannedTypes, maxEpisodes: maxEpisodes}
 
 					// Return early when the title already exists
 					err = sourceAPI.requestResults()
