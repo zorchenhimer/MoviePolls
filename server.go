@@ -664,9 +664,15 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 					match := rgx.FindStringSubmatch(sourcelink)
 					id := match[1]
 
-					sourceAPI := jikan{id: id}
+					sourceAPI := jikan{id: id, l: s.l}
 
 					// Return early when the title already exists
+					err := sourceAPI.requestResults()
+					if err != nil {
+						errors = append(errors, err.Error())
+						rerenderSite = true
+						return nil, errors, rerenderSite
+					}
 					title, err := sourceAPI.getTitle()
 					if err == nil {
 						exists, err := s.data.CheckMovieExists(title)
@@ -683,7 +689,7 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 						s.l.Error("getTitle(): " + err.Error())
 					}
 
-					results, err = getMovieData(sourceAPI)
+					results, err = getMovieData(&sourceAPI)
 
 					if err != nil {
 						// error while getting data from the api
@@ -720,9 +726,16 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 					match := rgx.FindStringSubmatch(sourcelink)
 					id := match[1]
 
-					sourceAPI := tmdb{id: id, token: token}
+					sourceAPI := tmdb{id: id, token: token, l: s.l}
 
 					// Return early when the title already exists
+					err = sourceAPI.requestResults()
+					if err != nil {
+						errors = append(errors, err.Error())
+						rerenderSite = true
+						return nil, errors, rerenderSite
+					}
+
 					title, err := sourceAPI.getTitle()
 					if err == nil {
 						exists, _ := s.data.CheckMovieExists(title)
@@ -734,7 +747,7 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 							}
 						}
 
-						results, err = getMovieData(sourceAPI)
+						results, err = getMovieData(&sourceAPI)
 
 						if err != nil {
 							// errors from getMovieData
