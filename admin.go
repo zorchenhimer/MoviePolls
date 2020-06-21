@@ -347,6 +347,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		AutofillEnabled        bool
 		JikanEnabled           bool
 		JikanBannedTypes       string
+		JikanMaxEpisodes       int
 		TmdbEnabled            bool
 		TmdbToken              string
 		MaxNameLength          int
@@ -479,6 +480,28 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 				s.l.Error("Unable to set %q: %v", ConfigMinNameLength, err)
 			}
 		}
+
+		jikanMaxEpisodesStr := r.PostFormValue("JikanMaxEpisodes")
+		jikanMaxEpisodes, err := strconv.ParseInt(jikanMaxEpisodesStr, 10, 32)
+		if err != nil {
+			data.ErrMinNameLength = true
+			data.ErrorMessage = append(
+				data.ErrorMessage,
+				fmt.Sprintf("JikanMaxEpisodes invalid: %v", err))
+
+		} else if jikanMaxEpisodes < 0 {
+			data.ErrMinNameLength = true
+			data.ErrorMessage = append(
+				data.ErrorMessage,
+				"Max Episodes must be positive or 0")
+
+		} else {
+			err = s.data.SetCfgInt(ConfigJikanMaxEpisodes, int(jikanMaxEpisodes))
+			if err != nil {
+				s.l.Error("Unable to set %q: %v", ConfigJikanMaxEpisodes, err)
+			}
+		}
+
 		s.data.SetCfgString(ConfigNoticeBanner, strings.TrimSpace(r.PostFormValue("NoticeMessage")))
 
 		hostAddress := strings.TrimSpace(r.PostFormValue("HostAddress"))
@@ -583,6 +606,16 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		err = s.data.SetCfgInt(ConfigMaxNameLength, DefaultMaxNameLength)
 		if err != nil {
 			s.l.Error("Unable to save configuration value for %s: %v", ConfigMaxNameLength, err)
+		}
+	}
+
+	data.JikanMaxEpisodes, err = s.data.GetCfgInt(ConfigJikanMaxEpisodes, DefaultJikanMaxEpisodes)
+	if err != nil {
+		s.l.Error("Error getting configuration value for %s: %v", ConfigJikanMaxEpisodes, err)
+
+		err = s.data.SetCfgInt(ConfigJikanMaxEpisodes, DefaultJikanMaxEpisodes)
+		if err != nil {
+			s.l.Error("Unable to save configuration value for %s: %v", ConfigJikanMaxEpisodes, err)
 		}
 	}
 

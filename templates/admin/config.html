@@ -57,6 +57,12 @@
 		<input type="text" id="JikanBannedTypes" name="JikanBannedTypes" value="{{.JikanBannedTypes}}"/>
     </div>
 
+	<div class="configItem rowAlt">
+        <label for="JikanMaxEpisodes">Max Number of episodes for anime to be added (0 for unlimited)</label>
+        <input type="number" id="JikanMaxEpisodes" name="JikanMaxEpisodes" value="{{.JikanMaxEpisodes}}"/>
+    </div>
+
+
 	 <div class="configItem">
         <label for="TmdbEnabled">Enable Tmdb API usage (requires a valid API Key)</label>
         <input type="checkbox" id="TmdbEnabled" name="TmdbEnabled" {{if .TmdbEnabled}}checked {{end}}/>

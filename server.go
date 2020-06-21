@@ -25,6 +25,7 @@ const (
 	DefaultVotingEnabled          bool   = false
 	DefaultJikanEnabled           bool   = false
 	DefaultJikanBannedTypes       string = "TV,music"
+	DefaultJikanMaxEpisodes       int    = 1
 	DefaultTmdbEnabled            bool   = false
 	DefaultTmdbToken              string = ""
 	DefaultMaxNameLength          int    = 100
@@ -44,6 +45,7 @@ const (
 	ConfigTmdbToken              string = "TmdbToken"
 	ConfigJikanEnabled           string = "JikanEnabled"
 	ConfigJikanBannedTypes       string = "JikanBannedTypes"
+	ConfigJikanMaxEpisodes       string = "JikanMaxEpisodes"
 	ConfigTmdbEnabled            string = "TmdbEnabled"
 	ConfigMaxNameLength          string = "MaxNameLength"
 	ConfigMinNameLength          string = "MinNameLength"
