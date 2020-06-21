@@ -3,10 +3,12 @@ package moviepoll
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/zorchenhimer/MoviePolls/common"
 )
@@ -26,10 +28,10 @@ type tmdb struct {
 }
 
 type jikan struct {
-	l            *common.Logger
-	id           string
-	excludeTypes []string
-	resp         *map[string]interface{}
+	l             *common.Logger
+	id            string
+	excludedTypes []string
+	resp          *map[string]interface{}
 }
 
 func getMovieData(api dataapi) ([]string, error) {
@@ -161,6 +163,13 @@ func (j *jikan) requestResults() error {
 
 		if err := json.Unmarshal(body, &dat); err != nil {
 			return errors.New("Error while unmarshalling json response")
+		}
+
+		for _, etype := range j.excludedTypes {
+			thisType := dat["type"].(string)
+			if strings.ToLower(thisType) == strings.ToLower(etype) {
+				return fmt.Errorf("The anime type %s was banned by the sites administrator. Please choose a different type!", thisType)
+			}
 		}
 
 		j.resp = &dat

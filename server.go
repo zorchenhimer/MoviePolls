@@ -666,10 +666,21 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 					match := rgx.FindStringSubmatch(sourcelink)
 					id := match[1]
 
-					sourceAPI := jikan{id: id, l: s.l}
+					bannedTypesString, err := s.data.GetCfgString(ConfigJikanBannedTypes, DefaultJikanBannedTypes)
+
+					if err != nil {
+						s.l.Error("Error while retriving config value 'JikanBannedTypes':\n %v", err)
+						errors = append(errors, "Something went wrong :C")
+						rerenderSite = true
+						return nil, errors, rerenderSite
+					}
+
+					bannedTypes := strings.Split(bannedTypesString, ",")
+
+					sourceAPI := jikan{id: id, l: s.l, excludedTypes: bannedTypes}
 
 					// Return early when the title already exists
-					err := sourceAPI.requestResults()
+					err = sourceAPI.requestResults()
 					if err != nil {
 						errors = append(errors, err.Error())
 						rerenderSite = true
