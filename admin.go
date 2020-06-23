@@ -3,6 +3,7 @@ package moviepoll
 import (
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -572,7 +573,7 @@ func (s *Server) handlerAdminMovieEdit(w http.ResponseWriter, r *http.Request) {
 				//errText = append(errText, err.Error())
 				s.l.Error("Unable to upload file: %v", err)
 			} else {
-				movie.Poster = file
+				movie.Poster = filepath.Base(file)
 			}
 		}
 
