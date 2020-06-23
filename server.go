@@ -450,6 +450,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 			movie.Name = strings.TrimSpace(r.FormValue("MovieName"))
 			movie.Description = strings.TrimSpace(r.FormValue("Description"))
+			movie.Links = links
 
 			posterFileName := strings.TrimSpace(r.FormValue("MovieName"))
 
