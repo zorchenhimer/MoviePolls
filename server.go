@@ -21,7 +21,12 @@ const SessionName string = "moviepoll-session"
 const (
 	DefaultMaxUserVotes           int    = 5
 	DefaultEntriesRequireApproval bool   = false
+	DefaultAutofillEnabled        bool   = false
 	DefaultVotingEnabled          bool   = false
+	DefaultJikanEnabled           bool   = false
+	DefaultJikanBannedTypes       string = "TV,music"
+	DefaultJikanMaxEpisodes       int    = 1
+	DefaultTmdbEnabled            bool   = false
 	DefaultTmdbToken              string = ""
 	DefaultMaxNameLength          int    = 100
 	DefaultMinNameLength          int    = 4
@@ -36,7 +41,12 @@ const (
 	ConfigVotingEnabled          string = "VotingEnabled"
 	ConfigMaxUserVotes           string = "MaxUserVotes"
 	ConfigEntriesRequireApproval string = "EntriesRequireApproval"
+	ConfigAutofillEnabled        string = "AutofillEnabled"
 	ConfigTmdbToken              string = "TmdbToken"
+	ConfigJikanEnabled           string = "JikanEnabled"
+	ConfigJikanBannedTypes       string = "JikanBannedTypes"
+	ConfigJikanMaxEpisodes       string = "JikanMaxEpisodes"
+	ConfigTmdbEnabled            string = "TmdbEnabled"
 	ConfigMaxNameLength          string = "MaxNameLength"
 	ConfigMinNameLength          string = "MinNameLength"
 	ConfigNoticeBanner           string = "NoticeBanner"
@@ -290,8 +300,20 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	autofillEnabled, err := s.data.GetCfgBool(ConfigAutofillEnabled, DefaultAutofillEnabled)
+
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			"Something went wrong :C",
+			w, r)
+
+		s.l.Error("Unable to get config value %s: %v", ConfigAutofillEnabled, err)
+		return
+	}
 	data := dataAddMovie{
-		dataPageBase: s.newPageBase("Add Movie", w, r),
+		dataPageBase:    s.newPageBase("Add Movie", w, r),
+		AutofillEnabled: autofillEnabled,
 	}
 
 	if r.Method == "POST" {
@@ -628,107 +650,190 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 	// make sure we have a link to look at
 	if len(links) >= 1 {
 		sourcelink := links[0]
-
-		if strings.Contains(sourcelink, "myanimelist") {
-			// Get Data from MAL (jikan api)
-			rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/anime\/([0-9]*)`)
-			match := rgx.FindStringSubmatch(sourcelink)
-			id := match[1]
-
-			sourceAPI := jikan{id: id}
-
-			// Return early when the title already exists
-			title, err := sourceAPI.getTitle()
-			if err == nil {
-				exists, err := s.data.CheckMovieExists(title)
-				if err == nil {
-					if exists {
-						errors = append(errors, "Movie already exists")
-						rerenderSite = true
-						return nil, errors, rerenderSite
-					}
-				} else {
-					s.l.Error("CheckMovieExsists(): " + err.Error())
-				}
-			} else {
-				s.l.Error("getTitle(): " + err.Error())
-			}
-
-			results, err = getMovieData(sourceAPI)
-
-			if err != nil {
-				// error while getting data from the api
-				errors = append(errors, err.Error())
-			}
-
-		} else if strings.Contains(sourcelink, "imdb") {
-			// Retrieve token from database
-			token, err := s.data.GetCfgString("TmdbToken", "")
-			if err != nil || token == "" {
-				errors = append(errors, "TmdbToken is either empty or not set in the admin config")
-				rerenderSite = true
-				return nil, errors, rerenderSite
-			}
-
-			// get the movie id
-			rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/title\/(tt[0-9]*)`)
-			match := rgx.FindStringSubmatch(sourcelink)
-			id := match[1]
-
-			sourceAPI := tmdb{id: id, token: token}
-
-			// Return early when the title already exists
-			title, err := sourceAPI.getTitle()
-			if err == nil {
-				exists, _ := s.data.CheckMovieExists(title)
-				if err == nil {
-					if exists {
-						errors = append(errors, "Movie already exists")
-						rerenderSite = true
-						return nil, errors, rerenderSite
-					}
-				}
-
-				results, err = getMovieData(sourceAPI)
-
-				if err != nil {
-					// errors from getMovieData
-					errors = append(errors, err.Error())
-				}
-
-			} else {
-				// Errors from sourceAPI.getTitle
-				errors = append(errors, err.Error())
-			}
-		} else {
-			// neither IMDB nor MAL link
-			errors = append(errors, "To use autofill use an imdb or myanimelist link as first link")
+		autofillEnabled, err := s.data.GetCfgBool(ConfigAutofillEnabled, DefaultAutofillEnabled)
+		if err != nil {
+			s.l.Error("Error while retriving config value %s:\n %v", ConfigAutofillEnabled, err)
+			errors = append(errors, "Something went wrong :C")
+			rerenderSite = true
+			return nil, errors, rerenderSite
 		}
 
-		if len(results) > 0 {
-			if results[0] == "" && results[1] == "" && results[2] == "" {
-				errors = append(errors, "The provided imdb link is not a link to a movie!")
+		if autofillEnabled {
+
+			if strings.Contains(sourcelink, "myanimelist") {
+
+				jikanEnabled, err := s.data.GetCfgBool("JikanEnabled", DefaultJikanEnabled)
+				if err != nil {
+					s.l.Error("Error while retriving config value 'JikanEnabled':\n %v", err)
+					errors = append(errors, "Something went wrong :C")
+					rerenderSite = true
+					return nil, errors, rerenderSite
+				}
+
+				s.l.Debug("jikanEnabled: %v", jikanEnabled)
+
+				if jikanEnabled {
+					// Get Data from MAL (jikan api)
+					rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/anime\/([0-9]*)`)
+					match := rgx.FindStringSubmatch(sourcelink)
+					id := match[1]
+
+					bannedTypesString, err := s.data.GetCfgString(ConfigJikanBannedTypes, DefaultJikanBannedTypes)
+
+					if err != nil {
+						s.l.Error("Error while retriving config value 'JikanBannedTypes':\n %v", err)
+						errors = append(errors, "Something went wrong :C")
+						rerenderSite = true
+						return nil, errors, rerenderSite
+					}
+
+					bannedTypes := strings.Split(bannedTypesString, ",")
+
+					maxEpisodes, err := s.data.GetCfgInt(ConfigJikanMaxEpisodes, DefaultJikanMaxEpisodes)
+
+					if err != nil {
+						s.l.Error("Error while retriving config value 'JikanMaxEpisodes':\n %v", err)
+						errors = append(errors, "Something went wrong :C")
+						rerenderSite = true
+						return nil, errors, rerenderSite
+					}
+
+					sourceAPI := jikan{id: id, l: s.l, excludedTypes: bannedTypes, maxEpisodes: maxEpisodes}
+
+					// Return early when the title already exists
+					err = sourceAPI.requestResults()
+					if err != nil {
+						errors = append(errors, err.Error())
+						rerenderSite = true
+						return nil, errors, rerenderSite
+					}
+					title, err := sourceAPI.getTitle()
+					if err == nil {
+						exists, err := s.data.CheckMovieExists(title)
+						if err == nil {
+							if exists {
+								errors = append(errors, "Movie already exists")
+								rerenderSite = true
+								return nil, errors, rerenderSite
+							}
+						} else {
+							s.l.Error("CheckMovieExsists(): " + err.Error())
+						}
+					} else {
+						s.l.Error("getTitle(): " + err.Error())
+					}
+
+					results, err = getMovieData(&sourceAPI)
+
+					if err != nil {
+						// error while getting data from the api
+						errors = append(errors, err.Error())
+					}
+				} else {
+					errors = append(errors, "Jikan API usage was not enabled by the site administrator")
+					rerenderSite = true
+					return nil, errors, rerenderSite
+
+				}
+
+			} else if strings.Contains(sourcelink, "imdb") {
+
+				tmdbEnabled, err := s.data.GetCfgBool("TmdbEnabled", DefaultTmdbEnabled)
+				if err != nil {
+					s.l.Error("Error while retriving config value 'TmdbEnabled':\n %v", err)
+					errors = append(errors, "Something went wrong :C")
+					rerenderSite = true
+					return nil, errors, rerenderSite
+				}
+
+				if tmdbEnabled {
+					// Retrieve token from database
+					token, err := s.data.GetCfgString("TmdbToken", "")
+					if err != nil || token == "" {
+						errors = append(errors, "TmdbToken is either empty or not set in the admin config")
+						rerenderSite = true
+						return nil, errors, rerenderSite
+					}
+
+					// get the movie id
+					rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/title\/(tt[0-9]*)`)
+					match := rgx.FindStringSubmatch(sourcelink)
+					id := match[1]
+
+					sourceAPI := tmdb{id: id, token: token, l: s.l}
+
+					// Return early when the title already exists
+					err = sourceAPI.requestResults()
+					if err != nil {
+						errors = append(errors, err.Error())
+						rerenderSite = true
+						return nil, errors, rerenderSite
+					}
+
+					title, err := sourceAPI.getTitle()
+					if err == nil {
+						exists, _ := s.data.CheckMovieExists(title)
+						if err == nil {
+							if exists {
+								errors = append(errors, "Movie already exists")
+								rerenderSite = true
+								return nil, errors, rerenderSite
+							}
+						}
+
+						results, err = getMovieData(&sourceAPI)
+
+						if err != nil {
+							// errors from getMovieData
+							errors = append(errors, err.Error())
+						}
+
+					} else {
+						// Errors from sourceAPI.getTitle
+						errors = append(errors, err.Error())
+					}
+				} else {
+					errors = append(errors, "Tmdb API usage was not enabled by the site administrator")
+					rerenderSite = true
+					return nil, errors, rerenderSite
+
+				}
+
+			} else {
+				// neither IMDB nor MAL link
+				errors = append(errors, "To use autofill use an imdb or myanimelist link as first link")
 			}
 
-			//duplicate check
-			movieExists, err := s.data.CheckMovieExists(results[0])
-			if err != nil {
-				s.doError(
-					http.StatusInternalServerError,
-					fmt.Sprintf("Unable to check if movie exists: %v", err),
-					w, r)
-				return nil, errors, rerenderSite
-			}
+			if len(results) > 0 {
+				if results[0] == "" && results[1] == "" && results[2] == "" {
+					errors = append(errors, "The provided imdb link is not a link to a movie!")
+				}
 
-			if movieExists {
-				errors = append(errors, "Movie already exists")
+				//duplicate check
+				movieExists, err := s.data.CheckMovieExists(results[0])
+				if err != nil {
+					s.doError(
+						http.StatusInternalServerError,
+						fmt.Sprintf("Unable to check if movie exists: %v", err),
+						w, r)
+					return nil, errors, rerenderSite
+				}
+
+				if movieExists {
+					errors = append(errors, "Movie already exists")
+				}
+			} else {
+				errors = append(errors, "No results retrived from API")
 			}
 		} else {
-			errors = append(errors, "No results retrived from API")
+			errors = append(errors, "Autofill from link was not enabled by the site administrator")
+			rerenderSite = true
+			return nil, errors, rerenderSite
 		}
 	} else {
 		errors = append(errors, "No links provided")
 	}
+
 	return results, errors, rerenderSite
 }
 
