@@ -22,6 +22,8 @@
             <div{{if .ErrPass}} class="errorMessage"{{end}}><label for="Password2">Retype password<label></div>
             <div><input type="password" name="Password2" id="Password2" required /></div>
         </div>
+
+        {{/* Disable this stuff for now
         <div>
             <div{{if .ErrEmail}} class="errorMessage"{{end}}><label for="Email">Email<label></div>
             <div><input type="email" name="Email" id="Email" value="{{.ValEmail}}" /></div>
@@ -34,6 +36,7 @@
             <input type="checkbox" name="NotifySelected" id="NotifySelected"{{if .ValNotifySelected}} checked{{end}} />
             <label for="NotifySelected">Notify on vote selected<label>
         </div>
+        */}}
         <div><input type="submit" value="Create Account" /></div>
     </div>
 </form>
