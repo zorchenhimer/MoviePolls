@@ -573,7 +573,7 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		data.AvailableVotes = maxVotes - count
 	}
 
-	data.Movies = common.SortMoviesByName(movieList)
+	data.Movies = common.SortMoviesByVotes(movieList)
 	data.VotingEnabled, _ = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
 
 	cycles, err := s.data.GetPastCycles(0, 1)

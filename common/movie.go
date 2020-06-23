@@ -52,13 +52,33 @@ func (m Movie) String() string {
 
 type movieVoteSort []*Movie
 
-func (ml movieVoteSort) Len() int           { return len(ml) }
-func (ml movieVoteSort) Less(i, j int) bool { return len(ml[i].Votes) < len(ml[j].Votes) }
-func (ml movieVoteSort) Swap(i, j int)      { ml[i], ml[j] = ml[j], ml[i] }
+func (ml movieVoteSort) Len() int      { return len(ml) }
+func (ml movieVoteSort) Swap(i, j int) { ml[i], ml[j] = ml[j], ml[i] }
+
+// Sort by votes descending then by name for ties.
+func (ml movieVoteSort) Less(i, j int) bool {
+	if ml[i].Votes == nil && ml[j].Votes == nil {
+		return ml[i].Name < ml[j].Name
+	}
+
+	if ml[i].Votes == nil && ml[j].Votes != nil {
+		return true
+	}
+
+	if ml[i].Votes != nil && ml[j].Votes == nil {
+		return false
+	}
+
+	if len(ml[i].Votes) == len(ml[j].Votes) {
+		return ml[i].Name < ml[j].Name
+	}
+
+	return len(ml[i].Votes) > len(ml[j].Votes)
+}
 
 func SortMoviesByVotes(list []*Movie) []*Movie {
 	s := movieVoteSort(list)
-	sort.Sort(sort.Reverse(s))
+	sort.Sort(s)
 	return s
 }
 
