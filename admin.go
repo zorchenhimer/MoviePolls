@@ -331,6 +331,22 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type configValue struct {
+	Key     string
+	Default interface{}
+	Value   interface{}
+	Type    ConfigValueType
+	Error   bool
+}
+
+type ConfigValueType int
+
+const (
+	ConfigInt ConfigValueType = iota
+	ConfigString
+	ConfigBool
+)
+
 func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 	if !s.checkAdminRights(w, r) {
 		return
@@ -340,30 +356,33 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		dataPageBase
 
 		ErrorMessage []string
+		Values       []configValue
 
-		MaxUserVotes           int
-		EntriesRequireApproval bool
-		VotingEnabled          bool
-		TmdbToken              string
-		MaxNameLength          int
-		MinNameLength          int
-		NoticeMessage          string
-		HostAddress            string
-
-		MaxTitleLength       int
-		MaxDescriptionLength int
-		MaxLinkLength        int
-
-		ErrMaxUserVotes  bool
-		ErrMaxNameLength bool
-		ErrMinNameLength bool
-
-		ErrMaxTitleLength       bool
-		ErrMaxLinkLength        bool
-		ErrMaxDescriptionLength bool
+		TypeString ConfigValueType
+		TypeBool   ConfigValueType
+		TypeInt    ConfigValueType
 	}{
-		dataPageBase: s.newPageBase("Admin - Config", w, r),
 		ErrorMessage: []string{},
+		Values: []configValue{
+			configValue{Key: ConfigHostAddress, Default: "", Type: ConfigString},
+			configValue{Key: ConfigNoticeBanner, Default: "", Type: ConfigString},
+
+			configValue{Key: ConfigVotingEnabled, Default: DefaultVotingEnabled, Type: ConfigBool},
+			configValue{Key: ConfigMaxUserVotes, Default: DefaultMaxUserVotes, Type: ConfigInt},
+			configValue{Key: ConfigEntriesRequireApproval, Default: DefaultEntriesRequireApproval, Type: ConfigBool},
+			configValue{Key: ConfigTmdbToken, Default: DefaultTmdbToken, Type: ConfigString},
+
+			configValue{Key: ConfigMaxNameLength, Default: DefaultMaxNameLength, Type: ConfigInt},
+			configValue{Key: ConfigMinNameLength, Default: DefaultMinNameLength, Type: ConfigInt},
+
+			configValue{Key: ConfigMaxTitleLength, Default: DefaultMaxTitleLength, Type: ConfigInt},
+			configValue{Key: ConfigMaxDescriptionLength, Default: DefaultMaxDescriptionLength, Type: ConfigInt},
+			configValue{Key: ConfigMaxLinkLength, Default: DefaultMaxLinkLength, Type: ConfigInt},
+		},
+
+		TypeString: ConfigString,
+		TypeBool:   ConfigBool,
+		TypeInt:    ConfigInt,
 	}
 
 	var err error
@@ -378,251 +397,89 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		maxVotesStr := r.PostFormValue("MaxUserVotes")
-		maxVotes, err := strconv.ParseInt(maxVotesStr, 10, 32)
-		if err != nil {
-			data.ErrorMessage = append(
-				data.ErrorMessage,
-				fmt.Sprintf("MaxUserVotes invalid: %v", err))
-			data.ErrMaxUserVotes = true
-		} else {
-			s.data.SetCfgInt(ConfigMaxUserVotes, int(maxVotes))
-		}
+		for _, val := range data.Values {
+			str := r.PostFormValue(val.Key)
+			switch val.Type {
+			case ConfigString:
+				err = s.data.SetCfgString(val.Key, str)
+				if err != nil {
+					data.ErrorMessage = append(
+						data.ErrorMessage,
+						fmt.Sprintf("Unable to save string value for %s: %v", val.Key, err))
+				}
 
-		appReqStr := r.PostFormValue("EntriesRequireApproval")
-		if appReqStr == "" {
-			s.data.SetCfgBool(ConfigEntriesRequireApproval, false)
-		} else {
-			s.data.SetCfgBool(ConfigEntriesRequireApproval, true)
-		}
+			case ConfigInt:
+				intVal, err := strconv.ParseInt(str, 10, 32)
+				if err != nil {
+					data.ErrorMessage = append(
+						data.ErrorMessage,
+						fmt.Sprintf("Value for %q is invalid: %v", val.Key, err))
+				} else {
+					err = s.data.SetCfgInt(val.Key, int(intVal))
+					if err != nil {
+						data.ErrorMessage = append(
+							data.ErrorMessage,
+							fmt.Sprintf("Unable to save int value for %s: %v", val.Key, err))
+					}
+				}
 
-		clearPass := r.PostFormValue("ClearPassSalt")
-		if clearPass != "" {
-			s.data.DeleteCfgKey("PassSalt")
-		}
+			case ConfigBool:
+				boolVal := false
+				if str != "" {
+					boolVal = true
+				}
+				err = s.data.SetCfgBool(val.Key, boolVal)
+				if err != nil {
+					data.ErrorMessage = append(
+						data.ErrorMessage,
+						fmt.Sprintf("Unable to save bool value for %s: %v", val.Key, err))
+				}
 
-		// I'm pretty sure this breaks things
-		clearCookies := r.PostFormValue("ClearCookies")
-		if clearCookies != "" {
-			s.data.DeleteCfgKey("SessionAuth")
-			s.data.DeleteCfgKey("SessionEncrypt")
-		}
-
-		votingEnabled := r.PostFormValue("VotingEnabled")
-		if votingEnabled == "" {
-			s.data.SetCfgBool(ConfigVotingEnabled, false)
-		} else {
-			s.data.SetCfgBool(ConfigVotingEnabled, true)
-		}
-
-		tmdbToken := r.PostFormValue("TmdbToken")
-		s.data.SetCfgString(ConfigTmdbToken, tmdbToken)
-
-		maxNameLengthStr := r.PostFormValue("MaxNameLength")
-		maxNameLength, err := strconv.ParseInt(maxNameLengthStr, 10, 32)
-		if err != nil {
-			data.ErrMaxNameLength = true
-			data.ErrorMessage = append(
-				data.ErrorMessage,
-				fmt.Sprintf("MaxNameLength invalid: %v", err))
-
-		} else if maxNameLength < 10 {
-			data.ErrMaxNameLength = true
-			data.ErrorMessage = append(
-				data.ErrorMessage,
-				"Max name length must be at least 10")
-
-		} else {
-			err = s.data.SetCfgInt(ConfigMaxNameLength, int(maxNameLength))
-			if err != nil {
-				s.l.Error("Unable to set %q: %v", ConfigMaxNameLength, err)
+			default:
+				data.ErrorMessage = append(
+					data.ErrorMessage,
+					fmt.Sprintf("Unknown config value type for %s: %v", val.Key, val.Type))
 			}
 		}
 
-		minNameLengthStr := r.PostFormValue("MinNameLength")
-		minNameLength, err := strconv.ParseInt(minNameLengthStr, 10, 32)
+		// Don't enable this stuff for now
+		//if clearPassSalt := r.PostFormValue("ClearPassSalt"); clearPassSalt != "" {
+		//	s.data.DeleteCfgKey("PassSalt")
+		//}
+
+		//if clearCookies := r.PostFormValue("ClearCookies"); clearCookies != "" {
+		//	s.data.DeleteCfgKey("SessionAuth")
+		//	s.data.DeleteCfgKey("SessionEncrypt")
+		//}
+	}
+
+	newValues := []configValue{}
+	for _, val := range data.Values {
+		var v interface{}
+
+		switch val.Type {
+		case ConfigString:
+			v, err = s.data.GetCfgString(val.Key, val.Default.(string))
+		case ConfigBool:
+			v, err = s.data.GetCfgBool(val.Key, val.Default.(bool))
+		case ConfigInt:
+			v, err = s.data.GetCfgInt(val.Key, val.Default.(int))
+		}
+
 		if err != nil {
-			data.ErrMinNameLength = true
 			data.ErrorMessage = append(
 				data.ErrorMessage,
-				fmt.Sprintf("MinNameLength invalid: %v", err))
-
-		} else if minNameLength < 4 {
-			data.ErrMinNameLength = true
-			data.ErrorMessage = append(
-				data.ErrorMessage,
-				"Min name length must be at least 4")
-
+				fmt.Sprintf("Unable to get config value for %s: %v", val.Key, err))
 		} else {
-			err = s.data.SetCfgInt(ConfigMinNameLength, int(minNameLength))
-			if err != nil {
-				s.l.Error("Unable to set %q: %v", ConfigMinNameLength, err)
-			}
-		}
-		s.data.SetCfgString(ConfigNoticeBanner, strings.TrimSpace(r.PostFormValue("NoticeMessage")))
-
-		hostAddress := strings.TrimSpace(r.PostFormValue("HostAddress"))
-		err = s.data.SetCfgString(ConfigHostAddress, hostAddress)
-		if err != nil {
-			s.l.Error("Unable to set %q: %v", ConfigHostAddress, err)
-		}
-		//s.l.Debug("hostAddress: %q", hostAddress)
-
-		maxTitleLengthStr := r.PostFormValue("MaxTitleLength")
-		maxTitleLength, err := strconv.ParseInt(maxTitleLengthStr, 10, 32)
-		if err != nil {
-			data.ErrMaxTitleLength = true
-			data.ErrorMessage = append(
-				data.ErrorMessage,
-				fmt.Sprintf("MaxTitleLength invalid: %v", err))
-		} else {
-			err = s.data.SetCfgInt(ConfigMaxTitleLength, int(maxTitleLength))
-			if err != nil {
-				s.l.Error("Unable to set %q: %v", ConfigMinNameLength, err)
-			}
+			val.Value = v
 		}
 
-		maxDescriptionLengthStr := r.PostFormValue("MaxDescriptionLength")
-		maxDescriptionLength, err := strconv.ParseInt(maxDescriptionLengthStr, 10, 32)
-		if err != nil {
-			data.ErrMaxDescriptionLength = true
-			data.ErrorMessage = append(
-				data.ErrorMessage,
-				fmt.Sprintf("MaxDescriptionLength invalid: %v", err))
-		} else {
-			err = s.data.SetCfgInt(ConfigMaxDescriptionLength, int(maxDescriptionLength))
-			if err != nil {
-				s.l.Error("Unable to set %q: %v", ConfigMinNameLength, err)
-			}
-		}
-
-		maxLinkLengthStr := r.PostFormValue("MaxLinkLength")
-		maxLinkLength, err := strconv.ParseInt(maxLinkLengthStr, 10, 32)
-		if err != nil {
-			data.ErrMaxLinkLength = true
-			data.ErrorMessage = append(
-				data.ErrorMessage,
-				fmt.Sprintf("MaxLinkLength invalid: %v", err))
-		} else {
-			err = s.data.SetCfgInt(ConfigMaxLinkLength, int(maxLinkLength))
-			if err != nil {
-				s.l.Error("Unable to set %q: %v", ConfigMinNameLength, err)
-			}
-		}
+		newValues = append(newValues, val)
 	}
+	data.Values = newValues
 
-	// TODO: Show these errors in the UI.
-	data.MaxUserVotes, err = s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
-	if err != nil {
-		s.l.Error("Error getting configuration value for MaxUserVotes: %s", err)
-
-		err = s.data.SetCfgInt(ConfigMaxUserVotes, data.MaxUserVotes)
-		if err != nil {
-			s.l.Error("Error saving new configuration value for MaxUserVotes: %s", err)
-		}
-	}
-
-	data.EntriesRequireApproval, err = s.data.GetCfgBool("EntriesRequireApproval", DefaultEntriesRequireApproval)
-	if err != nil {
-		s.l.Error("Error getting configuration value for EntriesRequireApproval: %s", err)
-
-		err = s.data.SetCfgBool(ConfigEntriesRequireApproval, data.EntriesRequireApproval)
-		if err != nil {
-			s.l.Error("Error saving new configuration value for EntriesRequireApproval: %s", err)
-		}
-	}
-
-	data.VotingEnabled, err = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
-	if err != nil {
-		s.l.Error("Error getting configuration value for VotingEnabled: %s", err)
-
-		// try to resave new value
-		err = s.data.SetCfgBool(ConfigVotingEnabled, data.VotingEnabled)
-		if err != nil {
-			s.l.Error("Error saving new configuration value for VotingEnabled: %s", err)
-		}
-	}
-
-	data.TmdbToken, err = s.data.GetCfgString("TmdbToken", DefaultTmdbToken)
-	if err != nil {
-		s.l.Error("Error getting configuration value for TmdbToken: %s", err)
-
-		// try to resave new value
-		err = s.data.SetCfgString(ConfigTmdbToken, data.TmdbToken)
-		if err != nil {
-			s.l.Error("Error saving new configuration value for TmdbToken: %s", err)
-		}
-	}
-
-	data.MaxNameLength, err = s.data.GetCfgInt(ConfigMaxNameLength, DefaultMaxNameLength)
-	if err != nil {
-		s.l.Error("Error getting configuration value for %s: %v", ConfigMaxNameLength, err)
-
-		err = s.data.SetCfgInt(ConfigMaxNameLength, DefaultMaxNameLength)
-		if err != nil {
-			s.l.Error("Unable to save configuration value for %s: %v", ConfigMaxNameLength, err)
-		}
-	}
-
-	data.MinNameLength, err = s.data.GetCfgInt(ConfigMinNameLength, DefaultMinNameLength)
-	if err != nil {
-		s.l.Error("Error getting configuration value for %s: %v", ConfigMinNameLength, err)
-
-		err = s.data.SetCfgInt(ConfigMinNameLength, DefaultMinNameLength)
-		if err != nil {
-			s.l.Error("Unable to save configuration value for %s: %v", ConfigMinNameLength, err)
-		}
-	}
-
-	data.NoticeMessage, err = s.data.GetCfgString(ConfigNoticeBanner, "")
-	if err != nil {
-		s.l.Error("Error getting configuration value for %s: %v", ConfigNoticeBanner, err)
-
-		err = s.data.SetCfgString(ConfigNoticeBanner, "")
-		if err != nil {
-			s.l.Error("Unable to save configuration value for %s: %v", ConfigNoticeBanner, err)
-		}
-	}
-
-	data.HostAddress, err = s.data.GetCfgString(ConfigHostAddress, "")
-	if err != nil {
-		s.l.Error("Error getting configuration value for %s: %v", ConfigHostAddress, err)
-
-		err = s.data.SetCfgString(ConfigHostAddress, "")
-		if err != nil {
-			s.l.Error("Unable to save configuration value for %s: %v", ConfigHostAddress, err)
-		}
-	}
-
-	data.MaxTitleLength, err = s.data.GetCfgInt(ConfigMaxTitleLength, DefaultMaxTitleLength)
-	if err != nil {
-		s.l.Error("Error getting configuration value for %s: %v", ConfigMaxTitleLength, err)
-
-		err = s.data.SetCfgString(ConfigMaxTitleLength, "")
-		if err != nil {
-			s.l.Error("Unable to save configuration value for %s: %v", ConfigMaxTitleLength, err)
-		}
-	}
-
-	data.MaxDescriptionLength, err = s.data.GetCfgInt(ConfigMaxDescriptionLength, DefaultMaxDescriptionLength)
-	if err != nil {
-		s.l.Error("Error getting configuration value for %s: %v", ConfigMaxDescriptionLength, err)
-
-		err = s.data.SetCfgString(ConfigMaxDescriptionLength, "")
-		if err != nil {
-			s.l.Error("Unable to save configuration value for %s: %v", ConfigMaxDescriptionLength, err)
-		}
-	}
-
-	data.MaxLinkLength, err = s.data.GetCfgInt(ConfigMaxLinkLength, DefaultMaxLinkLength)
-	if err != nil {
-		s.l.Error("Error getting configuration value for %s: %v", ConfigMaxLinkLength, err)
-
-		err = s.data.SetCfgString(ConfigMaxLinkLength, "")
-		if err != nil {
-			s.l.Error("Unable to save configuration value for %s: %v", ConfigMaxLinkLength, err)
-		}
-	}
+	// Set this down here so the Notice Banner is updated
+	data.dataPageBase = s.newPageBase("Admin - Config", w, r)
 
 	if err := s.executeTemplate(w, "adminConfig", data); err != nil {
 		s.l.Error("Error rendering template: %v", err)

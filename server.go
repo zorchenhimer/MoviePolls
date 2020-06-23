@@ -377,6 +377,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				movie.Name = results[0]
 				movie.Description = results[1]
 				movie.Poster = filepath.Base(results[2])
+				movie.Links = links
 			}
 		} else {
 			s.l.Debug("Autofill not checked")
@@ -516,6 +517,7 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		VotingEnabled  bool
 		AvailableVotes int
 		LastCycle      *common.Cycle
+		Cycle          *common.Cycle
 	}{
 		dataPageBase: s.newPageBase("Current Cycle", w, r),
 	}
@@ -581,6 +583,14 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		if len(cycles) != 0 {
 			data.LastCycle = cycles[0]
 		}
+	}
+
+	cycle, err := s.data.GetCurrentCycle()
+	if err != nil {
+		s.l.Error("Error getting Current Cycle: %v", err)
+	}
+	if cycle != nil {
+		data.Cycle = cycle
 	}
 
 	if err := s.executeTemplate(w, "cyclevotes", data); err != nil {

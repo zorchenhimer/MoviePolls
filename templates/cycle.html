@@ -8,7 +8,40 @@
 {{ $votingEnabled := .VotingEnabled }}
 {{ $votesAvailable := .AvailableVotes }}
 
+
+{{if .Cycle}}
+{{if .Cycle.PlannedEnd}}
+<script>
+var countDownDate = new Date({{.Cycle.PlannedEnd}}).getTime();
+
+var x = setInterval(function() {
+
+	var now = new Date().getTime();
+	var distance = countDownDate - now;
+
+	var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+	var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+	document.getElementById("countdown-clock").innerHTML = days + "d " + hours + "h ";
+
+	if (distance < 0) {
+		clearInterval(x);
+		document.getElementById("countdown-clock").innerHTML = "TODAY!";
+	}
+}, 1000);
+</script>
+
+<div >
+	<p class="countdown">
+	The next Movienight will be in: <strong id="countdown-clock"></strong>
+	</p>
+</div>
+{{end}}
+{{end}}
+
+
 {{if .LastCycle}}
+{{if .LastCycle.Watched}}
 <div class="cycleHistory">
 	In the last Movienight on {{.LastCycle.EndedString}} we watched:
 	<ul>
@@ -18,7 +51,7 @@
 	</ul>
 </div>
 {{end}}
-
+{{end}}
 
 <div class="searchbar">
 	<form action="/" method="post">
