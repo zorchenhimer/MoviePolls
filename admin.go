@@ -921,6 +921,16 @@ func (s *Server) cycleStage2(w http.ResponseWriter, r *http.Request) {
 
 	// Set movie as "watched" today
 	watched := time.Now().Local().Round(time.Hour)
+
+	if val := r.PostFormValue("OverrideEndDate"); val != "" {
+		newEnd, err := time.Parse("2006-01-02", r.PostFormValue("NewEndDate"))
+		if err != nil {
+			s.l.Error("Unable to parse new end date: %q: %v", r.PostFormValue("NewEndDate"), err)
+		} else {
+			watched = newEnd
+		}
+	}
+
 	for _, movie := range movies {
 		s.l.Debug("> setting watched on %s", movie.Name)
 		movie.CycleWatched = cycle
