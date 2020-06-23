@@ -191,10 +191,13 @@ func (j *jikan) requestResults() error {
 func (j *jikan) getTitle() (string, error) {
 
 	title := ""
-
 	dat := j.resp
 
-	title = (*dat)["title"].(string)
+	if (*dat)["title"] != nil {
+		title = (*dat)["title"].(string)
+	} else {
+		return "", errors.New("No title returned from API")
+	}
 
 	if (*dat)["title_english"] != nil && (*dat)["title_english"].(string) != (*dat)["title"].(string) {
 		title += " (" + (*dat)["title_english"].(string) + ")"
@@ -204,27 +207,28 @@ func (j *jikan) getTitle() (string, error) {
 }
 
 func (j *jikan) getDesc() (string, error) {
-
-	desc := ""
-
 	dat := j.resp
 
-	desc = (*dat)["synopsis"].(string)
+	if (*dat)["synopsis"] != nil {
+		return (*dat)["synopsis"].(string), nil
+	}
 
-	return desc, nil
+	return "", nil
 
 }
 
 func (j *jikan) getPoster() (string, error) {
 
 	fileurl := ""
-
 	dat := j.resp
 
-	fileurl = (*dat)["image_url"].(string)
+	if (*dat)["image_url"] != nil {
+		fileurl = (*dat)["image_url"].(string)
+	} else {
+		return "", nil
+	}
 
 	path := "posters/" + j.id + ".jpg"
-
 	err := DownloadFile(path, fileurl)
 
 	if !(err == nil) {
