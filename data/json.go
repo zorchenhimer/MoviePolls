@@ -118,9 +118,7 @@ func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error)
 	j := &jsonConnector{
 		filename: filename,
 		lock:     &sync.RWMutex{},
-		Settings: map[string]configValue{
-			"Active": configValue{CVT_BOOL, true},
-		},
+		Settings: map[string]configValue{},
 
 		Cycles: map[int]jsonCycle{},
 		Movies: map[int]jsonMovie{},
@@ -146,6 +144,26 @@ func loadJson(filename string, l *common.Logger) (*jsonConnector, error) {
 	data.filename = filename
 	data.lock = &sync.RWMutex{}
 	data.l = l
+
+	if data.Settings == nil {
+		data.Settings = make(map[string]configValue)
+	}
+
+	if data.Users == nil {
+		data.Users = make(map[int]*common.User)
+	}
+
+	if data.Votes == nil {
+		data.Votes = []jsonVote{}
+	}
+
+	if data.Movies == nil {
+		data.Movies = make(map[int]jsonMovie)
+	}
+
+	if data.Cycles == nil {
+		data.Cycles = make(map[int]jsonCycle)
+	}
 
 	return data, nil
 }
@@ -377,6 +395,7 @@ type sortableCycle []jsonCycle
 func (s sortableCycle) Len() int { return len(s) }
 
 // sort in reverse
+// FIXME: sort by date instead of ID
 func (s sortableCycle) Less(i, j int) bool { return s[i].Id > s[j].Id }
 func (s sortableCycle) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
