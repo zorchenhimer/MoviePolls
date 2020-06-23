@@ -30,7 +30,7 @@
 
         <input type="hidden" name="AutofillBox" value="on" />
         <div class="movieInput">
-            <div{{if .ErrLinks}} class="errorMessage"{{end}}><label for="Links">Enter IMDB or MyAnimeList link for a movie to add:<label></div>
+            <div{{if .ErrLinks}} class="errorMessage"{{end}}><label for="Links">Enter IMDB or MyAnimeList link for a movie to add:</label></div>
             <div><textarea name="Links" id="Links" style="width:400px">{{if .ValLinks}}{{.ValLinks}}{{end}}</textarea></div>
         </div>
         <div class="movieInput">
