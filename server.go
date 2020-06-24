@@ -677,7 +677,14 @@ func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.R
 					// Get Data from MAL (jikan api)
 					rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/anime\/([0-9]*)`)
 					match := rgx.FindStringSubmatch(sourcelink)
-					id := match[1]
+					var id string
+					if len(match) < 1 {
+						errors = append(errors, "Could not retrive anime id from provided link, did you input a manga link?")
+						rerenderSite = true
+						return nil, errors, rerenderSite
+					} else {
+						id = match[1]
+					}
 
 					bannedTypesString, err := s.data.GetCfgString(ConfigJikanBannedTypes, DefaultJikanBannedTypes)
 
