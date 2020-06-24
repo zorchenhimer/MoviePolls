@@ -132,6 +132,7 @@ type dataAddMovie struct {
 	ErrTitle       bool
 	ErrDescription bool
 	ErrLinks       bool
+	ErrRemarks     bool
 	ErrPoster      bool
 	ErrAutofill    bool
 
@@ -139,13 +140,14 @@ type dataAddMovie struct {
 	ValTitle       string
 	ValDescription string
 	ValLinks       string
+	ValRemarks     string
 	//ValPoster      bool
 
 	AutofillEnabled bool
 }
 
 func (d dataAddMovie) isError() bool {
-	return d.ErrTitle || d.ErrDescription || d.ErrLinks || d.ErrPoster || d.ErrAutofill
+	return d.ErrTitle || d.ErrDescription || d.ErrLinks || d.ErrPoster || d.ErrAutofill || d.ErrRemarks
 }
 
 type dataAccount struct {

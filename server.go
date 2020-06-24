@@ -34,6 +34,7 @@ const (
 	DefaultMaxTitleLength       int = 100
 	DefaultMaxDescriptionLength int = 1000
 	DefaultMaxLinkLength        int = 500 // length of all links combined
+	DefaultMaxRemarksLength     int = 200
 )
 
 // configuration keys
@@ -55,6 +56,7 @@ const (
 	ConfigMaxTitleLength       string = "MaxTitleLength"
 	ConfigMaxDescriptionLength string = "MaxDescriptionLength"
 	ConfigMaxLinkLength        string = "MaxLinkLength"
+	ConfigMaxRemarksLength     string = "MaxRemarksLength"
 )
 
 type Options struct {
