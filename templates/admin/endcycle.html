@@ -5,14 +5,14 @@
 {{if eq .Stage 1}}
     {{range .Movies}}
         <div class="adminMovie">
-            <div><input type="checkbox" name="cb_{{.Id}}" checked="checked" /></div>
+            <div><input type="checkbox" name="cb_{{.Id}}" /></div>
             <div>{{len .Votes}}</div>
 			<div id="name">{{.Name}}</div>
 			{{if .Remarks}}<div id="remarks">Remarks:</br>{{.Remarks}}</div>{{end}}
         </div>
     {{end}}
     <div>
-    Override End date: <input type="checkbox" name="OverrideEndDate" id="OverrideEndDate" checked="checked" />
+    Override End date: <input type="checkbox" name="OverrideEndDate" id="OverrideEndDate" />
     <input type="date" name="NewEndDate" id="NewEndDate" />
     </div>
     <div><button type="submit" name="action" value="select">Select Movies</button></div>
