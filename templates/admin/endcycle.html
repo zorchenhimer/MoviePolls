@@ -7,7 +7,8 @@
         <div class="adminMovie">
             <div><input type="checkbox" name="cb_{{.Id}}" checked="checked" /></div>
             <div>{{len .Votes}}</div>
-            <div>{{.Name}}</div>
+			<div id="name">{{.Name}}</div>
+			{{if .Remarks}}<div id="remarks">Remarks:</br>{{.Remarks}}</div>{{end}}
         </div>
     {{end}}
     <div>

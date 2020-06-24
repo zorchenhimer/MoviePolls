@@ -11,6 +11,7 @@ type Movie struct {
 	Name        string
 	Links       []string
 	Description string
+	Remarks     string
 
 	CycleAdded   *Cycle
 	CycleWatched *Cycle
@@ -39,11 +40,12 @@ func (m Movie) String() string {
 		votes = append(votes, v.User.Name)
 	}
 
-	return fmt.Sprintf("Movie{Id:%d Name:%q Links:%s Description:%q CycleAdded:%s CycleWatched:%s Votes:%s}",
+	return fmt.Sprintf("Movie{Id:%d Name:%q Links:%s Description:%q Remarks:%s CycleAdded:%s CycleWatched:%s Votes:%s}",
 		m.Id,
 		m.Name,
 		m.Links,
 		m.Description,
+		m.Remarks,
 		m.CycleAdded,
 		m.CycleWatched,
 		votes,

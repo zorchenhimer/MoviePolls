@@ -165,6 +165,13 @@ a:hover {
     margin: 0.2em;
 }
 
+.adminMovie #name {
+	width: 60%;
+}
+
+.adminMovie #remarks {
+	width: 35%;
+}
 #endCycleForm {
     display:flex;
     flex-direction: row;

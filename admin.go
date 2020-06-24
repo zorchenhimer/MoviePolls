@@ -385,6 +385,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 			configValue{Key: ConfigMaxTitleLength, Default: DefaultMaxTitleLength, Type: ConfigInt},
 			configValue{Key: ConfigMaxDescriptionLength, Default: DefaultMaxDescriptionLength, Type: ConfigInt},
 			configValue{Key: ConfigMaxLinkLength, Default: DefaultMaxLinkLength, Type: ConfigInt},
+			configValue{Key: ConfigMaxRemarksLength, Default: DefaultMaxRemarksLength, Type: ConfigInt},
 		},
 
 		TypeString: ConfigString,
