@@ -53,6 +53,10 @@ a:hover {
     flex-wrap:wrap;
 }
 
+.voteList{
+    flex-grow: 5;
+}
+
 .voteRoot {
     display:flex;
     flex-direction:column;
@@ -76,6 +80,7 @@ a:hover {
     font-weight:bold;
     font-size:1.5em;
     margin-bottom: 10px;
+    max-width: 400px;
 }
 
 .votePoster img, #moviePoster img {
@@ -186,14 +191,19 @@ a:hover {
 
 .cycleList {
     display:flex;
-    flex-direction: column;
+    flex-direction: row;
     width: 80%;
+    flex-wrap: wrap;
+    justify-content: space-between;
 }
 
 .cycleListElement {
     display:flex;
     flex-direction: column;
     margin: 1em;
+    background-color:#2266aa;
+    padding: 1em;
+    border-radius: 5px;
 }
 
 .cycleItemHead {
@@ -207,6 +217,7 @@ a:hover {
 .cycleMovie {
     display:flex;
     flex-direction: column;
+    max-width: 200px;
 }
 
 .cycleMovie img {
@@ -252,4 +263,9 @@ a:hover {
     color: white;
     padding: 5px 0px;
     margin-bottom: 10px;
+}
+
+.countdown {
+    width: 100%;
+    text-align: center;
 }

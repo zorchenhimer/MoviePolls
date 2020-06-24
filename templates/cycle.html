@@ -31,8 +31,8 @@ var x = setInterval(function() {
 }, 1000);
 </script>
 
-<div >
-	<p class="countdown">
+<div class="countdown">
+	<p>
 	The next Movienight will be in: <strong id="countdown-clock"></strong>
 	</p>
 </div>
@@ -71,10 +71,15 @@ var x = setInterval(function() {
         {{if .Movies}}
         {{range .Movies}}
         <div class="voteRoot">
-            <div class="voteName"><a href="/movie/{{.Id}}">{{.Name}}</a></div>
+            <div class="voteName">
+                <a href="/movie/{{.Id}}">{{.Name}}</a>
+            </div>
             <div class="votePosterList">
-                <div class="votePoster"><img src="/posters/{{.Poster}}" /></div>
+                <div class="votePoster"><a href="/movie/{{.Id}}"><img src="/posters/{{.Poster}}" /></a></div>
                 <div class="voteRight">
+                    {{if .CycleWatched}}
+                    <div style="padding-bottom: 0.5em">Watched:<br />{{.CycleWatched.EndedString}}</div>
+                    {{end}}
                     <div class="voteList">
                         <b>Votes: {{len .Votes}}</b>
                         <ul>{{ $votes := .Votes }}{{ $vl := len $votes}}
@@ -88,8 +93,10 @@ var x = setInterval(function() {
                         {{if .UserVoted $user.Id }}
                         Voted! {{if and $votingEnabled (not .CycleWatched)}}(<a href="/vote/{{.Id}}">Remove</a>){{end}}
                         {{else}}
-                        {{ if lt $votesAvailable 1}}No votes<br />available
-                        {{else if and (gt $votesAvailable 0) (and $votingEnabled (not .CycleWatched)) }}<a href="/vote/{{.Id}}">Vote</a>{{end}}
+                        {{if not .CycleWatched}}
+                            {{if lt $votesAvailable 1}}No votes<br />available
+                            {{else if and (gt $votesAvailable 0) $votingEnabled }}<a href="/vote/{{.Id}}">Vote</a>{{end}}
+                            {{end}}
                         {{end}}
                     </div>
                     {{end}}

@@ -914,7 +914,7 @@ func (s *Server) uploadFile(r *http.Request, name string) (string, error) {
 
 // List of past cycles
 func (s *Server) handlerHistory(w http.ResponseWriter, r *http.Request) {
-	past, err := s.data.GetPastCycles(0, 10)
+	past, err := s.data.GetPastCycles(0, 100)
 	if err != nil {
 		s.doError(
 			http.StatusInternalServerError,
