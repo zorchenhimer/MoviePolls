@@ -368,7 +368,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if len(remarks) > maxRemarksLength {
-			s.l.Debug("Links too long: %d", len(remarks))
+			s.l.Debug("Remarks too long: %d", len(remarks))
 			data.ErrRemarks = true
 			errText = append(errText, "Remarks too long!")
 		}
