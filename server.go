@@ -354,6 +354,25 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			errText = append(errText, "Invalid link(s) given.")
 		}
 
+		remarks := strings.ReplaceAll(r.FormValue("Remarks"), "\r", "")
+		data.ValRemarks = remarks
+
+		maxRemarksLength, err := s.data.GetCfgInt(ConfigMaxRemarksLength, DefaultMaxRemarksLength)
+		if err != nil {
+			s.l.Error("Unable to get %q: %v", ConfigMaxRemarksLength, err)
+			s.doError(
+				http.StatusInternalServerError,
+				"something went wrong :C",
+				w, r)
+			return
+		}
+
+		if len(remarks) > maxRemarksLength {
+			s.l.Debug("Links too long: %d", len(remarks))
+			data.ErrRemarks = true
+			errText = append(errText, "Remarks too long!")
+		}
+
 		// New Movie, just filling the Poster field for the "unknown.jpg" default
 		movie := &common.Movie{
 			Poster: "unknown.jpg", // 165x250
@@ -380,6 +399,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				movie.Description = results[1]
 				movie.Poster = filepath.Base(results[2])
 				movie.Links = links
+				movie.Remarks = remarks
 			}
 		} else {
 			s.l.Debug("Autofill not checked")
@@ -453,6 +473,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			movie.Name = strings.TrimSpace(r.FormValue("MovieName"))
 			movie.Description = strings.TrimSpace(r.FormValue("Description"))
 			movie.Links = links
+			movie.Remarks = remarks
 
 			posterFileName := strings.TrimSpace(r.FormValue("MovieName"))
 

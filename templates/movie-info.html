@@ -9,6 +9,10 @@
         <img src="/posters/{{.Movie.Poster}}" />
     </div>
     <div>
+		<p>Remarks by {{.Movie.AddedBy.Name}}:</p>
+		{{.Movie.Remarks}}
+
+		<p>Description:</p>
         {{.Movie.Description}}
     </div>
 </div>

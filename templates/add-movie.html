@@ -33,6 +33,10 @@
             <div{{if .ErrLinks}} class="errorMessage"{{end}}><label for="Links">Enter IMDB or MyAnimeList link for a movie to add:</label></div>
             <div><textarea name="Links" id="Links" style="width:400px">{{if .ValLinks}}{{.ValLinks}}{{end}}</textarea></div>
         </div>
+		<div class="movieInput">
+            <div{{if .ErrRemarks}} class="errorMessage"{{end}}><label for="Remarks">Enter your remarks here:</label></div>
+            <div><textarea name="Remarks" id="Remarks" style="width:400px">{{if .ValRemarks}}{{.ValRemarks}}{{end}}</textarea></div>
+        </div>
         <div class="movieInput">
             <div><input type="submit" value="Add Movie" /></div>
         </div>
