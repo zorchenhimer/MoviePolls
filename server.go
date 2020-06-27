@@ -284,7 +284,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the current cycle for the movie
+	// Get the current cycle to see if we can add a movie
 	currentCycle, err := s.data.GetCurrentCycle()
 	if err != nil {
 		s.doError(
@@ -341,16 +341,44 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 		// errText := []string{}
 
+		movie := &common.Movie{}
+
 		if autofillEnabled {
 			if r.FormValue("AutofillBox") == "on" {
 				// do autofill
 				s.l.Debug("autofill")
-				s.handleAutofill(&data, w, r)
+				results, links := s.handleAutofill(&data, w, r)
+
+				if results == nil || links == nil {
+					data.ErrorMessage = append(data.ErrorMessage, "Could not autofill all fields")
+					data.ErrAutofill = true
+					return
+				} else {
+					// Fill all the fields in the movie struct
+					movie.Name = results[0]
+					movie.Description = results[1]
+					movie.Poster = filepath.Base(results[2])
+					movie.Remarks = results[3]
+					movie.Links = links
+					movie.AddedBy = user
+
+					// Prepare a int for the id
+					var movieId int
+
+					movieId, err = s.data.AddMovie(movie)
+					if err != nil {
+						s.l.Error("Movie could not be added. Error: %v", err)
+					} else {
+						http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
+					}
+				}
+
 			}
 		} else if formfillEnabled {
-
 			s.l.Debug("formfill")
 			// do formfill
+			// results := s.handleFormfill(&data, w, r)
+
 		} else {
 			s.l.Debug("neither")
 			// neither autofill nor formfill are enabled
@@ -693,7 +721,7 @@ func (s *Server) handlerMovie(w http.ResponseWriter, r *http.Request) {
 }
 
 // outsourced autofill logic
-func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *http.Request) (results []string) {
+func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *http.Request) (results []string, links []string) {
 
 	// Get all needed values from the form
 
@@ -723,7 +751,7 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 	}
 
 	// Check for valid links
-	links := strings.Split(linktext, "\n")
+	links = strings.Split(linktext, "\n")
 	links, err = common.VerifyLinks(links)
 	if err != nil {
 		s.l.Error(err.Error())
@@ -760,7 +788,7 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 
 	// Exit early if any errors got reported
 	if data.isError() {
-		return nil
+		return nil, nil
 	}
 
 	if strings.Contains(sourcelink, "myanimelist") {
@@ -769,7 +797,7 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		results, err = s.handleJikan(data, w, r, sourcelink)
 
 		if err != nil {
-			return nil
+			return nil, nil
 		}
 
 		var title string
@@ -777,7 +805,7 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		if len(results) != 3 {
 			s.l.Error("Jikan API results have an unexpected length, expected 3 got %v", len(results))
 			data.ErrorMessage = append(data.ErrorMessage, "API autofill did not return enough data, contact the server administrator")
-			return nil
+			return nil, nil
 		} else {
 			title = results[0]
 		}
@@ -789,17 +817,18 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 				http.StatusInternalServerError,
 				"something went wrong :C",
 				w, r)
-			return nil
-
+			return nil, nil
 		}
 
 		if exists {
 			s.l.Debug("Movie already exists")
 			data.ErrorMessage = append(data.ErrorMessage, "Movie already exists in database")
 			data.ErrAutofill = true
-			return nil
+			return nil, nil
 		}
-		return
+
+		results = append(results, remarkstext)
+		return results, links
 
 	} else if strings.Contains(sourcelink, "imdb") {
 		s.l.Debug("IMDB link")
@@ -807,15 +836,15 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		results, err = s.handleTmdb(data, w, r, sourcelink)
 
 		if err != nil {
-			return nil
+			return nil, nil
 		}
 
 		var title string
 
 		if len(results) != 3 {
 			s.l.Error("Tmdb API results have an unexpected length, expected 3 got %v", len(results))
-			data.ErrorMessage = append(data.ErrorMessage, "API autofill did not return enough data, contact the server administrator")
-			return nil
+			data.ErrorMessage = append(data.ErrorMessage, "API autofill did not return enough data, did you input a link to a series?")
+			return nil, nil
 		} else {
 			title = results[0]
 		}
@@ -827,7 +856,7 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 				http.StatusInternalServerError,
 				"something went wrong :C",
 				w, r)
-			return nil
+			return nil, nil
 
 		}
 
@@ -835,120 +864,18 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 			s.l.Debug("Movie already exists")
 			data.ErrorMessage = append(data.ErrorMessage, "Movie already exists in database")
 			data.ErrAutofill = true
-			return nil
+			return nil, nil
 		}
-		return
+
+		results = append(results, remarkstext)
+		return results, links
 
 	} else {
 		s.l.Debug("no link")
 		data.ErrorMessage = append(data.ErrorMessage, "To use autofill an imdb or myanimelist link as first link is required")
 		data.ErrLinks = true
-		return nil
+		return nil, nil
 	}
-
-	// tmdbEnabled, err := s.data.GetCfgBool("TmdbEnabled", DefaultTmdbEnabled)
-	// if err != nil {
-	// 	s.l.Error("Error while retriving config value 'TmdbEnabled':\n %v", err)
-	// 	data.ErrorMessage = append(data.ErrorMessage, "Something went wrong :C")
-	// 	return nil
-	// }
-
-	//		if tmdbEnabled {
-	//			// Retrieve token from database
-	//			token, err := s.data.GetCfgString("TmdbToken", "")
-	//			if err != nil || token == "" {
-	//				errors = append(errors, "TmdbToken is either empty or not set in the admin config")
-	//				rerenderSite = true
-	//				return nil, errors, rerenderSite
-	//			}
-
-	//			// get the movie id
-	//			rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/title\/(tt[0-9]*)`)
-	//			match := rgx.FindStringSubmatch(sourcelink)
-	//			var id string
-	//			if len(match) < 2 {
-	//				errors = append(errors, "Could not retrive movie id from provided link.")
-	//				rerenderSite = true
-	//				return nil, errors, rerenderSite
-	//			} else {
-	//				id = match[1]
-	//			}
-
-	//			sourceAPI := tmdb{id: id, token: token, l: s.l}
-
-	//			// Return early when the title already exists
-	//			err = sourceAPI.requestResults()
-	//			if err != nil {
-	//				errors = append(errors, err.Error())
-	//				rerenderSite = true
-	//				return nil, errors, rerenderSite
-	//			}
-
-	//			title, err := sourceAPI.getTitle()
-	//			if err == nil {
-	//				exists, _ := s.data.CheckMovieExists(title)
-	//				if err == nil {
-	//					if exists {
-	//						errors = append(errors, "Movie already exists")
-	//						rerenderSite = true
-	//						return nil, errors, rerenderSite
-	//					}
-	//				}
-
-	//				results, err = getMovieData(&sourceAPI)
-
-	//				if err != nil {
-	//					// errors from getMovieData
-	//					errors = append(errors, err.Error())
-	//				}
-
-	//			} else {
-	//				// Errors from sourceAPI.getTitle
-	//				errors = append(errors, err.Error())
-	//			}
-	//		} else {
-	//			errors = append(errors, "Tmdb API usage was not enabled by the site administrator")
-	//			rerenderSite = true
-	//			return nil, errors, rerenderSite
-
-	//		}
-
-	//	} else {
-	//		// neither IMDB nor MAL link
-	//		errors = append(errors, "To use autofill use an imdb or myanimelist link as first link")
-	//	}
-
-	//	if len(results) > 0 {
-	//		if results[0] == "" && results[1] == "" && results[2] == "" {
-	//			errors = append(errors, "The provided imdb link is not a link to a movie!")
-	//		}
-
-	//		//duplicate check
-	//		movieExists, err := s.data.CheckMovieExists(results[0])
-	//		if err != nil {
-	//			s.doError(
-	//				http.StatusInternalServerError,
-	//				fmt.Sprintf("Unable to check if movie exists: %v", err),
-	//				w, r)
-	//			return nil, errors, rerenderSite
-	//		}
-
-	//		if movieExists {
-	//			errors = append(errors, "Movie already exists")
-	//		}
-	//	} else {
-	//		errors = append(errors, "No results retrived from API")
-	//	}
-	//} else {
-	//	errors = append(errors, "Autofill from link was not enabled by the site administrator")
-	//	rerenderSite = true
-	//	return nil, errors, rerenderSite
-	//}
-	//} else {
-	//errors = append(errors, "No links provided")
-	//}
-
-	return results
 }
 
 func (s *Server) uploadFile(r *http.Request, name string) (string, error) {
@@ -1072,7 +999,6 @@ func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.
 		sourceAPI := jikan{id: id, l: s.l, excludedTypes: bannedTypes, maxEpisodes: maxEpisodes}
 
 		// Request data from API
-		// Title, Desc, Poster
 		results, err := getMovieData(&sourceAPI)
 
 		if err != nil {
@@ -1087,5 +1013,50 @@ func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.
 
 func (s *Server) handleTmdb(data *dataAddMovie, w http.ResponseWriter, r *http.Request, sourcelink string) ([]string, error) {
 
-	return nil, nil
+	tmdbEnabled, err := s.data.GetCfgBool("TmdbEnabled", DefaultTmdbEnabled)
+	if err != nil {
+		s.l.Error("Error while retriving config value 'TmdbEnabled':\n %v", err)
+		data.ErrorMessage = append(data.ErrorMessage, "Something went wrong :C")
+		return nil, err
+	}
+
+	if !tmdbEnabled {
+		s.l.Debug("Aborting Tmdb autofill since it is not enabled")
+		data.ErrorMessage = append(data.ErrorMessage, "Tmdb API usage was not enabled by the site administrator")
+		return nil, fmt.Errorf("Tmdb not enabled")
+	} else {
+		// Retrieve token from database
+		token, err := s.data.GetCfgString("TmdbToken", "")
+		if err != nil || token == "" {
+
+			s.l.Debug("Aborting Tmdb autofill since no token was found")
+			data.ErrorMessage = append(data.ErrorMessage, "TmdbToken is either empty or not set in the admin config")
+			return nil, fmt.Errorf("TmdbToken is either empty or not set in the admin config")
+		}
+		// get the movie id
+		rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/title\/(tt[0-9]*)`)
+		match := rgx.FindStringSubmatch(sourcelink)
+		var id string
+		if len(match) < 2 {
+			s.l.Debug("Regex match didn't find the movie id in %v", sourcelink)
+			data.ErrorMessage = append(data.ErrorMessage, "Could not retrive movie id from provided link")
+			data.ErrLinks = true
+			return nil, fmt.Errorf("Could not retrive movie id from link")
+		} else {
+			id = match[1]
+		}
+
+		sourceAPI := tmdb{id: id, token: token, l: s.l}
+
+		// Request data from API
+		results, err := getMovieData(&sourceAPI)
+
+		if err != nil {
+			s.l.Error("Error while accessing Tmdb API: %v", err)
+			data.ErrorMessage = append(data.ErrorMessage, err.Error())
+			return nil, err
+		}
+
+		return results, nil
+	}
 }
