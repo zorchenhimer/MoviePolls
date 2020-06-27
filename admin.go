@@ -379,6 +379,8 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 			configValue{Key: ConfigTmdbEnabled, Default: DefaultTmdbEnabled, Type: ConfigBool},
 			configValue{Key: ConfigTmdbToken, Default: DefaultTmdbToken, Type: ConfigString},
 
+			configValue{Key: ConfigFormfillEnabled, Default: DefaultFormfillEnabled, Type: ConfigBool},
+
 			configValue{Key: ConfigMaxNameLength, Default: DefaultMaxNameLength, Type: ConfigInt},
 			configValue{Key: ConfigMinNameLength, Default: DefaultMinNameLength, Type: ConfigInt},
 

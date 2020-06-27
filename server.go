@@ -22,6 +22,7 @@ const (
 	DefaultMaxUserVotes           int    = 5
 	DefaultEntriesRequireApproval bool   = false
 	DefaultAutofillEnabled        bool   = false
+	DefaultFormfillEnabled        bool   = true
 	DefaultVotingEnabled          bool   = false
 	DefaultJikanEnabled           bool   = false
 	DefaultJikanBannedTypes       string = "TV,music"
@@ -43,6 +44,7 @@ const (
 	ConfigMaxUserVotes           string = "MaxUserVotes"
 	ConfigEntriesRequireApproval string = "EntriesRequireApproval"
 	ConfigAutofillEnabled        string = "AutofillEnabled"
+	ConfigFormfillEnabled        string = "FormfillEnabled"
 	ConfigTmdbToken              string = "TmdbToken"
 	ConfigJikanEnabled           string = "JikanEnabled"
 	ConfigJikanBannedTypes       string = "JikanBannedTypes"
@@ -283,7 +285,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the current cycle for the movie
-	current, err := s.data.GetCurrentCycle()
+	currentCycle, err := s.data.GetCurrentCycle()
 	if err != nil {
 		s.doError(
 			http.StatusInternalServerError,
@@ -294,7 +296,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if current == nil {
+	if currentCycle == nil {
 		s.doError(
 			http.StatusInternalServerError,
 			"No cycle active!",
@@ -313,9 +315,22 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		s.l.Error("Unable to get config value %s: %v", ConfigAutofillEnabled, err)
 		return
 	}
+
+	formfillEnabled, err := s.data.GetCfgBool(ConfigFormfillEnabled, DefaultFormfillEnabled)
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			"Something went wrong :C",
+			w, r)
+
+		s.l.Error("Unable to get config value %s: %v", ConfigFormfillEnabled, err)
+		return
+	}
+
 	data := dataAddMovie{
 		dataPageBase:    s.newPageBase("Add Movie", w, r),
 		AutofillEnabled: autofillEnabled,
+		FormfillEnabled: formfillEnabled,
 	}
 
 	if r.Method == "POST" {
