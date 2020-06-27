@@ -339,189 +339,203 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			s.l.Error("Error parsing movie form: %v", err)
 		}
 
-		errText := []string{}
+		// errText := []string{}
 
-		// Get the links from the corresponding input field
-		linktext := strings.ReplaceAll(r.FormValue("Links"), "\r", "")
-		data.ValLinks = linktext
-
-		maxLinkLength, err := s.data.GetCfgInt(ConfigMaxLinkLength, DefaultMaxLinkLength)
-		if err != nil {
-			s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
-			s.doError(
-				http.StatusInternalServerError,
-				"something went wrong :C",
-				w, r)
-			return
-		}
-
-		if len(linktext) > maxLinkLength {
-			s.l.Debug("Links too long: %d", len(linktext))
-			data.ErrTitle = true
-			errText = append(errText, "Links too long!")
-		}
-
-		links := strings.Split(linktext, "\n")
-		links, err = common.VerifyLinks(links)
-		if err != nil {
-			s.l.Error("bad link: %v", err)
-			data.ErrLinks = true
-			errText = append(errText, "Invalid link(s) given.")
-		}
-
-		remarks := strings.ReplaceAll(r.FormValue("Remarks"), "\r", "")
-		data.ValRemarks = remarks
-
-		maxRemarksLength, err := s.data.GetCfgInt(ConfigMaxRemarksLength, DefaultMaxRemarksLength)
-		if err != nil {
-			s.l.Error("Unable to get %q: %v", ConfigMaxRemarksLength, err)
-			s.doError(
-				http.StatusInternalServerError,
-				"something went wrong :C",
-				w, r)
-			return
-		}
-
-		if len(remarks) > maxRemarksLength {
-			s.l.Debug("Remarks too long: %d", len(remarks))
-			data.ErrRemarks = true
-			errText = append(errText, "Remarks too long!")
-		}
-
-		// New Movie, just filling the Poster field for the "unknown.jpg" default
-		movie := &common.Movie{
-			Poster: "unknown.jpg", // 165x250
-		}
-
-		// Here we check the AutofillBox since the other fields are ignored
-		if r.FormValue("AutofillBox") == "on" {
-			s.l.Debug("Autofill checked")
-			results, errors, rerenderSite := s.handleAutofill(links, w, r)
-
-			if len(errors) > 0 {
-				errText = append(errText, errors...)
-				data.ErrAutofill = true
-
-				if rerenderSite {
-					data.ErrorMessage = errText
-					if err := s.executeTemplate(w, "addmovie", data); err != nil {
-						s.l.Error("Error rendering template: %v", err)
-					}
-					return
-				}
-			} else {
-				movie.Name = results[0]
-				movie.Description = results[1]
-				movie.Poster = filepath.Base(results[2])
-				movie.Links = links
-				movie.Remarks = remarks
+		if autofillEnabled {
+			if r.FormValue("AutofillBox") == "on" {
+				// do autofill
+				s.l.Debug("autofill")
+				s.handleAutofill(&data, w, r)
 			}
+		} else if formfillEnabled {
+
+			s.l.Debug("formfill")
+			// do formfill
 		} else {
-			s.l.Debug("Autofill not checked")
-
-			// Here we continue with the other input checks
-			maxTitleLength, err := s.data.GetCfgInt(ConfigMaxTitleLength, DefaultMaxTitleLength)
-			if err != nil {
-				s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
-				s.doError(
-					http.StatusInternalServerError,
-					"something went wrong :C",
-					w, r)
-				return
-			}
-
-			data.ValTitle = strings.TrimSpace(r.FormValue("MovieName"))
-			if len(data.ValTitle) > maxTitleLength {
-				s.l.Debug("Title too long: %d", len(data.ValTitle))
-				data.ErrTitle = true
-				errText = append(errText, "Title too long!")
-			} else if len(data.ValTitle) == 0 {
-				s.l.Debug("Title too short: %d", len(common.CleanMovieName(data.ValTitle)))
-				data.ErrTitle = true
-				errText = append(errText, "Title too short!")
-			}
-
-			movieExists, err := s.data.CheckMovieExists(r.FormValue("MovieName"))
-			if err != nil {
-				s.doError(
-					http.StatusInternalServerError,
-					fmt.Sprintf("Unable to check if movie exists: %v", err),
-					w, r)
-				return
-			}
-
-			if movieExists {
-				data.ErrTitle = true
-				s.l.Debug("Movie exists")
-				errText = append(errText, "Movie already exists")
-			}
-
-			if data.ValTitle == "" && !(r.FormValue("AutofillBox") == "on") {
-				errText = append(errText, "Missing movie title")
-				data.ErrTitle = true
-			}
-
-			descr := strings.TrimSpace(r.FormValue("Description"))
-			data.ValDescription = descr
-
-			maxDescriptionLength, err := s.data.GetCfgInt(ConfigMaxDescriptionLength, DefaultMaxDescriptionLength)
-			if err != nil {
-				s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
-				s.doError(
-					http.StatusInternalServerError,
-					"something went wrong :C",
-					w, r)
-				return
-			}
-
-			if len(data.ValDescription) > maxDescriptionLength {
-				s.l.Debug("Description too long: %d", len(data.ValDescription))
-				data.ErrDescription = true
-				errText = append(errText, "Description too long!")
-			}
-
-			if len(descr) == 0 && !(r.FormValue("AutofillBox") == "on") {
-				data.ErrDescription = true
-				errText = append(errText, "Missing description")
-			}
-
-			movie.Name = strings.TrimSpace(r.FormValue("MovieName"))
-			movie.Description = strings.TrimSpace(r.FormValue("Description"))
-			movie.Links = links
-			movie.Remarks = remarks
-
-			posterFileName := strings.TrimSpace(r.FormValue("MovieName"))
-
-			posterFile, _, _ := r.FormFile("PosterFile")
-
-			if posterFile != nil {
-				file, err := s.uploadFile(r, posterFileName)
-
-				if err != nil {
-					data.ErrPoster = true
-					errText = append(errText, err.Error())
-				} else {
-					movie.Poster = filepath.Base(file)
-				}
-			}
+			s.l.Debug("neither")
+			// neither autofill nor formfill are enabled
 		}
-
-		var movieId int
-
-		if !data.isError() {
-			movie.AddedBy = user
-			movieId, err = s.data.AddMovie(movie)
-		}
-
-		if err == nil && !data.isError() {
-			http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
-			return
-		}
-
-		//data.ErrorMessage = strings.Join(errText, "<br />")
-		data.ErrorMessage = errText
-		s.l.Error("Movie not added. isError(): %t\nerr: %v", data.isError(), err)
 	}
+	//	 // Get all links from the corresponding input field
+	//	 linktext := strings.ReplaceAll(r.FormValue("Links"), "\r", "")
+	//	 data.ValLinks = linktext
+
+	//	 maxLinkLength, err := s.data.GetCfgInt(ConfigMaxLinkLength, DefaultMaxLinkLength)
+	//	 if err != nil {
+	//	 	s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
+	//	 	s.doError(
+	//	 		http.StatusInternalServerError,
+	//	 		"something went wrong :C",
+	//	 		w, r)
+	//	 	return
+	//	 }
+
+	// if len(linktext) > maxLinkLength {
+	// 	s.l.Debug("Links too long: %d", len(linktext))
+	// 	data.ErrTitle = true
+	// 	errText = append(errText, "Links too long!")
+	// }
+	//		links := strings.Split(linktext, "\n")
+	//		links, err = common.VerifyLinks(links)
+	//		if err != nil {
+	//			s.l.Error("bad link: %v", err)
+	//			data.ErrLinks = true
+	//			errText = append(errText, "Invalid link(s) given.")
+	//		}
+
+	//		remarks := strings.ReplaceAll(r.FormValue("Remarks"), "\r", "")
+	//		data.ValRemarks = remarks
+
+	//		maxRemarksLength, err := s.data.GetCfgInt(ConfigMaxRemarksLength, DefaultMaxRemarksLength)
+	//		if err != nil {
+	//			s.l.Error("Unable to get %q: %v", ConfigMaxRemarksLength, err)
+	//			s.doError(
+	//				http.StatusInternalServerError,
+	//				"something went wrong :C",
+	//				w, r)
+	//			return
+	//		}
+
+	//		if len(remarks) > maxRemarksLength {
+	//			s.l.Debug("Remarks too long: %d", len(remarks))
+	//			data.ErrRemarks = true
+	//			errText = append(errText, "Remarks too long!")
+	//		}
+
+	//		// New Movie, just filling the Poster field for the "unknown.jpg" default
+	//		movie := &common.Movie{
+	//			Poster: "unknown.jpg", // 165x250
+	//		}
+
+	//		// Here we check the AutofillBox since the other fields are ignored
+	//		if r.FormValue("AutofillBox") == "on" {
+	//			s.l.Debug("Autofill checked")
+	//			results, errors, rerenderSite := s.handleAutofill(links, w, r)
+
+	//			if len(errors) > 0 {
+	//				errText = append(errText, errors...)
+	//				data.ErrAutofill = true
+
+	//				if rerenderSite {
+	//					data.ErrorMessage = errText
+	//					if err := s.executeTemplate(w, "addmovie", data); err != nil {
+	//						s.l.Error("Error rendering template: %v", err)
+	//					}
+	//					return
+	//				}
+	//			} else {
+	//				movie.Name = results[0]
+	//				movie.Description = results[1]
+	//				movie.Poster = filepath.Base(results[2])
+	//				movie.Links = links
+	//				movie.Remarks = remarks
+	//			}
+	//		} else {
+	//			s.l.Debug("Autofill not checked")
+
+	//			// Here we continue with the other input checks
+	//			maxTitleLength, err := s.data.GetCfgInt(ConfigMaxTitleLength, DefaultMaxTitleLength)
+	//			if err != nil {
+	//				s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
+	//				s.doError(
+	//					http.StatusInternalServerError,
+	//					"something went wrong :C",
+	//					w, r)
+	//				return
+	//			}
+
+	//			data.ValTitle = strings.TrimSpace(r.FormValue("MovieName"))
+	//			if len(data.ValTitle) > maxTitleLength {
+	//				s.l.Debug("Title too long: %d", len(data.ValTitle))
+	//				data.ErrTitle = true
+	//				errText = append(errText, "Title too long!")
+	//			} else if len(data.ValTitle) == 0 {
+	//				s.l.Debug("Title too short: %d", len(common.CleanMovieName(data.ValTitle)))
+	//				data.ErrTitle = true
+	//				errText = append(errText, "Title too short!")
+	//			}
+
+	//			movieExists, err := s.data.CheckMovieExists(r.FormValue("MovieName"))
+	//			if err != nil {
+	//				s.doError(
+	//					http.StatusInternalServerError,
+	//					fmt.Sprintf("Unable to check if movie exists: %v", err),
+	//					w, r)
+	//				return
+	//			}
+
+	//			if movieExists {
+	//				data.ErrTitle = true
+	//				s.l.Debug("Movie exists")
+	//				errText = append(errText, "Movie already exists")
+	//			}
+
+	//			if data.ValTitle == "" && !(r.FormValue("AutofillBox") == "on") {
+	//				errText = append(errText, "Missing movie title")
+	//				data.ErrTitle = true
+	//			}
+
+	//			descr := strings.TrimSpace(r.FormValue("Description"))
+	//			data.ValDescription = descr
+
+	//			maxDescriptionLength, err := s.data.GetCfgInt(ConfigMaxDescriptionLength, DefaultMaxDescriptionLength)
+	//			if err != nil {
+	//				s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
+	//				s.doError(
+	//					http.StatusInternalServerError,
+	//					"something went wrong :C",
+	//					w, r)
+	//				return
+	//			}
+
+	//			if len(data.ValDescription) > maxDescriptionLength {
+	//				s.l.Debug("Description too long: %d", len(data.ValDescription))
+	//				data.ErrDescription = true
+	//				errText = append(errText, "Description too long!")
+	//			}
+
+	//			if len(descr) == 0 && !(r.FormValue("AutofillBox") == "on") {
+	//				data.ErrDescription = true
+	//				errText = append(errText, "Missing description")
+	//			}
+
+	//			movie.Name = strings.TrimSpace(r.FormValue("MovieName"))
+	//			movie.Description = strings.TrimSpace(r.FormValue("Description"))
+	//			movie.Links = links
+	//			movie.Remarks = remarks
+
+	//			posterFileName := strings.TrimSpace(r.FormValue("MovieName"))
+
+	//			posterFile, _, _ := r.FormFile("PosterFile")
+
+	//			if posterFile != nil {
+	//				file, err := s.uploadFile(r, posterFileName)
+
+	//				if err != nil {
+	//					data.ErrPoster = true
+	//					errText = append(errText, err.Error())
+	//				} else {
+	//					movie.Poster = filepath.Base(file)
+	//				}
+	//			}
+	//		}
+
+	//		var movieId int
+
+	//		if !data.isError() {
+	//			movie.AddedBy = user
+	//			movieId, err = s.data.AddMovie(movie)
+	//		}
+
+	//		if err == nil && !data.isError() {
+	//			http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
+	//			return
+	//		}
+
+	//		//data.ErrorMessage = strings.Join(errText, "<br />")
+	//		data.ErrorMessage = errText
+	//		s.l.Error("Movie not added. isError(): %t\nerr: %v", data.isError(), err)
+	//	}
 
 	if err := s.executeTemplate(w, "addmovie", data); err != nil {
 		s.l.Error("Error rendering template: %v", err)
@@ -679,215 +693,262 @@ func (s *Server) handlerMovie(w http.ResponseWriter, r *http.Request) {
 }
 
 // outsourced autofill logic
-func (s *Server) handleAutofill(links []string, w http.ResponseWriter, r *http.Request) ([]string, []string, bool) {
-	// internal error log
-	errors := []string{}
-	// bool to check if the site should be rerendered
-	rerenderSite := false
-	// slice for the api results
-	var results []string
-	// make sure we have a link to look at
-	if len(links) >= 1 {
-		sourcelink := links[0]
-		autofillEnabled, err := s.data.GetCfgBool(ConfigAutofillEnabled, DefaultAutofillEnabled)
-		if err != nil {
-			s.l.Error("Error while retriving config value %s:\n %v", ConfigAutofillEnabled, err)
-			errors = append(errors, "Something went wrong :C")
-			rerenderSite = true
-			return nil, errors, rerenderSite
-		}
+func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *http.Request) (results []string) {
 
-		if autofillEnabled {
+	// Get all needed values from the form
 
-			if strings.Contains(sourcelink, "myanimelist") {
+	// Get all links from the corresponding input field
+	linktext := strings.ReplaceAll(r.FormValue("Links"), "\r", "")
+	data.ValLinks = linktext
 
-				jikanEnabled, err := s.data.GetCfgBool("JikanEnabled", DefaultJikanEnabled)
-				if err != nil {
-					s.l.Error("Error while retriving config value 'JikanEnabled':\n %v", err)
-					errors = append(errors, "Something went wrong :C")
-					rerenderSite = true
-					return nil, errors, rerenderSite
-				}
+	// Get the remarks from the corresponding input field
+	remarkstext := strings.ReplaceAll(r.FormValue("Remarks"), "\r", "")
+	data.ValRemarks = remarkstext
 
-				s.l.Debug("jikanEnabled: %v", jikanEnabled)
-
-				if jikanEnabled {
-					// Get Data from MAL (jikan api)
-					rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/anime\/([0-9]*)`)
-					match := rgx.FindStringSubmatch(sourcelink)
-					var id string
-					if len(match) < 2 {
-						errors = append(errors, "Could not retrive anime id from provided link, did you input a manga link?")
-						rerenderSite = true
-						return nil, errors, rerenderSite
-					} else {
-						id = match[1]
-					}
-
-					bannedTypesString, err := s.data.GetCfgString(ConfigJikanBannedTypes, DefaultJikanBannedTypes)
-
-					if err != nil {
-						s.l.Error("Error while retriving config value 'JikanBannedTypes':\n %v", err)
-						errors = append(errors, "Something went wrong :C")
-						rerenderSite = true
-						return nil, errors, rerenderSite
-					}
-
-					bannedTypes := strings.Split(bannedTypesString, ",")
-
-					maxEpisodes, err := s.data.GetCfgInt(ConfigJikanMaxEpisodes, DefaultJikanMaxEpisodes)
-
-					if err != nil {
-						s.l.Error("Error while retriving config value 'JikanMaxEpisodes':\n %v", err)
-						errors = append(errors, "Something went wrong :C")
-						rerenderSite = true
-						return nil, errors, rerenderSite
-					}
-
-					sourceAPI := jikan{id: id, l: s.l, excludedTypes: bannedTypes, maxEpisodes: maxEpisodes}
-
-					// Return early when the title already exists
-					err = sourceAPI.requestResults()
-					if err != nil {
-						errors = append(errors, err.Error())
-						rerenderSite = true
-						return nil, errors, rerenderSite
-					}
-					title, err := sourceAPI.getTitle()
-					if err == nil {
-						exists, err := s.data.CheckMovieExists(title)
-						if err == nil {
-							if exists {
-								errors = append(errors, "Movie already exists")
-								rerenderSite = true
-								return nil, errors, rerenderSite
-							}
-						} else {
-							s.l.Error("CheckMovieExsists(): " + err.Error())
-						}
-					} else {
-						s.l.Error("getTitle(): " + err.Error())
-					}
-
-					results, err = getMovieData(&sourceAPI)
-
-					if err != nil {
-						// error while getting data from the api
-						errors = append(errors, err.Error())
-					}
-				} else {
-					errors = append(errors, "Jikan API usage was not enabled by the site administrator")
-					rerenderSite = true
-					return nil, errors, rerenderSite
-
-				}
-
-			} else if strings.Contains(sourcelink, "imdb") {
-
-				tmdbEnabled, err := s.data.GetCfgBool("TmdbEnabled", DefaultTmdbEnabled)
-				if err != nil {
-					s.l.Error("Error while retriving config value 'TmdbEnabled':\n %v", err)
-					errors = append(errors, "Something went wrong :C")
-					rerenderSite = true
-					return nil, errors, rerenderSite
-				}
-
-				if tmdbEnabled {
-					// Retrieve token from database
-					token, err := s.data.GetCfgString("TmdbToken", "")
-					if err != nil || token == "" {
-						errors = append(errors, "TmdbToken is either empty or not set in the admin config")
-						rerenderSite = true
-						return nil, errors, rerenderSite
-					}
-
-					// get the movie id
-					rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/title\/(tt[0-9]*)`)
-					match := rgx.FindStringSubmatch(sourcelink)
-					var id string
-					if len(match) < 2 {
-						errors = append(errors, "Could not retrive movie id from provided link.")
-						rerenderSite = true
-						return nil, errors, rerenderSite
-					} else {
-						id = match[1]
-					}
-
-					sourceAPI := tmdb{id: id, token: token, l: s.l}
-
-					// Return early when the title already exists
-					err = sourceAPI.requestResults()
-					if err != nil {
-						errors = append(errors, err.Error())
-						rerenderSite = true
-						return nil, errors, rerenderSite
-					}
-
-					title, err := sourceAPI.getTitle()
-					if err == nil {
-						exists, _ := s.data.CheckMovieExists(title)
-						if err == nil {
-							if exists {
-								errors = append(errors, "Movie already exists")
-								rerenderSite = true
-								return nil, errors, rerenderSite
-							}
-						}
-
-						results, err = getMovieData(&sourceAPI)
-
-						if err != nil {
-							// errors from getMovieData
-							errors = append(errors, err.Error())
-						}
-
-					} else {
-						// Errors from sourceAPI.getTitle
-						errors = append(errors, err.Error())
-					}
-				} else {
-					errors = append(errors, "Tmdb API usage was not enabled by the site administrator")
-					rerenderSite = true
-					return nil, errors, rerenderSite
-
-				}
-
-			} else {
-				// neither IMDB nor MAL link
-				errors = append(errors, "To use autofill use an imdb or myanimelist link as first link")
-			}
-
-			if len(results) > 0 {
-				if results[0] == "" && results[1] == "" && results[2] == "" {
-					errors = append(errors, "The provided imdb link is not a link to a movie!")
-				}
-
-				//duplicate check
-				movieExists, err := s.data.CheckMovieExists(results[0])
-				if err != nil {
-					s.doError(
-						http.StatusInternalServerError,
-						fmt.Sprintf("Unable to check if movie exists: %v", err),
-						w, r)
-					return nil, errors, rerenderSite
-				}
-
-				if movieExists {
-					errors = append(errors, "Movie already exists")
-				}
-			} else {
-				errors = append(errors, "No results retrived from API")
-			}
-		} else {
-			errors = append(errors, "Autofill from link was not enabled by the site administrator")
-			rerenderSite = true
-			return nil, errors, rerenderSite
-		}
-	} else {
-		errors = append(errors, "No links provided")
+	// Check link maxlength
+	maxLinkLength, err := s.data.GetCfgInt(ConfigMaxLinkLength, DefaultMaxLinkLength)
+	if err != nil {
+		s.l.Error("Unable to get %q: %v", ConfigMaxLinkLength, err)
+		s.doError(
+			http.StatusInternalServerError,
+			"something went wrong :C",
+			w, r)
+		return
 	}
 
-	return results, errors, rerenderSite
+	if len(linktext) > maxLinkLength {
+		s.l.Debug("Links too long: %d", len(linktext))
+		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Links too long! Max Length: %d characters", maxLinkLength))
+		data.ErrLinks = true
+	}
+
+	// Check for valid links
+	links := strings.Split(linktext, "\n")
+	links, err = common.VerifyLinks(links)
+	if err != nil {
+		s.l.Error(err.Error())
+		data.ErrorMessage = append(data.ErrorMessage, "Invalid link(s) given.")
+		data.ErrLinks = true
+	}
+
+	var sourcelink string
+	// make sure we have a link to look at
+	if len(links) == 0 {
+		s.l.Error("no links given")
+		data.ErrorMessage = append(data.ErrorMessage, "No link found.")
+		data.ErrLinks = true
+	} else {
+		sourcelink = links[0]
+	}
+
+	// Check Remarks max length
+	maxRemarksLength, err := s.data.GetCfgInt(ConfigMaxRemarksLength, DefaultMaxRemarksLength)
+	if err != nil {
+		s.l.Error("Unable to get %q: %v", ConfigMaxRemarksLength, err)
+		s.doError(
+			http.StatusInternalServerError,
+			"something went wrong :C",
+			w, r)
+		return
+	}
+
+	if len(remarkstext) > maxRemarksLength {
+		s.l.Debug("Remarks too long: %d", len(remarkstext))
+		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Remarks too long! Max Length: %d characters", maxRemarksLength))
+		data.ErrRemarks = true
+	}
+
+	// Exit early if any errors got reported
+	if data.isError() {
+		return nil
+	}
+
+	if strings.Contains(sourcelink, "myanimelist") {
+		s.l.Debug("MAL link")
+
+		results, err = s.handleJikan(data, w, r, sourcelink)
+
+		if err != nil {
+			return nil
+		}
+
+		var title string
+
+		if len(results) != 3 {
+			s.l.Error("Jikan API results have an unexpected length, expected 3 got %v", len(results))
+			data.ErrorMessage = append(data.ErrorMessage, "API autofill did not return enough data, contact the server administrator")
+			return nil
+		} else {
+			title = results[0]
+		}
+
+		exists, err := s.data.CheckMovieExists(title)
+		if err != nil {
+			s.l.Error(err.Error())
+			s.doError(
+				http.StatusInternalServerError,
+				"something went wrong :C",
+				w, r)
+			return nil
+
+		}
+
+		if exists {
+			s.l.Debug("Movie already exists")
+			data.ErrorMessage = append(data.ErrorMessage, "Movie already exists in database")
+			data.ErrAutofill = true
+			return nil
+		}
+		return
+
+	} else if strings.Contains(sourcelink, "imdb") {
+		s.l.Debug("IMDB link")
+
+		results, err = s.handleTmdb(data, w, r, sourcelink)
+
+		if err != nil {
+			return nil
+		}
+
+		var title string
+
+		if len(results) != 3 {
+			s.l.Error("Tmdb API results have an unexpected length, expected 3 got %v", len(results))
+			data.ErrorMessage = append(data.ErrorMessage, "API autofill did not return enough data, contact the server administrator")
+			return nil
+		} else {
+			title = results[0]
+		}
+
+		exists, err := s.data.CheckMovieExists(title)
+		if err != nil {
+			s.l.Error(err.Error())
+			s.doError(
+				http.StatusInternalServerError,
+				"something went wrong :C",
+				w, r)
+			return nil
+
+		}
+
+		if exists {
+			s.l.Debug("Movie already exists")
+			data.ErrorMessage = append(data.ErrorMessage, "Movie already exists in database")
+			data.ErrAutofill = true
+			return nil
+		}
+		return
+
+	} else {
+		s.l.Debug("no link")
+		data.ErrorMessage = append(data.ErrorMessage, "To use autofill an imdb or myanimelist link as first link is required")
+		data.ErrLinks = true
+		return nil
+	}
+
+	// tmdbEnabled, err := s.data.GetCfgBool("TmdbEnabled", DefaultTmdbEnabled)
+	// if err != nil {
+	// 	s.l.Error("Error while retriving config value 'TmdbEnabled':\n %v", err)
+	// 	data.ErrorMessage = append(data.ErrorMessage, "Something went wrong :C")
+	// 	return nil
+	// }
+
+	//		if tmdbEnabled {
+	//			// Retrieve token from database
+	//			token, err := s.data.GetCfgString("TmdbToken", "")
+	//			if err != nil || token == "" {
+	//				errors = append(errors, "TmdbToken is either empty or not set in the admin config")
+	//				rerenderSite = true
+	//				return nil, errors, rerenderSite
+	//			}
+
+	//			// get the movie id
+	//			rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/title\/(tt[0-9]*)`)
+	//			match := rgx.FindStringSubmatch(sourcelink)
+	//			var id string
+	//			if len(match) < 2 {
+	//				errors = append(errors, "Could not retrive movie id from provided link.")
+	//				rerenderSite = true
+	//				return nil, errors, rerenderSite
+	//			} else {
+	//				id = match[1]
+	//			}
+
+	//			sourceAPI := tmdb{id: id, token: token, l: s.l}
+
+	//			// Return early when the title already exists
+	//			err = sourceAPI.requestResults()
+	//			if err != nil {
+	//				errors = append(errors, err.Error())
+	//				rerenderSite = true
+	//				return nil, errors, rerenderSite
+	//			}
+
+	//			title, err := sourceAPI.getTitle()
+	//			if err == nil {
+	//				exists, _ := s.data.CheckMovieExists(title)
+	//				if err == nil {
+	//					if exists {
+	//						errors = append(errors, "Movie already exists")
+	//						rerenderSite = true
+	//						return nil, errors, rerenderSite
+	//					}
+	//				}
+
+	//				results, err = getMovieData(&sourceAPI)
+
+	//				if err != nil {
+	//					// errors from getMovieData
+	//					errors = append(errors, err.Error())
+	//				}
+
+	//			} else {
+	//				// Errors from sourceAPI.getTitle
+	//				errors = append(errors, err.Error())
+	//			}
+	//		} else {
+	//			errors = append(errors, "Tmdb API usage was not enabled by the site administrator")
+	//			rerenderSite = true
+	//			return nil, errors, rerenderSite
+
+	//		}
+
+	//	} else {
+	//		// neither IMDB nor MAL link
+	//		errors = append(errors, "To use autofill use an imdb or myanimelist link as first link")
+	//	}
+
+	//	if len(results) > 0 {
+	//		if results[0] == "" && results[1] == "" && results[2] == "" {
+	//			errors = append(errors, "The provided imdb link is not a link to a movie!")
+	//		}
+
+	//		//duplicate check
+	//		movieExists, err := s.data.CheckMovieExists(results[0])
+	//		if err != nil {
+	//			s.doError(
+	//				http.StatusInternalServerError,
+	//				fmt.Sprintf("Unable to check if movie exists: %v", err),
+	//				w, r)
+	//			return nil, errors, rerenderSite
+	//		}
+
+	//		if movieExists {
+	//			errors = append(errors, "Movie already exists")
+	//		}
+	//	} else {
+	//		errors = append(errors, "No results retrived from API")
+	//	}
+	//} else {
+	//	errors = append(errors, "Autofill from link was not enabled by the site administrator")
+	//	rerenderSite = true
+	//	return nil, errors, rerenderSite
+	//}
+	//} else {
+	//errors = append(errors, "No links provided")
+	//}
+
+	return results
 }
 
 func (s *Server) uploadFile(r *http.Request, name string) (string, error) {
@@ -950,4 +1011,81 @@ func (s *Server) handlerHistory(w http.ResponseWriter, r *http.Request) {
 	if err := s.executeTemplate(w, "history", data); err != nil {
 		s.l.Error("Error rendering template: %v", err)
 	}
+}
+
+func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.Request, sourcelink string) ([]string, error) {
+
+	jikanEnabled, err := s.data.GetCfgBool("JikanEnabled", DefaultJikanEnabled)
+	if err != nil {
+		s.l.Error("Error while retriving config value 'JikanEnabled':\n %v", err)
+		s.doError(
+			http.StatusInternalServerError,
+			"something went wrong :C",
+			w, r)
+		return nil, err
+	}
+
+	s.l.Debug("jikanEnabled: %v", jikanEnabled)
+
+	if !jikanEnabled {
+		s.l.Debug("Aborting Jikan autofill since it is not enabled")
+		data.ErrorMessage = append(data.ErrorMessage, "Jikan API usage was not enabled by the site administrator")
+		return nil, fmt.Errorf("Jikan not enabled")
+	} else {
+		// Get Data from MAL (jikan api)
+		rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/anime\/([0-9]*)`)
+		match := rgx.FindStringSubmatch(sourcelink)
+		var id string
+		if len(match) < 2 {
+			s.l.Debug("Regex match didn't find the anime id in %v", sourcelink)
+			data.ErrorMessage = append(data.ErrorMessage, "Could not retrive anime id from provided link, did you input a manga link?")
+			data.ErrLinks = true
+			return nil, fmt.Errorf("Could not retrive anime id from link")
+		} else {
+			id = match[1]
+		}
+
+		bannedTypesString, err := s.data.GetCfgString(ConfigJikanBannedTypes, DefaultJikanBannedTypes)
+
+		if err != nil {
+			s.l.Error("Error while retriving config value 'JikanBannedTypes':\n %v", err)
+			s.doError(
+				http.StatusInternalServerError,
+				"something went wrong :C",
+				w, r)
+			return nil, err
+		}
+
+		bannedTypes := strings.Split(bannedTypesString, ",")
+
+		maxEpisodes, err := s.data.GetCfgInt(ConfigJikanMaxEpisodes, DefaultJikanMaxEpisodes)
+
+		if err != nil {
+			s.l.Error("Error while retriving config value 'JikanMaxEpisodes':\n %v", err)
+			s.doError(
+				http.StatusInternalServerError,
+				"something went wrong :C",
+				w, r)
+			return nil, err
+		}
+
+		sourceAPI := jikan{id: id, l: s.l, excludedTypes: bannedTypes, maxEpisodes: maxEpisodes}
+
+		// Request data from API
+		// Title, Desc, Poster
+		results, err := getMovieData(&sourceAPI)
+
+		if err != nil {
+			s.l.Error("Error while accessing Jikan API: %v", err)
+			data.ErrorMessage = append(data.ErrorMessage, err.Error())
+			return nil, err
+		}
+
+		return results, nil
+	}
+}
+
+func (s *Server) handleTmdb(data *dataAddMovie, w http.ResponseWriter, r *http.Request, sourcelink string) ([]string, error) {
+
+	return nil, nil
 }
