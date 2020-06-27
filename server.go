@@ -352,7 +352,6 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				if results == nil || links == nil {
 					data.ErrorMessage = append(data.ErrorMessage, "Could not autofill all fields")
 					data.ErrAutofill = true
-					return
 				} else {
 					// Fill all the fields in the movie struct
 					movie.Name = results[0]
@@ -374,197 +373,41 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				}
 
 			}
-		} else if formfillEnabled {
+		}
+		if formfillEnabled && r.FormValue("AutofillBox") != "on" {
 			s.l.Debug("formfill")
 			// do formfill
-			// results := s.handleFormfill(&data, w, r)
+			results, links := s.handleFormfill(&data, w, r)
 
+			if results == nil || links == nil {
+				data.ErrorMessage = append(data.ErrorMessage, "Could read all form fields")
+				data.ErrAutofill = true
+			} else {
+				// Fill all the fields in the movie struct
+				movie.Name = results[0]
+				movie.Description = results[1]
+				movie.Poster = filepath.Base(results[2])
+				movie.Remarks = results[3]
+				movie.Links = links
+				movie.AddedBy = user
+
+				// Prepare a int for the id
+				var movieId int
+
+				movieId, err = s.data.AddMovie(movie)
+				if err != nil {
+					s.l.Error("Movie could not be added. Error: %v", err)
+				} else {
+					http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
+				}
+			}
 		} else {
 			s.l.Debug("neither")
 			// neither autofill nor formfill are enabled
+			data.ErrorMessage = append(data.ErrorMessage, "The site administrator enabled neither autofill nor movie addition by form.")
+			data.ErrAutofill = true
 		}
 	}
-	//	 // Get all links from the corresponding input field
-	//	 linktext := strings.ReplaceAll(r.FormValue("Links"), "\r", "")
-	//	 data.ValLinks = linktext
-
-	//	 maxLinkLength, err := s.data.GetCfgInt(ConfigMaxLinkLength, DefaultMaxLinkLength)
-	//	 if err != nil {
-	//	 	s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
-	//	 	s.doError(
-	//	 		http.StatusInternalServerError,
-	//	 		"something went wrong :C",
-	//	 		w, r)
-	//	 	return
-	//	 }
-
-	// if len(linktext) > maxLinkLength {
-	// 	s.l.Debug("Links too long: %d", len(linktext))
-	// 	data.ErrTitle = true
-	// 	errText = append(errText, "Links too long!")
-	// }
-	//		links := strings.Split(linktext, "\n")
-	//		links, err = common.VerifyLinks(links)
-	//		if err != nil {
-	//			s.l.Error("bad link: %v", err)
-	//			data.ErrLinks = true
-	//			errText = append(errText, "Invalid link(s) given.")
-	//		}
-
-	//		remarks := strings.ReplaceAll(r.FormValue("Remarks"), "\r", "")
-	//		data.ValRemarks = remarks
-
-	//		maxRemarksLength, err := s.data.GetCfgInt(ConfigMaxRemarksLength, DefaultMaxRemarksLength)
-	//		if err != nil {
-	//			s.l.Error("Unable to get %q: %v", ConfigMaxRemarksLength, err)
-	//			s.doError(
-	//				http.StatusInternalServerError,
-	//				"something went wrong :C",
-	//				w, r)
-	//			return
-	//		}
-
-	//		if len(remarks) > maxRemarksLength {
-	//			s.l.Debug("Remarks too long: %d", len(remarks))
-	//			data.ErrRemarks = true
-	//			errText = append(errText, "Remarks too long!")
-	//		}
-
-	//		// New Movie, just filling the Poster field for the "unknown.jpg" default
-	//		movie := &common.Movie{
-	//			Poster: "unknown.jpg", // 165x250
-	//		}
-
-	//		// Here we check the AutofillBox since the other fields are ignored
-	//		if r.FormValue("AutofillBox") == "on" {
-	//			s.l.Debug("Autofill checked")
-	//			results, errors, rerenderSite := s.handleAutofill(links, w, r)
-
-	//			if len(errors) > 0 {
-	//				errText = append(errText, errors...)
-	//				data.ErrAutofill = true
-
-	//				if rerenderSite {
-	//					data.ErrorMessage = errText
-	//					if err := s.executeTemplate(w, "addmovie", data); err != nil {
-	//						s.l.Error("Error rendering template: %v", err)
-	//					}
-	//					return
-	//				}
-	//			} else {
-	//				movie.Name = results[0]
-	//				movie.Description = results[1]
-	//				movie.Poster = filepath.Base(results[2])
-	//				movie.Links = links
-	//				movie.Remarks = remarks
-	//			}
-	//		} else {
-	//			s.l.Debug("Autofill not checked")
-
-	//			// Here we continue with the other input checks
-	//			maxTitleLength, err := s.data.GetCfgInt(ConfigMaxTitleLength, DefaultMaxTitleLength)
-	//			if err != nil {
-	//				s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
-	//				s.doError(
-	//					http.StatusInternalServerError,
-	//					"something went wrong :C",
-	//					w, r)
-	//				return
-	//			}
-
-	//			data.ValTitle = strings.TrimSpace(r.FormValue("MovieName"))
-	//			if len(data.ValTitle) > maxTitleLength {
-	//				s.l.Debug("Title too long: %d", len(data.ValTitle))
-	//				data.ErrTitle = true
-	//				errText = append(errText, "Title too long!")
-	//			} else if len(data.ValTitle) == 0 {
-	//				s.l.Debug("Title too short: %d", len(common.CleanMovieName(data.ValTitle)))
-	//				data.ErrTitle = true
-	//				errText = append(errText, "Title too short!")
-	//			}
-
-	//			movieExists, err := s.data.CheckMovieExists(r.FormValue("MovieName"))
-	//			if err != nil {
-	//				s.doError(
-	//					http.StatusInternalServerError,
-	//					fmt.Sprintf("Unable to check if movie exists: %v", err),
-	//					w, r)
-	//				return
-	//			}
-
-	//			if movieExists {
-	//				data.ErrTitle = true
-	//				s.l.Debug("Movie exists")
-	//				errText = append(errText, "Movie already exists")
-	//			}
-
-	//			if data.ValTitle == "" && !(r.FormValue("AutofillBox") == "on") {
-	//				errText = append(errText, "Missing movie title")
-	//				data.ErrTitle = true
-	//			}
-
-	//			descr := strings.TrimSpace(r.FormValue("Description"))
-	//			data.ValDescription = descr
-
-	//			maxDescriptionLength, err := s.data.GetCfgInt(ConfigMaxDescriptionLength, DefaultMaxDescriptionLength)
-	//			if err != nil {
-	//				s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
-	//				s.doError(
-	//					http.StatusInternalServerError,
-	//					"something went wrong :C",
-	//					w, r)
-	//				return
-	//			}
-
-	//			if len(data.ValDescription) > maxDescriptionLength {
-	//				s.l.Debug("Description too long: %d", len(data.ValDescription))
-	//				data.ErrDescription = true
-	//				errText = append(errText, "Description too long!")
-	//			}
-
-	//			if len(descr) == 0 && !(r.FormValue("AutofillBox") == "on") {
-	//				data.ErrDescription = true
-	//				errText = append(errText, "Missing description")
-	//			}
-
-	//			movie.Name = strings.TrimSpace(r.FormValue("MovieName"))
-	//			movie.Description = strings.TrimSpace(r.FormValue("Description"))
-	//			movie.Links = links
-	//			movie.Remarks = remarks
-
-	//			posterFileName := strings.TrimSpace(r.FormValue("MovieName"))
-
-	//			posterFile, _, _ := r.FormFile("PosterFile")
-
-	//			if posterFile != nil {
-	//				file, err := s.uploadFile(r, posterFileName)
-
-	//				if err != nil {
-	//					data.ErrPoster = true
-	//					errText = append(errText, err.Error())
-	//				} else {
-	//					movie.Poster = filepath.Base(file)
-	//				}
-	//			}
-	//		}
-
-	//		var movieId int
-
-	//		if !data.isError() {
-	//			movie.AddedBy = user
-	//			movieId, err = s.data.AddMovie(movie)
-	//		}
-
-	//		if err == nil && !data.isError() {
-	//			http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
-	//			return
-	//		}
-
-	//		//data.ErrorMessage = strings.Join(errText, "<br />")
-	//		data.ErrorMessage = errText
-	//		s.l.Error("Movie not added. isError(): %t\nerr: %v", data.isError(), err)
-	//	}
-
 	if err := s.executeTemplate(w, "addmovie", data); err != nil {
 		s.l.Error("Error rendering template: %v", err)
 	}
@@ -1059,4 +902,164 @@ func (s *Server) handleTmdb(data *dataAddMovie, w http.ResponseWriter, r *http.R
 
 		return results, nil
 	}
+}
+
+func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *http.Request) (results []string, links []string) {
+	// Get all needed values from the form
+
+	// Get all links from the corresponding input field
+	linktext := strings.ReplaceAll(r.FormValue("Links"), "\r", "")
+	data.ValLinks = linktext
+
+	// Get the remarks from the corresponding input field
+	remarkstext := strings.ReplaceAll(r.FormValue("Remarks"), "\r", "")
+	data.ValRemarks = remarkstext
+
+	// Check link maxlength
+	maxLinkLength, err := s.data.GetCfgInt(ConfigMaxLinkLength, DefaultMaxLinkLength)
+	if err != nil {
+		s.l.Error("Unable to get %q: %v", ConfigMaxLinkLength, err)
+		s.doError(
+			http.StatusInternalServerError,
+			"something went wrong :C",
+			w, r)
+		return
+	}
+
+	if len(linktext) > maxLinkLength {
+		s.l.Debug("Links too long: %d", len(linktext))
+		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Links too long! Max Length: %d characters", maxLinkLength))
+		data.ErrLinks = true
+		return nil, nil
+	}
+
+	// Check for valid links
+	links = strings.Split(linktext, "\n")
+	links, err = common.VerifyLinks(links)
+	if err != nil {
+		s.l.Error(err.Error())
+		data.ErrorMessage = append(data.ErrorMessage, "Invalid link(s) given.")
+		data.ErrLinks = true
+		return nil, nil
+	}
+
+	// Check Remarks max length
+	maxRemarksLength, err := s.data.GetCfgInt(ConfigMaxRemarksLength, DefaultMaxRemarksLength)
+	if err != nil {
+		s.l.Error("Unable to get %q: %v", ConfigMaxRemarksLength, err)
+		s.doError(
+			http.StatusInternalServerError,
+			"something went wrong :C",
+			w, r)
+		return
+	}
+
+	if len(remarkstext) > maxRemarksLength {
+		s.l.Debug("Remarks too long: %d", len(remarkstext))
+		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Remarks too long! Max Length: %d characters", maxRemarksLength))
+		data.ErrRemarks = true
+		return nil, nil
+	}
+	// Here we continue with the other input checks
+	maxTitleLength, err := s.data.GetCfgInt(ConfigMaxTitleLength, DefaultMaxTitleLength)
+	if err != nil {
+		s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
+		s.doError(
+			http.StatusInternalServerError,
+			"something went wrong :C",
+			w, r)
+		return
+	}
+
+	title := strings.TrimSpace(r.FormValue("MovieName"))
+	data.ValTitle = title
+
+	if data.ValTitle == "" {
+		data.ErrorMessage = append(data.ErrorMessage, "Missing movie title")
+		data.ErrTitle = true
+		return nil, nil
+	}
+
+	if len(data.ValTitle) > maxTitleLength {
+		s.l.Debug("Title too long: %d", len(data.ValTitle))
+		data.ErrTitle = true
+		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Title too long! Max Length: %d characters", maxTitleLength))
+		return nil, nil
+	} else if len(data.ValTitle) == 0 {
+		s.l.Debug("Title too short: %d", len(common.CleanMovieName(data.ValTitle)))
+		data.ErrTitle = true
+		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Title too short! Min Length: %d characters", 1))
+		return nil, nil
+	}
+
+	movieExists, err := s.data.CheckMovieExists(title)
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			fmt.Sprintf("Unable to check if movie exists: %v", err),
+			w, r)
+		return
+	}
+
+	if movieExists {
+		data.ErrTitle = true
+		s.l.Debug("Movie exists")
+		data.ErrorMessage = append(data.ErrorMessage, "Movie already exists")
+		return nil, nil
+	}
+
+	descr := strings.TrimSpace(r.FormValue("Description"))
+	data.ValDescription = descr
+
+	maxDescriptionLength, err := s.data.GetCfgInt(ConfigMaxDescriptionLength, DefaultMaxDescriptionLength)
+	if err != nil {
+		s.l.Error("Unable to get %q: %v", ConfigMaxTitleLength, err)
+		s.doError(
+			http.StatusInternalServerError,
+			"something went wrong :C",
+			w, r)
+		return
+	}
+
+	if len(data.ValDescription) > maxDescriptionLength {
+		s.l.Debug("Description too long: %d", len(data.ValDescription))
+		data.ErrDescription = true
+		data.ErrorMessage = append(data.ErrorMessage, "Description too long!")
+		return nil, nil
+	}
+
+	if len(descr) == 0 {
+		data.ErrDescription = true
+		data.ErrorMessage = append(data.ErrorMessage, "Missing description")
+		return nil, nil
+	}
+
+	var posterpath string
+
+	posterFileName := strings.TrimSpace(r.FormValue("MovieName"))
+
+	posterFile, _, err := r.FormFile("PosterFile")
+
+	if err != nil {
+		data.ErrPoster = true
+		data.ErrorMessage = append(data.ErrorMessage, err.Error())
+		return nil, nil
+	}
+
+	if posterFile != nil {
+		file, err := s.uploadFile(r, posterFileName)
+
+		if err != nil {
+			data.ErrPoster = true
+			data.ErrorMessage = append(data.ErrorMessage, err.Error())
+			return nil, nil
+		} else {
+			posterpath = filepath.Base(file)
+		}
+	}
+
+	results = append(results, title, descr, posterpath, remarkstext)
+
+	return results, links
+
 }
