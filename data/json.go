@@ -692,15 +692,15 @@ func (j *jsonConnector) DeleteVote(userId, movieId int) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
-	cc := j.currentCycle()
-	if cc == nil {
-		return fmt.Errorf("No cycle active")
+	mov := j.findMovie(movieId)
+	if mov.CycleWatched != nil {
+		return fmt.Errorf("Cannot remove vote for watched movie.")
 	}
 
 	found := false
 	newVotes := []jsonVote{}
 	for _, v := range j.Votes {
-		if v.UserId == userId && v.MovieId == movieId && v.CycleId == cc.Id {
+		if v.UserId == userId && v.MovieId == movieId {
 			found = true
 		} else {
 			newVotes = append(newVotes, v)
@@ -840,13 +840,8 @@ func (j *jsonConnector) UserVotedForMovie(userId, movieId int) (bool, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
-	cc := j.currentCycle()
-	if cc == nil {
-		return false, fmt.Errorf("No cycle active")
-	}
-
 	for _, v := range j.Votes {
-		if v.MovieId == movieId && v.UserId == userId && v.CycleId == cc.Id {
+		if v.MovieId == movieId && v.UserId == userId {
 			return true, nil
 		}
 	}
