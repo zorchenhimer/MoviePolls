@@ -571,29 +571,22 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if data.User != nil {
-		votedMovies, err := s.data.GetUserVotes(data.User.Id)
-		if err != nil {
-			s.doError(
-				http.StatusBadRequest,
-				fmt.Sprintf("Cannot get user votes: %v", err),
-				w, r)
-			return
-		}
-
-		count := 0
-		for _, movie := range votedMovies {
-			// Only count active movies
-			if movie.CycleWatched == nil && movie.Removed == false {
-				count++
-			}
-		}
-
 		maxVotes, err := s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
 		if err != nil {
 			s.l.Error("Error getting MaxUserVotes config setting: %v", err)
 			maxVotes = DefaultMaxUserVotes
 		}
-		data.AvailableVotes = maxVotes - count
+
+		active, _, err := s.getUserVotes(data.User)
+		if err != nil {
+			s.doError(
+				http.StatusBadRequest,
+				fmt.Sprintf("Cannot get user votes :C"),
+				w, r)
+			s.l.Error("Unable to get votes for user %d: %v", data.User.Id, err)
+			return
+		}
+		data.AvailableVotes = maxVotes - len(active)
 	}
 
 	data.Movies = common.SortMoviesByVotes(movieList)

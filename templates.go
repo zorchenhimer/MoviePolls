@@ -150,28 +150,6 @@ func (d dataAddMovie) isError() bool {
 	return d.ErrTitle || d.ErrDescription || d.ErrLinks || d.ErrPoster || d.ErrAutofill || d.ErrRemarks
 }
 
-type dataAccount struct {
-	dataPageBase
-
-	CurrentVotes   []*common.Movie
-	TotalVotes     int
-	AvailableVotes int
-
-	SuccessMessage string
-
-	PassError   []string
-	NotifyError []string
-	EmailError  []string
-
-	ErrCurrentPass bool
-	ErrNewPass     bool
-	ErrEmail       bool
-}
-
-func (a dataAccount) IsErrored() bool {
-	return a.ErrCurrentPass || a.ErrNewPass || a.ErrEmail
-}
-
 type dataError struct {
 	dataPageBase
 

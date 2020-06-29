@@ -9,6 +9,31 @@ import (
 	"github.com/zorchenhimer/MoviePolls/common"
 )
 
+// Returns current active votes and votes for watched movies
+func (s *Server) getUserVotes(user *common.User) ([]*common.Movie, []*common.Movie, error) {
+	voted, err := s.data.GetUserVotes(user.Id)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Unable to get all user votes for ID %d: %v", user.Id, err)
+	}
+
+	current := []*common.Movie{}
+	watched := []*common.Movie{}
+
+	for _, movie := range voted {
+		if movie.Removed == true {
+			continue
+		}
+
+		if movie.CycleWatched == nil {
+			current = append(current, movie)
+		} else {
+			watched = append(watched, movie)
+		}
+	}
+
+	return current, watched, nil
+}
+
 func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 	user := s.getSessionUser(w, r)
 	if user == nil {
@@ -22,22 +47,38 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 		totalVotes = DefaultMaxUserVotes
 	}
 
-	currentVotes, err := s.data.GetUserVotes(user.Id)
+	activeVotes, watchedVotes, err := s.getUserVotes(user)
 	if err != nil {
-		s.doError(
-			http.StatusBadRequest,
-			fmt.Sprintf("Cannot get user votes: %v", err),
-			w, r)
-		return
+		s.l.Error("Unable to get votes for user %d: %v", user.Id, err)
 	}
 
-	data := dataAccount{
+	data := struct {
+		dataPageBase
+
+		TotalVotes     int
+		AvailableVotes int
+
+		ActiveVotes  []*common.Movie
+		WatchedVotes []*common.Movie
+
+		SuccessMessage string
+
+		PassError   []string
+		NotifyError []string
+		EmailError  []string
+
+		ErrCurrentPass bool
+		ErrNewPass     bool
+		ErrEmail       bool
+	}{
 		dataPageBase: s.newPageBase("Account", w, r),
 
-		CurrentVotes: currentVotes,
-		TotalVotes:   totalVotes,
+		TotalVotes:     totalVotes,
+		AvailableVotes: totalVotes - len(activeVotes),
+
+		ActiveVotes:  activeVotes,
+		WatchedVotes: watchedVotes,
 	}
-	data.AvailableVotes = totalVotes - len(data.CurrentVotes)
 
 	if r.Method == "POST" {
 		err := r.ParseForm()
@@ -69,7 +110,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 				data.PassError = append(data.PassError, "Passwords do not match")
 			}
 
-			if !data.IsErrored() {
+			if !(data.ErrCurrentPass || data.ErrNewPass || data.ErrEmail) {
 				// Change pass
 				data.SuccessMessage = "Password successfully changed"
 				user.Password = s.hashPassword(newPass1_raw)

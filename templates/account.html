@@ -53,8 +53,17 @@
                 next to each entry here to easily remove votes.
             */}}
             <ul>
-                {{if .CurrentVotes}}{{range .CurrentVotes}}<li><a href="/movie/{{.Id}}">{{.Name}}</a></li>{{end}}
+                {{if .ActiveVotes}}{{range .ActiveVotes}}<li><a href="/movie/{{.Id}}">{{.Name}}</a></li>{{end}}
                 {{else}}<li>No votes :c</li>{{end}}
+            </ul>
+        </div>
+
+        <div>Past Votes</div>
+        <div>
+            <ul>
+                {{if .WatchedVotes}}
+                {{range .WatchedVotes}}<li><a href="/movie/{{.Id}}">{{.Name}}</a></li>{{end}}
+                {{else}}<li>No Votes :c</li>{{end}}
             </ul>
         </div>
 </div>
