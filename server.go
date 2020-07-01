@@ -339,42 +339,37 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			s.l.Error("Error parsing movie form: %v", err)
 		}
 
-		// errText := []string{}
-
 		movie := &common.Movie{}
 
-		if autofillEnabled {
-			if r.FormValue("AutofillBox") == "on" {
-				// do autofill
-				s.l.Debug("autofill")
-				results, links := s.handleAutofill(&data, w, r)
+		if autofillEnabled && r.FormValue("AutofillBox") == "on" {
+			// do autofill
+			s.l.Debug("autofill")
+			results, links := s.handleAutofill(&data, w, r)
 
-				if results == nil || links == nil {
-					data.ErrorMessage = append(data.ErrorMessage, "Could not autofill all fields")
-					data.ErrAutofill = true
+			if results == nil || links == nil {
+				data.ErrorMessage = append(data.ErrorMessage, "Could not autofill all fields")
+				data.ErrAutofill = true
+			} else {
+				// Fill all the fields in the movie struct
+				movie.Name = results[0]
+				movie.Description = results[1]
+				movie.Poster = filepath.Base(results[2])
+				movie.Remarks = results[3]
+				movie.Links = links
+				movie.AddedBy = user
+
+				// Prepare a int for the id
+				var movieId int
+
+				movieId, err = s.data.AddMovie(movie)
+				if err != nil {
+					s.l.Error("Movie could not be added. Error: %v", err)
 				} else {
-					// Fill all the fields in the movie struct
-					movie.Name = results[0]
-					movie.Description = results[1]
-					movie.Poster = filepath.Base(results[2])
-					movie.Remarks = results[3]
-					movie.Links = links
-					movie.AddedBy = user
-
-					// Prepare a int for the id
-					var movieId int
-
-					movieId, err = s.data.AddMovie(movie)
-					if err != nil {
-						s.l.Error("Movie could not be added. Error: %v", err)
-					} else {
-						http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
-					}
+					http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
 				}
 
 			}
-		}
-		if formfillEnabled && r.FormValue("AutofillBox") != "on" {
+		} else if formfillEnabled {
 			s.l.Debug("formfill")
 			// do formfill
 			results, links := s.handleFormfill(&data, w, r)
