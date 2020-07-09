@@ -80,3 +80,7 @@ Admin only:
 - Change server configuraton settings
 - Dedicated login at /admin/login (available even when the simple login method is disabled)
 - Test notifications
+
+# License
+
+This project is licensed under the MIT license.  See `license.md` for details.
