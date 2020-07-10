@@ -20,9 +20,6 @@
             <div{{if .ErrPoster}} class="errorMessage"{{end}}><label for="PosterFile">Poster Image</label></div>
             <div><input type="file" name="PosterFile" id="PosterFile" accept="image/*"style="width:400px"/></div>
         </div>
-		{{end}}
-
-		{{if .AutofillEnabled}}
 		<div class="movieInput">
 			<div{{if .ErrAutofill}} class="errorMessage"{{end}}><label for="AutofillBox">Autofill Data with the provided Link</label></div>
 			<div><input type="checkbox" name="AutofillBox" id="AutofillBox"/></div>

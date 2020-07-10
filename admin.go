@@ -372,7 +372,6 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 			configValue{Key: ConfigMaxUserVotes, Default: DefaultMaxUserVotes, Type: ConfigInt},
 			configValue{Key: ConfigEntriesRequireApproval, Default: DefaultEntriesRequireApproval, Type: ConfigBool},
 
-			configValue{Key: ConfigAutofillEnabled, Default: DefaultAutofillEnabled, Type: ConfigBool},
 			configValue{Key: ConfigJikanEnabled, Default: DefaultJikanEnabled, Type: ConfigBool},
 			configValue{Key: ConfigJikanBannedTypes, Default: DefaultJikanBannedTypes, Type: ConfigString},
 			configValue{Key: ConfigJikanMaxEpisodes, Default: DefaultJikanMaxEpisodes, Type: ConfigInt},

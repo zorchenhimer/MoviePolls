@@ -21,7 +21,6 @@ const SessionName string = "moviepoll-session"
 const (
 	DefaultMaxUserVotes           int    = 5
 	DefaultEntriesRequireApproval bool   = false
-	DefaultAutofillEnabled        bool   = false
 	DefaultFormfillEnabled        bool   = true
 	DefaultVotingEnabled          bool   = false
 	DefaultJikanEnabled           bool   = false
@@ -43,7 +42,6 @@ const (
 	ConfigVotingEnabled          string = "VotingEnabled"
 	ConfigMaxUserVotes           string = "MaxUserVotes"
 	ConfigEntriesRequireApproval string = "EntriesRequireApproval"
-	ConfigAutofillEnabled        string = "AutofillEnabled"
 	ConfigFormfillEnabled        string = "FormfillEnabled"
 	ConfigTmdbToken              string = "TmdbToken"
 	ConfigJikanEnabled           string = "JikanEnabled"
@@ -304,18 +302,6 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	autofillEnabled, err := s.data.GetCfgBool(ConfigAutofillEnabled, DefaultAutofillEnabled)
-
-	if err != nil {
-		s.doError(
-			http.StatusInternalServerError,
-			"Something went wrong :C",
-			w, r)
-
-		s.l.Error("Unable to get config value %s: %v", ConfigAutofillEnabled, err)
-		return
-	}
-
 	formfillEnabled, err := s.data.GetCfgBool(ConfigFormfillEnabled, DefaultFormfillEnabled)
 	if err != nil {
 		s.doError(
@@ -329,7 +315,6 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 	data := dataAddMovie{
 		dataPageBase:    s.newPageBase("Add Movie", w, r),
-		AutofillEnabled: autofillEnabled,
 		FormfillEnabled: formfillEnabled,
 	}
 
@@ -341,7 +326,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 		movie := &common.Movie{}
 
-		if autofillEnabled && r.FormValue("AutofillBox") == "on" {
+		if r.FormValue("AutofillBox") == "on" {
 			// do autofill
 			s.l.Debug("autofill")
 			results, links := s.handleAutofill(&data, w, r)
@@ -396,11 +381,6 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 					http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
 				}
 			}
-		} else {
-			s.l.Debug("neither")
-			// neither autofill nor formfill are enabled
-			data.ErrorMessage = append(data.ErrorMessage, "The site administrator enabled neither autofill nor movie addition by form.")
-			data.ErrAutofill = true
 		}
 	}
 	if err := s.executeTemplate(w, "addmovie", data); err != nil {
