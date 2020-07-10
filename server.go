@@ -360,8 +360,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 			results, links := s.handleFormfill(&data, w, r)
 
 			if results == nil || links == nil {
-				data.ErrorMessage = append(data.ErrorMessage, "Could read all form fields")
-				data.ErrAutofill = true
+				data.ErrorMessage = append(data.ErrorMessage, "One or more fields reported an error.")
 			} else {
 				// Fill all the fields in the movie struct
 				movie.Name = results[0]
@@ -905,7 +904,6 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		s.l.Debug("Links too long: %d", len(linktext))
 		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Links too long! Max Length: %d characters", maxLinkLength))
 		data.ErrLinks = true
-		return nil, nil
 	}
 
 	// Check for valid links
@@ -915,7 +913,6 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		s.l.Error(err.Error())
 		data.ErrorMessage = append(data.ErrorMessage, "Invalid link(s) given.")
 		data.ErrLinks = true
-		return nil, nil
 	}
 
 	// Check Remarks max length
@@ -933,7 +930,6 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		s.l.Debug("Remarks too long: %d", len(remarkstext))
 		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Remarks too long! Max Length: %d characters", maxRemarksLength))
 		data.ErrRemarks = true
-		return nil, nil
 	}
 	// Here we continue with the other input checks
 	maxTitleLength, err := s.data.GetCfgInt(ConfigMaxTitleLength, DefaultMaxTitleLength)
@@ -952,19 +948,16 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 	if data.ValTitle == "" {
 		data.ErrorMessage = append(data.ErrorMessage, "Missing movie title")
 		data.ErrTitle = true
-		return nil, nil
 	}
 
 	if len(data.ValTitle) > maxTitleLength {
 		s.l.Debug("Title too long: %d", len(data.ValTitle))
 		data.ErrTitle = true
 		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Title too long! Max Length: %d characters", maxTitleLength))
-		return nil, nil
 	} else if len(data.ValTitle) == 0 {
 		s.l.Debug("Title too short: %d", len(common.CleanMovieName(data.ValTitle)))
 		data.ErrTitle = true
 		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Title too short! Min Length: %d characters", 1))
-		return nil, nil
 	}
 
 	movieExists, err := s.data.CheckMovieExists(title)
@@ -980,7 +973,6 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		data.ErrTitle = true
 		s.l.Debug("Movie exists")
 		data.ErrorMessage = append(data.ErrorMessage, "Movie already exists")
-		return nil, nil
 	}
 
 	descr := strings.TrimSpace(r.FormValue("Description"))
@@ -1000,13 +992,11 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		s.l.Debug("Description too long: %d", len(data.ValDescription))
 		data.ErrDescription = true
 		data.ErrorMessage = append(data.ErrorMessage, "Description too long!")
-		return nil, nil
 	}
 
 	if len(descr) == 0 {
 		data.ErrDescription = true
 		data.ErrorMessage = append(data.ErrorMessage, "Missing description")
-		return nil, nil
 	}
 
 	var posterpath string
@@ -1015,22 +1005,27 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 
 	posterFile, _, err := r.FormFile("PosterFile")
 
-	if err != nil {
-		data.ErrPoster = true
-		data.ErrorMessage = append(data.ErrorMessage, err.Error())
-		return nil, nil
-	}
-
 	if posterFile != nil {
+		if err != nil {
+			s.l.Debug("Formfile Error")
+			data.ErrPoster = true
+			data.ErrorMessage = append(data.ErrorMessage, err.Error())
+		}
+
 		file, err := s.uploadFile(r, posterFileName)
 
 		if err != nil {
 			data.ErrPoster = true
 			data.ErrorMessage = append(data.ErrorMessage, err.Error())
-			return nil, nil
 		} else {
 			posterpath = filepath.Base(file)
 		}
+	} else {
+		posterpath = "unknown.jpg"
+	}
+
+	if data.isError() {
+		return nil, nil
 	}
 
 	results = append(results, title, descr, posterpath, remarkstext)
