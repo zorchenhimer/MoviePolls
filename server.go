@@ -348,6 +348,8 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 				movieId, err = s.data.AddMovie(movie)
 				if err != nil {
+					data.ErrTitle = true // For now we enable the title flag
+					data.ErrorMessage("Could not add movie, contact your server administrator")
 					s.l.Error("Movie could not be added. Error: %v", err)
 				} else {
 					http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
@@ -375,6 +377,8 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 				movieId, err = s.data.AddMovie(movie)
 				if err != nil {
+					data.ErrTitle = true // For now we enable the title flag
+					data.ErrorMessage("Could not add movie, contact your server administrator")
 					s.l.Error("Movie could not be added. Error: %v", err)
 				} else {
 					http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
@@ -1007,7 +1011,7 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 
 	if posterFile != nil {
 		if err != nil {
-			s.l.Debug("Formfile Error")
+			s.l.Error("Parsing of the uploaded file resulted in the following error: %v", err.Error())
 			data.ErrPoster = true
 			data.ErrorMessage = append(data.ErrorMessage, err.Error())
 		}
@@ -1015,6 +1019,7 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		file, err := s.uploadFile(r, posterFileName)
 
 		if err != nil {
+			s.l.Error("Upload of the file was not possible: %v", err.Error())
 			data.ErrPoster = true
 			data.ErrorMessage = append(data.ErrorMessage, err.Error())
 		} else {
