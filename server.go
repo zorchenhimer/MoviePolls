@@ -761,6 +761,8 @@ func (s *Server) handlerHistory(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var re_jikanToken = regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/anime\/([0-9]*)`)
+
 func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.Request, sourcelink string) ([]string, error) {
 
 	jikanEnabled, err := s.data.GetCfgBool("JikanEnabled", DefaultJikanEnabled)
@@ -776,13 +778,11 @@ func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.
 	s.l.Debug("jikanEnabled: %v", jikanEnabled)
 
 	if !jikanEnabled {
-		s.l.Debug("Aborting Jikan autofill since it is not enabled")
 		data.ErrorMessage = append(data.ErrorMessage, "Jikan API usage was not enabled by the site administrator")
 		return nil, fmt.Errorf("Jikan not enabled")
 	} else {
 		// Get Data from MAL (jikan api)
-		rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/anime\/([0-9]*)`)
-		match := rgx.FindStringSubmatch(sourcelink)
+		match := re_jikanToken.FindStringSubmatch(sourcelink)
 		var id string
 		if len(match) < 2 {
 			s.l.Debug("Regex match didn't find the anime id in %v", sourcelink)
@@ -832,6 +832,8 @@ func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.
 	}
 }
 
+var re_tmdbToken = regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/title\/(tt[0-9]*)`)
+
 func (s *Server) handleTmdb(data *dataAddMovie, w http.ResponseWriter, r *http.Request, sourcelink string) ([]string, error) {
 
 	tmdbEnabled, err := s.data.GetCfgBool("TmdbEnabled", DefaultTmdbEnabled)
@@ -855,8 +857,7 @@ func (s *Server) handleTmdb(data *dataAddMovie, w http.ResponseWriter, r *http.R
 			return nil, fmt.Errorf("TmdbToken is either empty or not set in the admin config")
 		}
 		// get the movie id
-		rgx := regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/title\/(tt[0-9]*)`)
-		match := rgx.FindStringSubmatch(sourcelink)
+		match := re_tmdbToken.FindStringSubmatch(sourcelink)
 		var id string
 		if len(match) < 2 {
 			s.l.Debug("Regex match didn't find the movie id in %v", sourcelink)
