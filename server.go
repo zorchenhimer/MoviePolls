@@ -618,6 +618,7 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		results, err = s.handleJikan(data, w, r, sourcelink)
 
 		if err != nil {
+			s.l.Error(err.Error())
 			return nil, nil
 		}
 
@@ -657,6 +658,7 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		results, err = s.handleTmdb(data, w, r, sourcelink)
 
 		if err != nil {
+			s.l.Error(err.Error())
 			return nil, nil
 		}
 
@@ -767,12 +769,11 @@ func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.
 
 	jikanEnabled, err := s.data.GetCfgBool("JikanEnabled", DefaultJikanEnabled)
 	if err != nil {
-		s.l.Error("Error while retriving config value 'JikanEnabled':\n %v", err)
 		s.doError(
 			http.StatusInternalServerError,
 			"something went wrong :C",
 			w, r)
-		return nil, err
+		return nil, fmt.Errorf("Error while retriving config value 'JikanEnabled':\n %v", err)
 	}
 
 	s.l.Debug("jikanEnabled: %v", jikanEnabled)
@@ -796,12 +797,11 @@ func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.
 		bannedTypesString, err := s.data.GetCfgString(ConfigJikanBannedTypes, DefaultJikanBannedTypes)
 
 		if err != nil {
-			s.l.Error("Error while retriving config value 'JikanBannedTypes':\n %v", err)
 			s.doError(
 				http.StatusInternalServerError,
 				"something went wrong :C",
 				w, r)
-			return nil, err
+			return nil, fmt.Errorf("Error while retriving config value 'JikanBannedTypes':\n %v", err)
 		}
 
 		bannedTypes := strings.Split(bannedTypesString, ",")
@@ -809,12 +809,11 @@ func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.
 		maxEpisodes, err := s.data.GetCfgInt(ConfigJikanMaxEpisodes, DefaultJikanMaxEpisodes)
 
 		if err != nil {
-			s.l.Error("Error while retriving config value 'JikanMaxEpisodes':\n %v", err)
 			s.doError(
 				http.StatusInternalServerError,
 				"something went wrong :C",
 				w, r)
-			return nil, err
+			return nil, fmt.Errorf("Error while retriving config value 'JikanMaxEpisodes':\n %v", err)
 		}
 
 		sourceAPI := jikan{id: id, l: s.l, excludedTypes: bannedTypes, maxEpisodes: maxEpisodes}
@@ -823,9 +822,8 @@ func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.
 		results, err := getMovieData(&sourceAPI)
 
 		if err != nil {
-			s.l.Error("Error while accessing Jikan API: %v", err)
 			data.ErrorMessage = append(data.ErrorMessage, err.Error())
-			return nil, err
+			return nil, fmt.Errorf("Error while accessing Jikan API: %v", err)
 		}
 
 		return results, nil
@@ -838,9 +836,8 @@ func (s *Server) handleTmdb(data *dataAddMovie, w http.ResponseWriter, r *http.R
 
 	tmdbEnabled, err := s.data.GetCfgBool("TmdbEnabled", DefaultTmdbEnabled)
 	if err != nil {
-		s.l.Error("Error while retriving config value 'TmdbEnabled':\n %v", err)
 		data.ErrorMessage = append(data.ErrorMessage, "Something went wrong :C")
-		return nil, err
+		return nil, fmt.Errorf("Error while retriving config value 'TmdbEnabled':\n %v", err)
 	}
 
 	if !tmdbEnabled {
@@ -851,7 +848,6 @@ func (s *Server) handleTmdb(data *dataAddMovie, w http.ResponseWriter, r *http.R
 		// Retrieve token from database
 		token, err := s.data.GetCfgString("TmdbToken", "")
 		if err != nil || token == "" {
-
 			s.l.Debug("Aborting Tmdb autofill since no token was found")
 			data.ErrorMessage = append(data.ErrorMessage, "TmdbToken is either empty or not set in the admin config")
 			return nil, fmt.Errorf("TmdbToken is either empty or not set in the admin config")
