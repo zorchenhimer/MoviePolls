@@ -902,7 +902,7 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 			http.StatusInternalServerError,
 			"something went wrong :C",
 			w, r)
-		return
+		return nil, nil
 	}
 
 	if len(linktext) > maxLinkLength {
