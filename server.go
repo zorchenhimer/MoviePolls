@@ -349,7 +349,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				movieId, err = s.data.AddMovie(movie)
 				if err != nil {
 					data.ErrTitle = true // For now we enable the title flag
-					data.ErrorMessage("Could not add movie, contact your server administrator")
+					data.ErrorMessage = append(data.ErrorMessage, "Could not add movie, contact your server administrator")
 					s.l.Error("Movie could not be added. Error: %v", err)
 				} else {
 					http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
@@ -378,7 +378,7 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				movieId, err = s.data.AddMovie(movie)
 				if err != nil {
 					data.ErrTitle = true // For now we enable the title flag
-					data.ErrorMessage("Could not add movie, contact your server administrator")
+					data.ErrorMessage = append(data.ErrorMessage, "Could not add movie, contact your server administrator")
 					s.l.Error("Movie could not be added. Error: %v", err)
 				} else {
 					http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
