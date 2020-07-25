@@ -763,7 +763,7 @@ func (s *Server) handlerHistory(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var re_jikanToken = regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/anime\/([0-9]*)`)
+var re_jikanToken = regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/anime\/([0-9]+)`)
 
 func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.Request, sourcelink string) ([]string, error) {
 
@@ -781,53 +781,52 @@ func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.
 	if !jikanEnabled {
 		data.ErrorMessage = append(data.ErrorMessage, "Jikan API usage was not enabled by the site administrator")
 		return nil, fmt.Errorf("Jikan not enabled")
-	} else {
-		// Get Data from MAL (jikan api)
-		match := re_jikanToken.FindStringSubmatch(sourcelink)
-		var id string
-		if len(match) < 2 {
-			s.l.Debug("Regex match didn't find the anime id in %v", sourcelink)
-			data.ErrorMessage = append(data.ErrorMessage, "Could not retrive anime id from provided link, did you input a manga link?")
-			data.ErrLinks = true
-			return nil, fmt.Errorf("Could not retrive anime id from link")
-		} else {
-			id = match[1]
-		}
-
-		bannedTypesString, err := s.data.GetCfgString(ConfigJikanBannedTypes, DefaultJikanBannedTypes)
-
-		if err != nil {
-			s.doError(
-				http.StatusInternalServerError,
-				"something went wrong :C",
-				w, r)
-			return nil, fmt.Errorf("Error while retriving config value 'JikanBannedTypes':\n %v", err)
-		}
-
-		bannedTypes := strings.Split(bannedTypesString, ",")
-
-		maxEpisodes, err := s.data.GetCfgInt(ConfigJikanMaxEpisodes, DefaultJikanMaxEpisodes)
-
-		if err != nil {
-			s.doError(
-				http.StatusInternalServerError,
-				"something went wrong :C",
-				w, r)
-			return nil, fmt.Errorf("Error while retriving config value 'JikanMaxEpisodes':\n %v", err)
-		}
-
-		sourceAPI := jikan{id: id, l: s.l, excludedTypes: bannedTypes, maxEpisodes: maxEpisodes}
-
-		// Request data from API
-		results, err := getMovieData(&sourceAPI)
-
-		if err != nil {
-			data.ErrorMessage = append(data.ErrorMessage, err.Error())
-			return nil, fmt.Errorf("Error while accessing Jikan API: %v", err)
-		}
-
-		return results, nil
 	}
+
+	// Get Data from MAL (jikan api)
+	match := re_jikanToken.FindStringSubmatch(sourcelink)
+	var id string
+	if len(match) < 2 {
+		s.l.Debug("Regex match didn't find the anime id in %v", sourcelink)
+		data.ErrorMessage = append(data.ErrorMessage, "Could not retrive anime id from provided link, did you input a manga link?")
+		data.ErrLinks = true
+		return nil, fmt.Errorf("Could not retrive anime id from link")
+	}
+	id = match[1]
+
+	bannedTypesString, err := s.data.GetCfgString(ConfigJikanBannedTypes, DefaultJikanBannedTypes)
+
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			"something went wrong :C",
+			w, r)
+		return nil, fmt.Errorf("Error while retriving config value 'JikanBannedTypes':\n %v", err)
+	}
+
+	bannedTypes := strings.Split(bannedTypesString, ",")
+
+	maxEpisodes, err := s.data.GetCfgInt(ConfigJikanMaxEpisodes, DefaultJikanMaxEpisodes)
+
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			"something went wrong :C",
+			w, r)
+		return nil, fmt.Errorf("Error while retriving config value 'JikanMaxEpisodes':\n %v", err)
+	}
+
+	sourceAPI := jikan{id: id, l: s.l, excludedTypes: bannedTypes, maxEpisodes: maxEpisodes}
+
+	// Request data from API
+	results, err := getMovieData(&sourceAPI)
+
+	if err != nil {
+		data.ErrorMessage = append(data.ErrorMessage, err.Error())
+		return nil, fmt.Errorf("Error while accessing Jikan API: %v", err)
+	}
+
+	return results, nil
 }
 
 var re_tmdbToken = regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/title\/(tt[0-9]*)`)
@@ -844,44 +843,42 @@ func (s *Server) handleTmdb(data *dataAddMovie, w http.ResponseWriter, r *http.R
 		s.l.Debug("Aborting Tmdb autofill since it is not enabled")
 		data.ErrorMessage = append(data.ErrorMessage, "Tmdb API usage was not enabled by the site administrator")
 		return nil, fmt.Errorf("Tmdb not enabled")
-	} else {
-		// Retrieve token from database
-		token, err := s.data.GetCfgString("TmdbToken", "")
-		if err != nil || token == "" {
-			s.l.Debug("Aborting Tmdb autofill since no token was found")
-			data.ErrorMessage = append(data.ErrorMessage, "TmdbToken is either empty or not set in the admin config")
-			return nil, fmt.Errorf("TmdbToken is either empty or not set in the admin config")
-		}
-		// get the movie id
-		match := re_tmdbToken.FindStringSubmatch(sourcelink)
-		var id string
-		if len(match) < 2 {
-			s.l.Debug("Regex match didn't find the movie id in %v", sourcelink)
-			data.ErrorMessage = append(data.ErrorMessage, "Could not retrive movie id from provided link")
-			data.ErrLinks = true
-			return nil, fmt.Errorf("Could not retrive movie id from link")
-		} else {
-			id = match[1]
-		}
-
-		sourceAPI := tmdb{id: id, token: token, l: s.l}
-
-		// Request data from API
-		results, err := getMovieData(&sourceAPI)
-
-		if err != nil {
-			s.l.Error("Error while accessing Tmdb API: %v", err)
-			data.ErrorMessage = append(data.ErrorMessage, err.Error())
-			return nil, err
-		}
-
-		return results, nil
 	}
+
+	// Retrieve token from database
+	token, err := s.data.GetCfgString("TmdbToken", "")
+	if err != nil || token == "" {
+		s.l.Debug("Aborting Tmdb autofill since no token was found")
+		data.ErrorMessage = append(data.ErrorMessage, "TmdbToken is either empty or not set in the admin config")
+		return nil, fmt.Errorf("TmdbToken is either empty or not set in the admin config")
+	}
+
+	// get the movie id
+	match := re_tmdbToken.FindStringSubmatch(sourcelink)
+	var id string
+	if len(match) < 2 {
+		s.l.Debug("Regex match didn't find the movie id in %v", sourcelink)
+		data.ErrorMessage = append(data.ErrorMessage, "Could not retrive movie id from provided link")
+		data.ErrLinks = true
+		return nil, fmt.Errorf("Could not retrive movie id from link")
+	}
+	id = match[1]
+
+	sourceAPI := tmdb{id: id, token: token, l: s.l}
+
+	// Request data from API
+	results, err := getMovieData(&sourceAPI)
+
+	if err != nil {
+		s.l.Error("Error while accessing Tmdb API: %v", err)
+		data.ErrorMessage = append(data.ErrorMessage, err.Error())
+		return nil, err
+	}
+
+	return results, nil
 }
 
 func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *http.Request) (results []string, links []string) {
-	// Get all needed values from the form
-
 	// Get all links from the corresponding input field
 	linktext := strings.ReplaceAll(r.FormValue("Links"), "\r", "")
 	data.ValLinks = linktext
@@ -932,6 +929,7 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Remarks too long! Max Length: %d characters", maxRemarksLength))
 		data.ErrRemarks = true
 	}
+
 	// Here we continue with the other input checks
 	maxTitleLength, err := s.data.GetCfgInt(ConfigMaxTitleLength, DefaultMaxTitleLength)
 	if err != nil {
@@ -1033,5 +1031,4 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 	results = append(results, title, descr, posterpath, remarkstext)
 
 	return results, links
-
 }
