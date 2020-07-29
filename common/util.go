@@ -34,6 +34,7 @@ func VerifyLinks(links []string) ([]string, error) {
 		//   ^ foobar 				 .com 				:123
 
 		if re_validLink.Match([]byte(link)) {
+			link := stripRefFromLink(link)
 			l = append(l, link)
 		}
 	}
@@ -41,6 +42,15 @@ func VerifyLinks(links []string) ([]string, error) {
 		return nil, fmt.Errorf("No valid links provided")
 	} else {
 		return l, nil
+	}
+}
+
+func stripRefFromLink(link string) string {
+	idx := strings.Index(link, "?ref")
+	if idx != -1 {
+		return link[:idx]
+	} else {
+		return link
 	}
 }
 
