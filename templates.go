@@ -144,6 +144,7 @@ type dataAddMovie struct {
 	//ValPoster      bool
 
 	AutofillEnabled bool
+	FormfillEnabled bool
 }
 
 func (d dataAddMovie) isError() bool {

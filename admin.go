@@ -372,12 +372,13 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 			configValue{Key: ConfigMaxUserVotes, Default: DefaultMaxUserVotes, Type: ConfigInt},
 			configValue{Key: ConfigEntriesRequireApproval, Default: DefaultEntriesRequireApproval, Type: ConfigBool},
 
-			configValue{Key: ConfigAutofillEnabled, Default: DefaultAutofillEnabled, Type: ConfigBool},
 			configValue{Key: ConfigJikanEnabled, Default: DefaultJikanEnabled, Type: ConfigBool},
 			configValue{Key: ConfigJikanBannedTypes, Default: DefaultJikanBannedTypes, Type: ConfigString},
 			configValue{Key: ConfigJikanMaxEpisodes, Default: DefaultJikanMaxEpisodes, Type: ConfigInt},
 			configValue{Key: ConfigTmdbEnabled, Default: DefaultTmdbEnabled, Type: ConfigBool},
 			configValue{Key: ConfigTmdbToken, Default: DefaultTmdbToken, Type: ConfigString},
+
+			configValue{Key: ConfigFormfillEnabled, Default: DefaultFormfillEnabled, Type: ConfigBool},
 
 			configValue{Key: ConfigMaxNameLength, Default: DefaultMaxNameLength, Type: ConfigInt},
 			configValue{Key: ConfigMinNameLength, Default: DefaultMinNameLength, Type: ConfigInt},
