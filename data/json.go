@@ -19,6 +19,8 @@ type jsonMovie struct {
 	Links          []string
 	Description    string
 	Remarks        string
+	RunningTime    string
+	Rating         float32
 	CycleAddedId   int
 	CycleWatchedId int
 	Removed        bool
@@ -47,6 +49,8 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 		Links:          movie.Links,
 		Description:    movie.Description,
 		Remarks:        movie.Remarks,
+		RunningTime:    movie.RunningTime,
+		Rating:         movie.Rating,
 		CycleAddedId:   cycleId,
 		CycleWatchedId: cycleWatched,
 		Removed:        movie.Removed,
@@ -439,6 +443,8 @@ func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
 		Id:          jMovie.Id,
 		Name:        jMovie.Name,
 		Description: jMovie.Description,
+		RunningTime: jMovie.RunningTime,
+		Rating:      jMovie.Rating,
 		Remarks:     jMovie.Remarks,
 		Removed:     jMovie.Removed,
 		Approved:    jMovie.Approved,
