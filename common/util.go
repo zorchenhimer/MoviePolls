@@ -29,11 +29,8 @@ var re_validLink = *regexp.MustCompile(`[a-zA-Z0-9:._\+]{1,256}\.[a-zA-Z0-9()]{1
 func VerifyLinks(links []string) ([]string, error) {
 	l := []string{}
 	for _, link := range links {
-		// verify url with regex (ripped and adapted from SO)
-		// [a-zA-Z0-9:._\+]{1,256}\.[a-zA-Z0-9()]{1,6}[a-zA-Z0-9%_:\+.\/]*
-		//   ^ foobar 				 .com 				:123
-
 		if re_validLink.Match([]byte(link)) {
+			link := stripRefFromLink(link)
 			l = append(l, link)
 		}
 	}
@@ -42,6 +39,14 @@ func VerifyLinks(links []string) ([]string, error) {
 	} else {
 		return l, nil
 	}
+}
+
+func stripRefFromLink(link string) string {
+	idx := strings.Index(link, "?ref")
+	if idx != -1 {
+		return link[:idx]
+	}
+	return link
 }
 
 var re_cleanNameA = *regexp.MustCompile(`[^a-zA-Z0-9 ]`)

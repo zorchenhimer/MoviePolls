@@ -756,7 +756,7 @@ func (s *Server) handlerHistory(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var re_jikanToken = regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/anime\/([0-9]+)`)
+var re_jikanToken = regexp.MustCompile(`[^\/]*\/anime\/([0-9]+)`)
 
 func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.Request, sourcelink string) ([]string, error) {
 
@@ -822,7 +822,7 @@ func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.
 	return results, nil
 }
 
-var re_tmdbToken = regexp.MustCompile(`[htp]{4}s?:\/\/[^\/]*\/title\/(tt[0-9]*)`)
+var re_tmdbToken = regexp.MustCompile(`[^\/]*\/title\/(tt[0-9]*)`)
 
 func (s *Server) handleTmdb(data *dataAddMovie, w http.ResponseWriter, r *http.Request, sourcelink string) ([]string, error) {
 
@@ -845,7 +845,6 @@ func (s *Server) handleTmdb(data *dataAddMovie, w http.ResponseWriter, r *http.R
 		data.ErrorMessage = append(data.ErrorMessage, "TmdbToken is either empty or not set in the admin config")
 		return nil, fmt.Errorf("TmdbToken is either empty or not set in the admin config")
 	}
-
 	// get the movie id
 	match := re_tmdbToken.FindStringSubmatch(sourcelink)
 	var id string
