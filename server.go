@@ -344,9 +344,10 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 				rating, err := strconv.ParseFloat(results[4], 32)
 				if err != nil {
-					movie.Rating = float32(rating)
-				} else {
+					s.l.Error("Error converting string to float for adding a movie")
 					movie.Rating = 0.0
+				} else {
+					movie.Rating = float32(rating)
 				}
 
 				movie.Remarks = results[5]
