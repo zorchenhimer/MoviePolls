@@ -45,9 +45,8 @@ func stripRefFromLink(link string) string {
 	idx := strings.Index(link, "?ref")
 	if idx != -1 {
 		return link[:idx]
-	} else {
-		return link
 	}
+	return link
 }
 
 var re_cleanNameA = *regexp.MustCompile(`[^a-zA-Z0-9 ]`)
