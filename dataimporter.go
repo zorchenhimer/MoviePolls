@@ -17,6 +17,8 @@ type dataapi interface {
 	getTitle() (string, error)
 	getDesc() (string, error)
 	getPoster() (string, error) //path to the file  (from root)
+	getRunningTime() (string, error)
+	getRating() (string, error) //returns the rating as string i.e. 8.69
 	requestResults() error
 }
 
@@ -24,7 +26,7 @@ type tmdb struct {
 	l     *common.Logger
 	id    string
 	token string
-	resp  *map[string][]map[string]interface{}
+	resp  *map[string]interface{}
 }
 
 type jikan struct {
@@ -62,30 +64,67 @@ func getMovieData(api dataapi) ([]string, error) {
 	}
 	slice = append(slice, val)
 
+	val, err = api.getRunningTime()
+	if err != nil {
+		return nil, err
+	}
+	slice = append(slice, val)
+
+	val, err = api.getRating()
+	if err != nil {
+		return nil, err
+	}
+	slice = append(slice, val)
+
 	return slice, nil
 }
 
 func (t *tmdb) requestResults() error {
 	url := "https://api.themoviedb.org/3/find/" + t.id + "?api_key=" + t.token + "&language=en-US&external_source=imdb_id"
 	resp, err := http.Get(url)
+
 	if err != nil || resp.StatusCode != 200 {
 		return errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\nMaybe check your tmdb api token")
-	} else {
-		body, err := ioutil.ReadAll(resp.Body)
-
-		if err != nil {
-			return err
-		}
-
-		var dat map[string][]map[string]interface{}
-
-		if err := json.Unmarshal(body, &dat); err != nil {
-			return errors.New("Error while unmarshalling json response")
-		}
-
-		t.resp = &dat
-		return nil
 	}
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return err
+	}
+
+	var tmp map[string][]map[string]interface{}
+
+	if err := json.Unmarshal(body, &tmp); err != nil {
+		return errors.New("Error while unmarshalling json response")
+	}
+
+	if len(tmp["movie_results"]) == 0 {
+		return errors.New("JSON Result did not return a movie, make sure the imdb link is for a movie")
+	}
+
+	movieId := tmp["movie_results"][0]["id"]
+
+	url = fmt.Sprintf("https://api.themoviedb.org/3/movie/%v?api_key=%v", movieId, t.token)
+
+	resp, err = http.Get(url)
+	if err != nil || resp.StatusCode != 200 {
+		return errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\nMaybe check your tmdb api token")
+	}
+
+	body, err = ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return err
+	}
+
+	var dat map[string]interface{}
+
+	if err := json.Unmarshal(body, &dat); err != nil {
+		return errors.New("Error while unmarshalling json response")
+	}
+
+	t.resp = &dat
+	return nil
 }
 
 func (t *tmdb) getTitle() (string, error) {
@@ -94,11 +133,8 @@ func (t *tmdb) getTitle() (string, error) {
 
 	dat := t.resp
 
-	if len((*dat)["movie_results"]) == 0 {
-		return "", errors.New("JSON Result did not return a movie, make sure the imdb link is for a movie")
-	}
-	title = (*dat)["movie_results"][0]["title"].(string)
-	release := (*dat)["movie_results"][0]["release_date"].(string)
+	title = (*dat)["title"].(string)
+	release := (*dat)["release_date"].(string)
 
 	release = release[0:4]
 
@@ -113,10 +149,7 @@ func (t *tmdb) getDesc() (string, error) {
 
 	dat := t.resp
 
-	if len((*dat)["movie_results"]) == 0 {
-		return "", errors.New("JSON Result did not return a movie, make sure the imdb link is for a movie")
-	}
-	desc = (*dat)["movie_results"][0]["overview"].(string)
+	desc = (*dat)["overview"].(string)
 
 	return desc, nil
 }
@@ -127,26 +160,43 @@ func (t *tmdb) getPoster() (string, error) {
 
 	dat := t.resp
 
-	if len((*dat)["movie_results"]) == 0 {
-		return "", errors.New("JSON Result did not return a movie, make sure the imdb link is for a movie")
-	}
-
-	external_path = (*dat)["movie_results"][0]["poster_path"].(string)
+	external_path = (*dat)["poster_path"].(string)
 
 	if external_path == "" {
 		return "unknown.jpg", nil
-	} else {
-		fileurl := "https://image.tmdb.org/t/p/w300" + external_path
-
-		path := "posters/" + t.id + ".jpg"
-
-		err := DownloadFile(path, fileurl)
-
-		if !(err == nil) {
-			return "unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
-		}
-		return path, nil
 	}
+
+	fileurl := "https://image.tmdb.org/t/p/w300" + external_path
+
+	path := "posters/" + t.id + ".jpg"
+
+	err := DownloadFile(path, fileurl)
+
+	if !(err == nil) {
+		return "unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
+	}
+
+	return path, nil
+}
+
+func (t *tmdb) getRunningTime() (string, error) {
+
+	runtime := 0
+
+	dat := t.resp
+
+	runtime = int((*dat)["runtime"].(float64))
+
+	return fmt.Sprintf("%v hr %v min", runtime/60, runtime%60), nil
+}
+
+func (t *tmdb) getRating() (string, error) {
+
+	dat := t.resp
+
+	rating := (*dat)["vote_average"].(float64)
+
+	return fmt.Sprintf("%v", rating), nil
 }
 
 func (j *jikan) requestResults() error {
@@ -235,6 +285,28 @@ func (j *jikan) getPoster() (string, error) {
 		return "unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
 	}
 	return path, nil
+}
+
+func (j *jikan) getRunningTime() (string, error) {
+
+	dat := j.resp
+
+	if (*dat)["duration"] != nil {
+		return (*dat)["duration"].(string), nil
+	}
+
+	return "", nil
+}
+
+func (j *jikan) getRating() (string, error) {
+
+	dat := j.resp
+
+	if (*dat)["score"] != nil {
+		return fmt.Sprintf("%v", (*dat)["score"].(float64)), nil
+	}
+
+	return "", nil
 }
 
 func DownloadFile(filepath string, url string) error {
