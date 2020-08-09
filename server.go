@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/sessions"
@@ -339,7 +340,16 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				movie.Name = results[0]
 				movie.Description = results[1]
 				movie.Poster = filepath.Base(results[2])
-				movie.Remarks = results[3]
+				movie.RunningTime = results[3]
+
+				rating, err := strconv.ParseFloat(results[4], 32)
+				if err != nil {
+					movie.Rating = float32(rating)
+				} else {
+					movie.Rating = 0.0
+				}
+
+				movie.Remarks = results[5]
 				movie.Links = links
 				movie.AddedBy = user
 
@@ -643,8 +653,8 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 
 		var title string
 
-		if len(results) != 3 {
-			s.l.Error("Jikan API results have an unexpected length, expected 3 got %v", len(results))
+		if len(results) != 5 {
+			s.l.Error("Jikan API results have an unexpected length, expected 5 got %v", len(results))
 			data.ErrorMessage = append(data.ErrorMessage, "API autofill did not return enough data, contact the server administrator")
 			return nil, nil
 		} else {
@@ -683,8 +693,8 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 
 		var title string
 
-		if len(results) != 3 {
-			s.l.Error("Tmdb API results have an unexpected length, expected 3 got %v", len(results))
+		if len(results) != 5 {
+			s.l.Error("Tmdb API results have an unexpected length, expected 5 got %v", len(results))
 			data.ErrorMessage = append(data.ErrorMessage, "API autofill did not return enough data, did you input a link to a series?")
 			return nil, nil
 		} else {
