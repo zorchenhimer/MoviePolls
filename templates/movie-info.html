@@ -12,6 +12,15 @@
     <div id="moviePoster">
         <img src="/posters/{{.Movie.Poster}}" />
     </div>
+	<div id="movieMeta">
+		{{if .Movie.Tags}}<p>Tags:</p>
+		<ul>{{range .Movie.Tags}}
+			<li>{{.Name}}</li>{{end}}
+		</ul>
+		{{end}}
+		{{if .Movie.Rating}}<p>Rating: {{.Movie.Rating}}</p>{{end}}
+		{{if .Movie.RunningTime}}<p>Runtime: {{.Movie.RunningTime}}</p>{{end}}
+	</div>
     <div>
         {{if .Movie.Remarks}}<p>Remarks by {{.Movie.AddedBy.Name}}:</p>
         {{.Movie.Remarks}}
