@@ -22,6 +22,7 @@ type Movie struct {
 	Approved bool // Approved by a mod or admin (if required by config)
 
 	Votes []*Vote
+	Tags  []*Tag
 
 	Poster  string // TODO: make this procedural
 	AddedBy *User
@@ -42,7 +43,12 @@ func (m Movie) String() string {
 		votes = append(votes, v.User.Name)
 	}
 
-	return fmt.Sprintf("Movie{Id:%d Name:%q Links:%s Description:%q Remarks:%s CycleAdded:%s CycleWatched:%s RunningTime:%s Rating:%f Votes:%s}",
+	tags := []string{}
+	for _, t := range m.Tags {
+		tags = append(tags, t.Name)
+	}
+
+	return fmt.Sprintf("Movie{Id:%d Name:%q Links:%s Description:%q Remarks:%s CycleAdded:%s CycleWatched:%s RunningTime:%s Rating:%f Votes:%s Tags:%s}",
 		m.Id,
 		m.Name,
 		m.Links,
@@ -53,6 +59,7 @@ func (m Movie) String() string {
 		m.RunningTime,
 		m.Rating,
 		votes,
+		tags,
 	)
 }
 
