@@ -35,6 +35,7 @@ type DataConnector interface {
 	GetMovie(id int) (*common.Movie, error)
 	GetUser(id int) (*common.User, error)
 	GetActiveMovies() ([]*common.Movie, error)
+	GetTag(id int) *common.Tag
 
 	SearchMovieTitles(query string) ([]*common.Movie, error)
 
@@ -57,9 +58,11 @@ type DataConnector interface {
 	AddOldCycle(cycle *common.Cycle) (int, error)
 	AddMovie(movie *common.Movie) (int, error)
 	AddUser(user *common.User) (int, error)
+	AddTag(tag *common.Tag) (int, error)
 
 	AddVote(userId, movieId int) error
 	DeleteVote(userId, movieId int) error
+	DeleteTag(tagId int)
 	// Removes votes older than age
 	DecayVotes(age int) error
 
