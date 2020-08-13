@@ -350,12 +350,30 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 					movie.Rating = float32(rating)
 				}
 
-				movie.Remarks = results[5]
+				movie.Remarks = results[6]
 				movie.Links = links
 				movie.AddedBy = user
 
+				tags := []*common.Tag{}
+				for _, tagStr := range strings.Split(results[5], ",") {
+					tag := &common.Tag{
+						Name: tagStr,
+					}
+
+					id, err := s.data.AddTag(tag)
+					if err != nil {
+						s.l.Debug("duplicate tag: %v", tagStr)
+					}
+					tag.Id = id
+
+					tags = append(tags, tag)
+				}
+
+				movie.Tags = tags
 				// Prepare a int for the id
 				var movieId int
+
+				s.l.Debug("adding movie: %v", movie)
 
 				movieId, err = s.data.AddMovie(movie)
 				if err != nil {
@@ -628,8 +646,8 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 
 		var title string
 
-		if len(results) != 5 {
-			s.l.Error("Jikan API results have an unexpected length, expected 5 got %v", len(results))
+		if len(results) != 6 {
+			s.l.Error("Jikan API results have an unexpected length, expected 6 got %v", len(results))
 			data.ErrorMessage = append(data.ErrorMessage, "API autofill did not return enough data, contact the server administrator")
 			return nil, nil
 		} else {
@@ -668,8 +686,8 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 
 		var title string
 
-		if len(results) != 5 {
-			s.l.Error("Tmdb API results have an unexpected length, expected 5 got %v", len(results))
+		if len(results) != 6 {
+			s.l.Error("Tmdb API results have an unexpected length, expected 6 got %v", len(results))
 			data.ErrorMessage = append(data.ErrorMessage, "API autofill did not return enough data, did you input a link to a series?")
 			return nil, nil
 		} else {
