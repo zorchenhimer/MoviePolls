@@ -19,6 +19,7 @@ type dataapi interface {
 	getPoster() (string, error) //path to the file  (from root)
 	getRunningTime() (string, error)
 	getRating() (string, error) //returns the rating as string i.e. 8.69
+	getTags() (string, error)   //returns the tags as comma seperated string
 	requestResults() error
 }
 
@@ -71,6 +72,12 @@ func getMovieData(api dataapi) ([]string, error) {
 	slice = append(slice, val)
 
 	val, err = api.getRating()
+	if err != nil {
+		return nil, err
+	}
+	slice = append(slice, val)
+
+	val, err = api.getTags()
 	if err != nil {
 		return nil, err
 	}
@@ -199,6 +206,23 @@ func (t *tmdb) getRating() (string, error) {
 	return fmt.Sprintf("%v", rating), nil
 }
 
+func (t *tmdb) getTags() (string, error) {
+
+	dat := t.resp
+
+	tagMaps := (*dat)["genres"].([]interface{})
+
+	tags := []string{}
+	for _, tag := range tagMaps {
+		tg := tag.(map[string]interface{})
+		tags = append(tags, tg["name"].(string))
+	}
+
+	fmt.Println(strings.Join(tags, ","))
+
+	return strings.Join(tags, ","), nil
+}
+
 func (j *jikan) requestResults() error {
 	resp, err := http.Get("https://api.jikan.moe/v3/anime/" + j.id)
 	if err != nil || resp.StatusCode != 200 {
@@ -307,6 +331,23 @@ func (j *jikan) getRating() (string, error) {
 	}
 
 	return "", nil
+}
+
+func (j *jikan) getTags() (string, error) {
+
+	dat := j.resp
+
+	tagMaps := (*dat)["genres"].([]interface{})
+
+	tags := []string{}
+	for _, tag := range tagMaps {
+		tg := tag.(map[string]interface{})
+		tags = append(tags, tg["name"].(string))
+	}
+
+	fmt.Println(strings.Join(tags, ","))
+
+	return strings.Join(tags, ","), nil
 }
 
 func DownloadFile(filepath string, url string) error {
