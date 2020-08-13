@@ -27,6 +27,7 @@ type jsonMovie struct {
 	Approved       bool
 	Poster         string
 	AddedBy        int
+	Tags           []int
 }
 
 func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
@@ -39,6 +40,13 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 	cycleWatched := 0
 	if movie.CycleWatched != nil {
 		cycleWatched = movie.CycleWatched.Id
+	}
+
+	tags := []int{}
+	if movie.Tags != nil {
+		for _, tag := range movie.Tags {
+			tags = append(tags, tag.Id)
+		}
 	}
 
 	id := j.nextMovieId()
@@ -56,10 +64,19 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 		Removed:        movie.Removed,
 		Approved:       movie.Approved,
 		Poster:         movie.Poster,
+		Tags:           tags,
 	}
 
 	if movie.AddedBy != nil {
 		jm.AddedBy = movie.AddedBy.Id
+	}
+
+	if movie.Tags != nil {
+		tags := []int{}
+		for _, tag := range movie.Tags {
+			tags = append(tags, tag.Id)
+		}
+		jm.Tags = tags
 	}
 
 	return jm
@@ -102,6 +119,7 @@ type jsonConnector struct {
 	Movies map[int]jsonMovie
 	Users  map[int]*common.User
 	Votes  []jsonVote
+	Tags   map[int]*common.Tag
 
 	//Settings Configurator
 	Settings map[string]configValue
@@ -129,6 +147,7 @@ func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error)
 		Cycles: map[int]jsonCycle{},
 		Movies: map[int]jsonMovie{},
 		Users:  map[int]*common.User{},
+		Tags:   map[int]*common.Tag{},
 		l:      l,
 	}
 
@@ -169,6 +188,10 @@ func loadJson(filename string, l *common.Logger) (*jsonConnector, error) {
 
 	if data.Cycles == nil {
 		data.Cycles = make(map[int]jsonCycle)
+	}
+
+	if data.Tags == nil {
+		data.Tags = make(map[int]*common.Tag)
 	}
 
 	return data, nil
@@ -353,12 +376,26 @@ func (j *jsonConnector) nextMovieId() int {
 	return highest + 1
 }
 
+func (j *jsonConnector) nextTagId() int {
+	highest := 0
+	for _, t := range j.Tags {
+		if t.Id >= highest {
+			highest = t.Id
+		}
+	}
+	return highest + 1
+}
+
 func (j *jsonConnector) AddMovie(movie *common.Movie) (int, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
 	if j.Movies == nil {
 		j.Movies = map[int]jsonMovie{}
+	}
+
+	if j.Tags == nil {
+		j.Tags = map[int]*common.Tag{}
 	}
 
 	m := j.newJsonMovie(movie)
@@ -439,6 +476,13 @@ func (j *jsonConnector) GetPastCycles(start, end int) ([]*common.Cycle, error) {
 
 func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
 	user := j.findUser(jMovie.AddedBy)
+
+	tags := []*common.Tag{}
+
+	for _, id := range jMovie.Tags {
+		tags = append(tags, j.GetTag(id))
+	}
+
 	movie := &common.Movie{
 		Id:          jMovie.Id,
 		Name:        jMovie.Name,
@@ -453,6 +497,7 @@ func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
 		Links:   jMovie.Links,
 		Poster:  jMovie.Poster,
 		AddedBy: user,
+		Tags:    tags,
 	}
 
 	return movie
@@ -688,6 +733,52 @@ func (j *jsonConnector) AddVote(userId, movieId int) error {
 	return j.save()
 }
 
+func (j *jsonConnector) AddTag(tag *common.Tag) (int, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	if tag.Name == "" {
+		return 0, fmt.Errorf("Name cannot be empty")
+	}
+
+	//duplicate check
+	for id, jtag := range j.Tags {
+		if strings.ToLower(tag.Name) == strings.ToLower(jtag.Name) {
+			return id, fmt.Errorf("Tag already saved, returning the found id")
+		}
+	}
+
+	id := j.nextTagId()
+
+	tag.Id = id
+
+	j.Tags[id] = tag
+	return id, j.save()
+}
+
+func (j *jsonConnector) FindTag(name string) (int, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	for id, tag := range j.Tags {
+		if strings.ToLower(tag.Name) == strings.ToLower(name) {
+			return id, nil
+		}
+	}
+	return 0, fmt.Errorf("No tag found with name: %s", name)
+}
+
+func (j *jsonConnector) GetTag(id int) *common.Tag {
+	return j.Tags[id]
+}
+
+func (j *jsonConnector) DeleteTag(id int) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	delete(j.Tags, id)
+}
+
 func (j *jsonConnector) requireApproval() bool {
 	// ignore errors here.  "false" is default.
 	val, _ := j.GetCfgBool("RequireApproval", false)
@@ -758,6 +849,7 @@ func (j *jsonConnector) findMovie(id int) *common.Movie {
 		movie := j.movieFromJson(m)
 		movie.CycleWatched = j.findCycle(m.CycleWatchedId)
 		movie.CycleAdded = j.findCycle(m.CycleAddedId)
+
 		return movie
 	}
 
