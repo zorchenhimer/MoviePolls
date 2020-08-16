@@ -1,6 +1,10 @@
 {{define "header"}}{{end}}
 
 {{define "body"}}
+{{ $user := .User }}
+{{ $votingEnabled := .VotingEnabled }}
+{{ $votesAvailable := .AvailableVotes }}
+
 <div id="movieCard" class="movieCol">
     <div id="movieTitle">
         {{.Movie.Name}}
@@ -34,6 +38,18 @@
         <p>No votes</p>
         {{end}}
     </div>
+    {{if $user}}
+    <div class="voteButton">
+        {{if .Movie.UserVoted $user.Id }}
+        Voted! {{if and $votingEnabled (not .Movie.CycleWatched)}}(<a href="/vote/{{.Movie.Id}}">Remove</a>){{end}}
+        {{else}}
+        {{if not .Movie.CycleWatched}}
+            {{if lt $votesAvailable 1}}No votes<br />available
+            {{else if and (gt $votesAvailable 0) $votingEnabled }}<a href="/vote/{{.Movie.Id}}">Vote</a>{{end}}
+            {{end}}
+        {{end}}
+    </div>
+    {{end}}
 </div>
 
 {{end}}

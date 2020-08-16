@@ -524,9 +524,35 @@ func (s *Server) handlerMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := dataMovieInfo{
+	data := struct {
+		dataPageBase
+		Movie          *common.Movie
+		VotingEnabled  bool
+		AvailableVotes int
+	}{
 		dataPageBase: s.newPageBase(movie.Name, w, r),
 		Movie:        movie,
+	}
+
+	data.VotingEnabled, _ = s.data.GetCfgBool("VotingEnabled", DefaultVotingEnabled)
+	// FIXME: This is copied from handleCycle.  Put this in a business layer instead.
+	if data.User != nil {
+		maxVotes, err := s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
+		if err != nil {
+			s.l.Error("Error getting MaxUserVotes config setting: %v", err)
+			maxVotes = DefaultMaxUserVotes
+		}
+
+		active, _, err := s.getUserVotes(data.User)
+		if err != nil {
+			s.doError(
+				http.StatusBadRequest,
+				fmt.Sprintf("Cannot get user votes :C"),
+				w, r)
+			s.l.Error("Unable to get votes for user %d: %v", data.User.Id, err)
+			return
+		}
+		data.AvailableVotes = maxVotes - len(active)
 	}
 
 	if err := s.executeTemplate(w, "movieinfo", data); err != nil {

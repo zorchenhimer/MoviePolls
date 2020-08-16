@@ -107,12 +107,6 @@ type dataPageBase struct {
 	CurrentCycle *common.Cycle
 }
 
-type dataMovieInfo struct {
-	dataPageBase
-
-	Movie *common.Movie
-}
-
 type dataMovieError struct {
 	dataPageBase
 	ErrorMessage string
