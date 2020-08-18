@@ -218,8 +218,6 @@ func (t *tmdb) getTags() (string, error) {
 		tags = append(tags, tg["name"].(string))
 	}
 
-	fmt.Println(strings.Join(tags, ","))
-
 	return strings.Join(tags, ","), nil
 }
 
@@ -344,8 +342,6 @@ func (j *jikan) getTags() (string, error) {
 		tg := tag.(map[string]interface{})
 		tags = append(tags, tg["name"].(string))
 	}
-
-	fmt.Println(strings.Join(tags, ","))
 
 	return strings.Join(tags, ","), nil
 }
