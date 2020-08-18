@@ -373,8 +373,6 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				// Prepare a int for the id
 				var movieId int
 
-				s.l.Debug("adding movie: %v", movie)
-
 				movieId, err = s.data.AddMovie(movie)
 				if err != nil {
 					data.ErrTitle = true // For now we enable the title flag
@@ -434,6 +432,8 @@ func (s *Server) doError(code int, message string, w http.ResponseWriter, r *htt
 	}
 }
 
+var re_tagSearch = `t:"([a-zA-Z ]+)"`
+
 func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		s.doError(http.StatusNotFound, fmt.Sprintf("%q not found", r.URL.Path), w, r)
@@ -460,7 +460,25 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		}
 		searchVal := r.FormValue("search")
 
+		// finding tags
+		re := regexp.MustCompile(re_tagSearch)
+		tags := re.FindAllString(searchVal, -1)
+
+		// clean up the tags from the "tagsyntax"
+		tagsToFind := []string{}
+		for _, tag := range tags {
+			tagsToFind = append(tagsToFind, tag[3:len(tag)-1])
+		}
+
+		searchVal = re.ReplaceAllString(searchVal, "")
+		searchVal = strings.Trim(searchVal, " ")
+
+		// we first seach for matching titles (ignoring the tags for now)
 		movieList, err = s.data.SearchMovieTitles(searchVal)
+
+		// NOW we filter the already found movies by the tags provided
+		movieList, err = s.data.FilterMoviesByTags(movieList, tagsToFind)
+
 		if err != nil {
 			s.l.Error(err.Error())
 		}
