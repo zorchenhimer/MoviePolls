@@ -218,6 +218,9 @@ func (t *tmdb) getTags() (string, error) {
 		tags = append(tags, tg["name"].(string))
 	}
 
+	// Sadly the Decision was made to pass all results as a slice of strings
+	// Therefore this has to be a string instead of a slice of string, otherwise it cannot be passed
+	// to the caller
 	return strings.Join(tags, ","), nil
 }
 
@@ -343,6 +346,9 @@ func (j *jikan) getTags() (string, error) {
 		tags = append(tags, tg["name"].(string))
 	}
 
+	// Sadly the Decision was made to pass all results as a slice of strings
+	// Therefore this has to be a string instead of a slice of string, otherwise it cannot be passed
+	// to the caller
 	return strings.Join(tags, ","), nil
 }
 
