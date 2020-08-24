@@ -17,7 +17,7 @@ type dataapi interface {
 	getTitle() (string, error)
 	getDesc() (string, error)
 	getPoster() (string, error) //path to the file  (from root)
-	getRunningTime() (string, error)
+	getDuration() (string, error)
 	getRating() (string, error) //returns the rating as string i.e. 8.69
 	getTags() (string, error)   //returns the tags as comma seperated string
 	requestResults() error
@@ -65,7 +65,7 @@ func getMovieData(api dataapi) ([]string, error) {
 	}
 	slice = append(slice, val)
 
-	val, err = api.getRunningTime()
+	val, err = api.getDuration()
 	if err != nil {
 		return nil, err
 	}
@@ -179,14 +179,14 @@ func (t *tmdb) getPoster() (string, error) {
 
 	err := DownloadFile(path, fileurl)
 
-	if !(err == nil) {
+	if err != nil {
 		return "unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
 	}
 
 	return path, nil
 }
 
-func (t *tmdb) getRunningTime() (string, error) {
+func (t *tmdb) getDuration() (string, error) {
 
 	runtime := 0
 
@@ -309,7 +309,7 @@ func (j *jikan) getPoster() (string, error) {
 	return path, nil
 }
 
-func (j *jikan) getRunningTime() (string, error) {
+func (j *jikan) getDuration() (string, error) {
 
 	dat := j.resp
 
