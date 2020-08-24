@@ -39,6 +39,7 @@ type DataConnector interface {
 
 	SearchMovieTitles(query string) ([]*common.Movie, error)
 	FilterMoviesByTags(movies []*common.Movie, tags []string) ([]*common.Movie, error)
+	FindTag(name string) (int, error)
 
 	GetUserVotes(userId int) ([]*common.Movie, error)
 
