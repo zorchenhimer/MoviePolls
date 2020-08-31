@@ -87,11 +87,11 @@ func getMovieData(api dataapi) ([]string, error) {
 }
 
 func (t *tmdb) requestResults() error {
-	url := "https://api.themoviedb.org/3/find/" + t.id + "?api_key=" + t.token + "&language=en-US&external_source=imdb_id"
+	url := fmt.Sprintf("https://api.themoviedb.org/3/find/%v?api_key=%v&language=en-US&external_source=imdb_id", t.id, t.token)
 	resp, err := http.Get(url)
 
 	if err != nil || resp.StatusCode != 200 {
-		return errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\nMaybe check your tmdb api token")
+		return fmt.Errorf("Tried to access API - Response Code: %v\nMaybe check your tmdb api token", resp.Status)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 
@@ -115,7 +115,7 @@ func (t *tmdb) requestResults() error {
 
 	resp, err = http.Get(url)
 	if err != nil || resp.StatusCode != 200 {
-		return errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\nMaybe check your tmdb api token")
+		return fmt.Errorf("Tried to access API - Response Code: %v\nMaybe check your tmdb api token", resp.Status)
 	}
 
 	body, err = ioutil.ReadAll(resp.Body)

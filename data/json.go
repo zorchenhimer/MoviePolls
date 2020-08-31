@@ -744,7 +744,8 @@ func (j *jsonConnector) AddTag(tag *common.Tag) (int, error) {
 	//duplicate check
 	for id, jtag := range j.Tags {
 		if strings.ToLower(tag.Name) == strings.ToLower(jtag.Name) {
-			return id, fmt.Errorf("Tag already saved, returning the found id")
+			j.l.Debug("Tag '%v' is already in the database with id: %v", tag.Name, id)
+			return id, nil
 		}
 	}
 
@@ -757,11 +758,13 @@ func (j *jsonConnector) AddTag(tag *common.Tag) (int, error) {
 }
 
 func (j *jsonConnector) FindTag(name string) (int, error) {
-	j.lock.Lock()
+	j.lock.RLock()
 	defer j.lock.Unlock()
 
+	name = strings.ToLower(name)
+
 	for id, tag := range j.Tags {
-		if strings.ToLower(tag.Name) == strings.ToLower(name) {
+		if strings.ToLower(tag.Name) == name {
 			return id, nil
 		}
 	}
@@ -769,6 +772,8 @@ func (j *jsonConnector) FindTag(name string) (int, error) {
 }
 
 func (j *jsonConnector) GetTag(id int) *common.Tag {
+	j.lock.RLock()
+	defer j.lock.Unlock()
 	return j.Tags[id]
 }
 
