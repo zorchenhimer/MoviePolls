@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/sessions"
@@ -339,10 +340,36 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				movie.Name = results[0]
 				movie.Description = results[1]
 				movie.Poster = filepath.Base(results[2])
-				movie.Remarks = results[3]
+				movie.Duration = results[3]
+
+				rating, err := strconv.ParseFloat(results[4], 32)
+				if err != nil {
+					s.l.Error("Error converting string to float for adding a movie")
+					movie.Rating = 0.0
+				} else {
+					movie.Rating = float32(rating)
+				}
+
+				movie.Remarks = results[6]
 				movie.Links = links
 				movie.AddedBy = user
 
+				tags := []*common.Tag{}
+				for _, tagStr := range strings.Split(results[5], ",") {
+					tag := &common.Tag{
+						Name: tagStr,
+					}
+
+					id, err := s.data.AddTag(tag)
+					if err != nil {
+						s.l.Debug("duplicate tag: %v", tagStr)
+					}
+					tag.Id = id
+
+					tags = append(tags, tag)
+				}
+
+				movie.Tags = tags
 				// Prepare a int for the id
 				var movieId int
 
@@ -405,6 +432,8 @@ func (s *Server) doError(code int, message string, w http.ResponseWriter, r *htt
 	}
 }
 
+var re_tagSearch = `t:"([a-zA-Z ]+)"`
+
 func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		s.doError(http.StatusNotFound, fmt.Sprintf("%q not found", r.URL.Path), w, r)
@@ -431,7 +460,25 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		}
 		searchVal := r.FormValue("search")
 
+		// finding tags
+		re := regexp.MustCompile(re_tagSearch)
+		tags := re.FindAllString(searchVal, -1)
+
+		// clean up the tags from the "tagsyntax"
+		tagsToFind := []string{}
+		for _, tag := range tags {
+			tagsToFind = append(tagsToFind, tag[3:len(tag)-1])
+		}
+
+		searchVal = re.ReplaceAllString(searchVal, "")
+		searchVal = strings.Trim(searchVal, " ")
+
+		// we first seach for matching titles (ignoring the tags for now)
 		movieList, err = s.data.SearchMovieTitles(searchVal)
+
+		// NOW we filter the already found movies by the tags provided
+		movieList, err = common.FilterMoviesByTags(movieList, tagsToFind)
+
 		if err != nil {
 			s.l.Error(err.Error())
 		}
@@ -643,8 +690,8 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 
 		var title string
 
-		if len(results) != 3 {
-			s.l.Error("Jikan API results have an unexpected length, expected 3 got %v", len(results))
+		if len(results) != 6 {
+			s.l.Error("Jikan API results have an unexpected length, expected 6 got %v", len(results))
 			data.ErrorMessage = append(data.ErrorMessage, "API autofill did not return enough data, contact the server administrator")
 			return nil, nil
 		} else {
@@ -683,8 +730,8 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 
 		var title string
 
-		if len(results) != 3 {
-			s.l.Error("Tmdb API results have an unexpected length, expected 3 got %v", len(results))
+		if len(results) != 6 {
+			s.l.Error("Tmdb API results have an unexpected length, expected 6 got %v", len(results))
 			data.ErrorMessage = append(data.ErrorMessage, "API autofill did not return enough data, did you input a link to a series?")
 			return nil, nil
 		} else {

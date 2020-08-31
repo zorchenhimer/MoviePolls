@@ -1,5 +1,7 @@
 package moviepoll
 
+// Comment to test nightly build
+
 import (
 	"encoding/json"
 	"errors"
@@ -17,6 +19,9 @@ type dataapi interface {
 	getTitle() (string, error)
 	getDesc() (string, error)
 	getPoster() (string, error) //path to the file  (from root)
+	getDuration() (string, error)
+	getRating() (string, error) //returns the rating as string i.e. 8.69
+	getTags() (string, error)   //returns the tags as comma seperated string
 	requestResults() error
 }
 
@@ -24,7 +29,7 @@ type tmdb struct {
 	l     *common.Logger
 	id    string
 	token string
-	resp  *map[string][]map[string]interface{}
+	resp  *map[string]interface{}
 }
 
 type jikan struct {
@@ -62,30 +67,73 @@ func getMovieData(api dataapi) ([]string, error) {
 	}
 	slice = append(slice, val)
 
+	val, err = api.getDuration()
+	if err != nil {
+		return nil, err
+	}
+	slice = append(slice, val)
+
+	val, err = api.getRating()
+	if err != nil {
+		return nil, err
+	}
+	slice = append(slice, val)
+
+	val, err = api.getTags()
+	if err != nil {
+		return nil, err
+	}
+	slice = append(slice, val)
+
 	return slice, nil
 }
 
 func (t *tmdb) requestResults() error {
-	url := "https://api.themoviedb.org/3/find/" + t.id + "?api_key=" + t.token + "&language=en-US&external_source=imdb_id"
+	url := fmt.Sprintf("https://api.themoviedb.org/3/find/%v?api_key=%v&language=en-US&external_source=imdb_id", t.id, t.token)
 	resp, err := http.Get(url)
+
 	if err != nil || resp.StatusCode != 200 {
-		return errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\nMaybe check your tmdb api token")
-	} else {
-		body, err := ioutil.ReadAll(resp.Body)
-
-		if err != nil {
-			return err
-		}
-
-		var dat map[string][]map[string]interface{}
-
-		if err := json.Unmarshal(body, &dat); err != nil {
-			return errors.New("Error while unmarshalling json response")
-		}
-
-		t.resp = &dat
-		return nil
+		return fmt.Errorf("Tried to access API - Response Code: %v\nMaybe check your tmdb api token", resp.Status)
 	}
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return err
+	}
+
+	var tmp map[string][]map[string]interface{}
+
+	if err := json.Unmarshal(body, &tmp); err != nil {
+		return errors.New("Error while unmarshalling json response")
+	}
+
+	if len(tmp["movie_results"]) == 0 {
+		return errors.New("JSON Result did not return a movie, make sure the imdb link is for a movie")
+	}
+
+	movieId := tmp["movie_results"][0]["id"]
+
+	url = fmt.Sprintf("https://api.themoviedb.org/3/movie/%v?api_key=%v", movieId, t.token)
+
+	resp, err = http.Get(url)
+	if err != nil || resp.StatusCode != 200 {
+		return fmt.Errorf("Tried to access API - Response Code: %v\nMaybe check your tmdb api token", resp.Status)
+	}
+
+	body, err = ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return err
+	}
+
+	var dat map[string]interface{}
+
+	if err := json.Unmarshal(body, &dat); err != nil {
+		return errors.New("Error while unmarshalling json response")
+	}
+
+	t.resp = &dat
+	return nil
 }
 
 func (t *tmdb) getTitle() (string, error) {
@@ -94,11 +142,8 @@ func (t *tmdb) getTitle() (string, error) {
 
 	dat := t.resp
 
-	if len((*dat)["movie_results"]) == 0 {
-		return "", errors.New("JSON Result did not return a movie, make sure the imdb link is for a movie")
-	}
-	title = (*dat)["movie_results"][0]["title"].(string)
-	release := (*dat)["movie_results"][0]["release_date"].(string)
+	title = (*dat)["title"].(string)
+	release := (*dat)["release_date"].(string)
 
 	release = release[0:4]
 
@@ -113,10 +158,7 @@ func (t *tmdb) getDesc() (string, error) {
 
 	dat := t.resp
 
-	if len((*dat)["movie_results"]) == 0 {
-		return "", errors.New("JSON Result did not return a movie, make sure the imdb link is for a movie")
-	}
-	desc = (*dat)["movie_results"][0]["overview"].(string)
+	desc = (*dat)["overview"].(string)
 
 	return desc, nil
 }
@@ -127,26 +169,61 @@ func (t *tmdb) getPoster() (string, error) {
 
 	dat := t.resp
 
-	if len((*dat)["movie_results"]) == 0 {
-		return "", errors.New("JSON Result did not return a movie, make sure the imdb link is for a movie")
-	}
-
-	external_path = (*dat)["movie_results"][0]["poster_path"].(string)
+	external_path = (*dat)["poster_path"].(string)
 
 	if external_path == "" {
 		return "unknown.jpg", nil
-	} else {
-		fileurl := "https://image.tmdb.org/t/p/w300" + external_path
-
-		path := "posters/" + t.id + ".jpg"
-
-		err := DownloadFile(path, fileurl)
-
-		if !(err == nil) {
-			return "unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
-		}
-		return path, nil
 	}
+
+	fileurl := "https://image.tmdb.org/t/p/w300" + external_path
+
+	path := "posters/" + t.id + ".jpg"
+
+	err := DownloadFile(path, fileurl)
+
+	if err != nil {
+		return "unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
+	}
+
+	return path, nil
+}
+
+func (t *tmdb) getDuration() (string, error) {
+
+	runtime := 0
+
+	dat := t.resp
+
+	runtime = int((*dat)["runtime"].(float64))
+
+	return fmt.Sprintf("%v hr %v min", runtime/60, runtime%60), nil
+}
+
+func (t *tmdb) getRating() (string, error) {
+
+	dat := t.resp
+
+	rating := (*dat)["vote_average"].(float64)
+
+	return fmt.Sprintf("%v", rating), nil
+}
+
+func (t *tmdb) getTags() (string, error) {
+
+	dat := t.resp
+
+	tagMaps := (*dat)["genres"].([]interface{})
+
+	tags := []string{}
+	for _, tag := range tagMaps {
+		tg := tag.(map[string]interface{})
+		tags = append(tags, tg["name"].(string))
+	}
+
+	// Sadly the Decision was made to pass all results as a slice of strings
+	// Therefore this has to be a string instead of a slice of string, otherwise it cannot be passed
+	// to the caller
+	return strings.Join(tags, ","), nil
 }
 
 func (j *jikan) requestResults() error {
@@ -235,6 +312,46 @@ func (j *jikan) getPoster() (string, error) {
 		return "unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
 	}
 	return path, nil
+}
+
+func (j *jikan) getDuration() (string, error) {
+
+	dat := j.resp
+
+	if (*dat)["duration"] != nil {
+		return (*dat)["duration"].(string), nil
+	}
+
+	return "", nil
+}
+
+func (j *jikan) getRating() (string, error) {
+
+	dat := j.resp
+
+	if (*dat)["score"] != nil {
+		return fmt.Sprintf("%v", (*dat)["score"].(float64)), nil
+	}
+
+	return "", nil
+}
+
+func (j *jikan) getTags() (string, error) {
+
+	dat := j.resp
+
+	tagMaps := (*dat)["genres"].([]interface{})
+
+	tags := []string{}
+	for _, tag := range tagMaps {
+		tg := tag.(map[string]interface{})
+		tags = append(tags, tg["name"].(string))
+	}
+
+	// Sadly the Decision was made to pass all results as a slice of strings
+	// Therefore this has to be a string instead of a slice of string, otherwise it cannot be passed
+	// to the caller
+	return strings.Join(tags, ","), nil
 }
 
 func DownloadFile(filepath string, url string) error {
