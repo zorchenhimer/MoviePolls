@@ -1155,51 +1155,6 @@ func (j *jsonConnector) SearchMovieTitles(query string) ([]*common.Movie, error)
 	return found, nil
 }
 
-// This function filters the given movies by the supplied tags
-// To be returned a movie has to match ALL supplied tags
-func (j *jsonConnector) FilterMoviesByTags(movies []*common.Movie, tags []string) ([]*common.Movie, error) {
-	j.lock.RLock()
-	defer j.lock.RUnlock()
-
-	// converting the slice to a map to make removing movies easier
-	movieMap := make(map[int]*common.Movie)
-	for idx, movie := range movies {
-		movieMap[idx] = movie
-	}
-
-	for idx, movie := range movieMap {
-		ok := true
-		for _, tag := range tags {
-			if !j.movieContainsTag(movie, tag) {
-				ok = false
-			}
-		}
-
-		if !ok {
-			delete(movieMap, idx)
-		}
-	}
-
-	// converting the map back to a slice
-	found := []*common.Movie{}
-	for _, movie := range movieMap {
-		found = append(found, movie)
-	}
-
-	return found, nil
-}
-
-// checks if a movie contains a certain tag - returns either true or false
-func (j *jsonConnector) movieContainsTag(movie *common.Movie, tag string) bool {
-
-	for _, mTag := range movie.Tags {
-		if strings.ToLower(tag) == strings.ToLower(mTag.Name) {
-			return true
-		}
-	}
-	return false
-}
-
 func (j *jsonConnector) DeleteCycle(cycleId int) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()

@@ -477,7 +477,7 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 		movieList, err = s.data.SearchMovieTitles(searchVal)
 
 		// NOW we filter the already found movies by the tags provided
-		movieList, err = s.data.FilterMoviesByTags(movieList, tagsToFind)
+		movieList, err = common.FilterMoviesByTags(movieList, tagsToFind)
 
 		if err != nil {
 			s.l.Error(err.Error())
