@@ -759,7 +759,7 @@ func (j *jsonConnector) AddTag(tag *common.Tag) (int, error) {
 
 func (j *jsonConnector) FindTag(name string) (int, error) {
 	j.lock.RLock()
-	defer j.lock.Unlock()
+	defer j.lock.RUnlock()
 
 	name = strings.ToLower(name)
 
@@ -773,7 +773,7 @@ func (j *jsonConnector) FindTag(name string) (int, error) {
 
 func (j *jsonConnector) GetTag(id int) *common.Tag {
 	j.lock.RLock()
-	defer j.lock.Unlock()
+	defer j.lock.RUnlock()
 	return j.Tags[id]
 }
 
