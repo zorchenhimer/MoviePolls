@@ -215,6 +215,8 @@ func (t *tmdb) getTags() (string, error) {
 	tagMaps := (*dat)["genres"].([]interface{})
 
 	tags := []string{}
+	tags = append(tags, "IMDB")
+
 	for _, tag := range tagMaps {
 		tg := tag.(map[string]interface{})
 		tags = append(tags, tg["name"].(string))
@@ -343,6 +345,8 @@ func (j *jikan) getTags() (string, error) {
 	tagMaps := (*dat)["genres"].([]interface{})
 
 	tags := []string{}
+	tags = append(tags, "MAL")
+
 	for _, tag := range tagMaps {
 		tg := tag.(map[string]interface{})
 		tags = append(tags, tg["name"].(string))
