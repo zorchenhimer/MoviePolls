@@ -114,6 +114,6 @@ func movieContainsTag(movie *Movie, tag string) bool {
 
 // Returns the length of a string in regards of the "acutal" glypes (i.e. a emoji is counted as
 // one character).
-func GetStringLenght(str string) int {
+func GetStringLength(str string) int {
 	return uniseg.GraphemeClusterCount(str)
 }
