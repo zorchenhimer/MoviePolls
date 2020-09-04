@@ -6,6 +6,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/rivo/uniseg"
 )
 
 var NotImplementedError error = errors.New("Not implemented")
@@ -108,4 +110,10 @@ func movieContainsTag(movie *Movie, tag string) bool {
 		}
 	}
 	return false
+}
+
+// Returns the length of a string in regards of the "acutal" glypes (i.e. a emoji is counted as
+// one character).
+func GetStringLenght(str string) int {
+	return uniseg.GraphemeClusterCount(str)
 }
