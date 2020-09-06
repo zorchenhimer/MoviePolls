@@ -631,8 +631,8 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		return
 	}
 
-	if len(linktext) > maxLinkLength {
-		s.l.Debug("Links too long: %d", len(linktext))
+	if common.GetStringLength(linktext) > maxLinkLength {
+		s.l.Debug("Links too long: %d", common.GetStringLength(linktext))
 		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Links too long! Max Length: %d characters", maxLinkLength))
 		data.ErrLinks = true
 	}
@@ -667,8 +667,8 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		return
 	}
 
-	if len(remarkstext) > maxRemarksLength {
-		s.l.Debug("Remarks too long: %d", len(remarkstext))
+	if common.GetStringLength(remarkstext) > maxRemarksLength {
+		s.l.Debug("Remarks too long: %d", common.GetStringLength(remarkstext))
 		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Remarks too long! Max Length: %d characters", maxRemarksLength))
 		data.ErrRemarks = true
 	}
@@ -963,8 +963,8 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		return nil, nil
 	}
 
-	if len(linktext) > maxLinkLength {
-		s.l.Debug("Links too long: %d", len(linktext))
+	if common.GetStringLength(linktext) > maxLinkLength {
+		s.l.Debug("Links too long: %d", common.GetStringLength(linktext))
 		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Links too long! Max Length: %d characters", maxLinkLength))
 		data.ErrLinks = true
 	}
@@ -989,8 +989,8 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		return
 	}
 
-	if len(remarkstext) > maxRemarksLength {
-		s.l.Debug("Remarks too long: %d", len(remarkstext))
+	if common.GetStringLength(remarkstext) > maxRemarksLength {
+		s.l.Debug("Remarks too long: %d", common.GetStringLength(remarkstext))
 		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Remarks too long! Max Length: %d characters", maxRemarksLength))
 		data.ErrRemarks = true
 	}
@@ -1014,12 +1014,12 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		data.ErrTitle = true
 	}
 
-	if len(data.ValTitle) > maxTitleLength {
-		s.l.Debug("Title too long: %d", len(data.ValTitle))
+	if common.GetStringLength(data.ValTitle) > maxTitleLength {
+		s.l.Debug("Title too long: %d", common.GetStringLength(data.ValTitle))
 		data.ErrTitle = true
 		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Title too long! Max Length: %d characters", maxTitleLength))
-	} else if len(data.ValTitle) == 0 {
-		s.l.Debug("Title too short: %d", len(common.CleanMovieName(data.ValTitle)))
+	} else if common.GetStringLength(common.CleanMovieName(data.ValTitle)) == 0 {
+		s.l.Debug("Title too short: %d", common.GetStringLength(common.CleanMovieName(data.ValTitle)))
 		data.ErrTitle = true
 		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Title too short! Min Length: %d characters", 1))
 	}
@@ -1052,13 +1052,13 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		return
 	}
 
-	if len(data.ValDescription) > maxDescriptionLength {
-		s.l.Debug("Description too long: %d", len(data.ValDescription))
+	if common.GetStringLength(data.ValDescription) > maxDescriptionLength {
+		s.l.Debug("Description too long: %d", common.GetStringLength(data.ValDescription))
 		data.ErrDescription = true
-		data.ErrorMessage = append(data.ErrorMessage, "Description too long!")
+		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Description too long! Max Length: %d characters", maxDescriptionLength))
 	}
 
-	if len(descr) == 0 {
+	if common.GetStringLength(descr) == 0 {
 		data.ErrDescription = true
 		data.ErrorMessage = append(data.ErrorMessage, "Missing description")
 	}
