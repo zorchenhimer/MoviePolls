@@ -82,6 +82,9 @@ Admin only:
 - Test notifications
 
 
+# Contribution
+If you want to contribute to this project take a look at `contributing.md`
+
 # License
 
 This project is licensed under the MIT license.  See `license.md` for details.
