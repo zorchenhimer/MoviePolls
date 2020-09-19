@@ -19,7 +19,7 @@ To get your development environment started make sure to have golang installed a
 After forking this repository and cloning your fork change into the `MoviePolls` folder and you will find the `Makefile` of this project.
 To build the project just execute the `Makefile` with `make`. A new folder `bin` will be created with an executable file called `server`.
 
-Before executing the resulting file you have to create the folder `MoviePolls/db` and within this new folder an empty json file `data.json` (the file is not completely empty but contains `{}`). If you do not create that file beforehand the server will not start.
+Before executing the resulting file you have to create the folder `MoviePolls/db`. If you do not create that folder beforehand the server will not start.
 
 After creating the necessary file and starting the server you will receive instructions how to claim admin rights on the console.
 To claim admin priviledges you first have to create an account via the Login page. After your account is created go to the page posted in the console. Replace <host> with your hostname (most likely `localhost` and the configured port `:8090`) and enter the password.
