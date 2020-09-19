@@ -81,6 +81,10 @@ Admin only:
 - Dedicated login at /admin/login (available even when the simple login method is disabled)
 - Test notifications
 
+
+# Contribution
+If you want to contribute to this project take a look at `contributing.md`
+
 # License
 
 This project is licensed under the MIT license.  See `license.md` for details.
