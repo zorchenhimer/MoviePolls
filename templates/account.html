@@ -66,5 +66,15 @@
                 {{else}}<li>No Votes :c</li>{{end}}
             </ul>
         </div>
+
+        <div>Your added Movies:</div>
+        <div>
+            <ul>
+                {{if .AddedMovies}}
+                {{range .AddedMovies}}<li><a href="/movie/{{.Id}}">{{.Name}}</a></li>{{end}}
+                {{else}}<li>No Movies added :c</li>{{end}}
+            </ul>
+        </div>
+
 </div>
 {{end}}
