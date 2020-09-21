@@ -41,6 +41,7 @@ type DataConnector interface {
 	FindTag(name string) (int, error)
 
 	GetUserVotes(userId int) ([]*common.Movie, error)
+	GetUserMovies(userId int) ([]*common.Movie, error)
 
 	//GetMovieVotes(userId int) []*Movie
 	UserLogin(name, hashedPw string) (*common.User, error)
