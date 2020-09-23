@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"image/jpeg"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/nfnt/resize"
 	"github.com/zorchenhimer/MoviePolls/common"
 )
 
@@ -175,7 +176,7 @@ func (t *tmdb) getPoster() (string, error) {
 		return "unknown.jpg", nil
 	}
 
-	fileurl := "https://image.tmdb.org/t/p/w300" + external_path
+	fileurl := "https://image.tmdb.org/t/p/original" + external_path
 
 	path := "posters/" + t.id + ".jpg"
 
@@ -360,7 +361,7 @@ func (j *jikan) getTags() (string, error) {
 
 func DownloadFile(filepath string, url string) error {
 
-	// Get the data
+	// Download image data
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -368,13 +369,23 @@ func DownloadFile(filepath string, url string) error {
 	defer resp.Body.Close()
 
 	// Create the file
-	out, err := os.Create(filepath)
+	file, err := os.Create(filepath)
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer file.Close()
 
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-	return err
+	// Decode image data
+	image, err := jpeg.Decode(resp.Body)
+
+	// Resize the raw image
+	resized := resize.Resize(200, 0, image, resize.NearestNeighbor)
+
+	// Reencode the image data
+	err = jpeg.Encode(file, resized, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
