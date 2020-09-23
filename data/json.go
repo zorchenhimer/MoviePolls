@@ -609,6 +609,23 @@ func (j *jsonConnector) GetUserVotes(userId int) ([]*common.Movie, error) {
 	return votes, nil
 }
 
+func (j *jsonConnector) GetUserMovies(userId int) ([]*common.Movie, error) {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
+	movies := []*common.Movie{}
+	for _, m := range j.Movies {
+		if m.AddedBy == userId {
+			mov := j.findMovie(m.Id)
+			if mov != nil {
+				movies = append(movies, mov)
+			}
+		}
+	}
+
+	return movies, nil
+}
+
 func sortCycles(cycles map[int]jsonCycle) []jsonCycle {
 	slc := []jsonCycle{}
 	for _, c := range cycles {

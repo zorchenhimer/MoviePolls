@@ -52,15 +52,20 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 		s.l.Error("Unable to get votes for user %d: %v", user.Id, err)
 	}
 
+	addedMovies, err := s.data.GetUserMovies(user.Id)
+	if err != nil {
+		s.l.Error("Unable to get movies added by user %d: %v", user.Id, err)
+	}
+
 	data := struct {
 		dataPageBase
 
 		TotalVotes     int
 		AvailableVotes int
 
-		ActiveVotes  []*common.Movie
-		WatchedVotes []*common.Movie
-
+		ActiveVotes    []*common.Movie
+		WatchedVotes   []*common.Movie
+		AddedMovies    []*common.Movie
 		SuccessMessage string
 
 		PassError   []string
@@ -78,6 +83,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 
 		ActiveVotes:  activeVotes,
 		WatchedVotes: watchedVotes,
+		AddedMovies:  addedMovies,
 	}
 
 	if r.Method == "POST" {
