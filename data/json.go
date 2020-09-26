@@ -49,12 +49,19 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 		}
 	}
 
+	links := []string{}
+	if movie.Links != nil {
+		for _, link := range movie.Links {
+			links = append(links, link.Url)
+		}
+	}
+
 	id := j.nextMovieId()
 
 	jm := jsonMovie{
 		Id:             id,
 		Name:           movie.Name,
-		Links:          movie.Links,
+		Links:          links,
 		Description:    movie.Description,
 		Remarks:        movie.Remarks,
 		Duration:       movie.Duration,
@@ -79,6 +86,14 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 		jm.Tags = tags
 	}
 
+	if movie.Links != nil {
+		links := []string{}
+		for _, link := range movie.Links {
+			links = append(links, link.Url)
+		}
+		jm.Links = links
+	}
+
 	return jm
 }
 
@@ -93,6 +108,13 @@ type jsonCycle struct {
 	PlannedEnd *time.Time
 	Ended      *time.Time
 	Watched    []int
+}
+
+type jsonLink struct {
+	Id       int
+	IsSource bool
+	Type     string
+	Url      string
 }
 
 func (j *jsonConnector) newJsonCycle(cycle *common.Cycle) jsonCycle {
@@ -120,6 +142,7 @@ type jsonConnector struct {
 	Users  map[int]*common.User
 	Votes  []jsonVote
 	Tags   map[int]*common.Tag
+	Links  map[int]*common.Link
 
 	//Settings Configurator
 	Settings map[string]configValue
@@ -148,6 +171,7 @@ func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error)
 		Movies: map[int]jsonMovie{},
 		Users:  map[int]*common.User{},
 		Tags:   map[int]*common.Tag{},
+		Links:  map[int]*common.Link{},
 		l:      l,
 	}
 
@@ -192,6 +216,10 @@ func loadJson(filename string, l *common.Logger) (*jsonConnector, error) {
 
 	if data.Tags == nil {
 		data.Tags = make(map[int]*common.Tag)
+	}
+
+	if data.Links == nil {
+		data.Links = make(map[int]*common.Link)
 	}
 
 	return data, nil
@@ -376,16 +404,6 @@ func (j *jsonConnector) nextMovieId() int {
 	return highest + 1
 }
 
-func (j *jsonConnector) nextTagId() int {
-	highest := 0
-	for _, t := range j.Tags {
-		if t.Id >= highest {
-			highest = t.Id
-		}
-	}
-	return highest + 1
-}
-
 func (j *jsonConnector) AddMovie(movie *common.Movie) (int, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
@@ -396,6 +414,10 @@ func (j *jsonConnector) AddMovie(movie *common.Movie) (int, error) {
 
 	if j.Tags == nil {
 		j.Tags = map[int]*common.Tag{}
+	}
+
+	if j.Links == nil {
+		j.Links = map[int]*common.Link{}
 	}
 
 	m := j.newJsonMovie(movie)
@@ -479,8 +501,20 @@ func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
 
 	tags := []*common.Tag{}
 
+	links := []*common.Link{}
+
 	for _, id := range jMovie.Tags {
 		tags = append(tags, j.GetTag(id))
+	}
+
+	for _, url := range jMovie.Links {
+		id, err := j.FindLink(url)
+		if err != nil {
+			j.l.Info("Could not find link id for url: %s\n Creating new link entry", url)
+			// FFS - i cannot automatically migrate old movies since that line causes a write after read anomaly -> deadlock
+			// j.AddLink(&common.Link{Url: url, Type: "Misc"})
+		}
+		links = append(links, j.GetLink(id))
 	}
 
 	movie := &common.Movie{
@@ -494,7 +528,7 @@ func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
 		Approved:    jMovie.Approved,
 		//CycleAdded:   j.findCycle(jMovie.CycleAddedId),
 		//CycleWatched: j.findCycle(jMovie.CycleWatchedId),
-		Links:   jMovie.Links,
+		Links:   links,
 		Poster:  jMovie.Poster,
 		AddedBy: user,
 		Tags:    tags,
@@ -799,6 +833,81 @@ func (j *jsonConnector) DeleteTag(id int) {
 	defer j.lock.Unlock()
 
 	delete(j.Tags, id)
+}
+
+func (j *jsonConnector) nextTagId() int {
+	highest := 0
+	for _, t := range j.Tags {
+		if t.Id >= highest {
+			highest = t.Id
+		}
+	}
+	return highest + 1
+}
+
+func (j *jsonConnector) AddLink(link *common.Link) (int, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	if link.Url == "" {
+		return 0, fmt.Errorf("Link url cannot be empty")
+	}
+
+	if link.Type == "" {
+		return 0, fmt.Errorf("Link type cannot be empty")
+	}
+
+	//duplicate check
+	for id, jlink := range j.Links {
+		if strings.ToLower(link.Url) == strings.ToLower(jlink.Url) {
+			j.l.Debug("Link '%v' is already in the database with id: %v", link.Url, id)
+			return id, nil
+		}
+	}
+
+	id := j.nextLinkId()
+
+	link.Id = id
+
+	j.Links[id] = link
+	return id, j.save()
+}
+
+func (j *jsonConnector) FindLink(url string) (int, error) {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+
+	url = strings.ToLower(url)
+
+	for id, link := range j.Links {
+		if strings.ToLower(link.Url) == url {
+			return id, nil
+		}
+	}
+	return 0, fmt.Errorf("No link found with url: %s", url)
+}
+
+func (j *jsonConnector) GetLink(id int) *common.Link {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.Links[id]
+}
+
+func (j *jsonConnector) DeleteLink(id int) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	delete(j.Links, id)
+}
+
+func (j *jsonConnector) nextLinkId() int {
+	highest := 0
+	for _, t := range j.Links {
+		if t.Id >= highest {
+			highest = t.Id
+		}
+	}
+	return highest + 1
 }
 
 func (j *jsonConnector) requireApproval() bool {
