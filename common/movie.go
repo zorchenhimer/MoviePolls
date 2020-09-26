@@ -9,7 +9,7 @@ import (
 type Movie struct {
 	Id          int
 	Name        string
-	Links       []string
+	Links       []*Link
 	Description string
 	Remarks     string
 	Duration    string
