@@ -16,7 +16,7 @@ import (
 type jsonMovie struct {
 	Id             int
 	Name           string
-	Links          []string
+	Links          []int
 	Description    string
 	Remarks        string
 	Duration       string
@@ -49,10 +49,10 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 		}
 	}
 
-	links := []string{}
+	links := []int{}
 	if movie.Links != nil {
 		for _, link := range movie.Links {
-			links = append(links, link.Url)
+			links = append(links, link.Id)
 		}
 	}
 
@@ -87,9 +87,9 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 	}
 
 	if movie.Links != nil {
-		links := []string{}
+		links := []int{}
 		for _, link := range movie.Links {
-			links = append(links, link.Url)
+			links = append(links, link.Id)
 		}
 		jm.Links = links
 	}
@@ -507,13 +507,7 @@ func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
 		tags = append(tags, j.GetTag(id))
 	}
 
-	for _, url := range jMovie.Links {
-		id, err := j.FindLink(url)
-		if err != nil {
-			j.l.Info("Could not find link id for url: %s\n Creating new link entry", url)
-			// FFS - i cannot automatically migrate old movies since that line causes a write after read anomaly -> deadlock
-			// j.AddLink(&common.Link{Url: url, Type: "Misc"})
-		}
+	for _, id := range jMovie.Links {
 		links = append(links, j.GetLink(id))
 	}
 
@@ -902,9 +896,9 @@ func (j *jsonConnector) DeleteLink(id int) {
 
 func (j *jsonConnector) nextLinkId() int {
 	highest := 0
-	for _, t := range j.Links {
-		if t.Id >= highest {
-			highest = t.Id
+	for _, l := range j.Links {
+		if l.Id >= highest {
+			highest = l.Id
 		}
 	}
 	return highest + 1
