@@ -36,7 +36,15 @@
     <p>Watched: {{.Movie.CycleWatched.EndedString}}</p>
     {{end}}
     <div>Added by: {{if .Movie.AddedBy}} {{.Movie.AddedBy.Name}} {{else}} somebody {{end}}</div>
-    {{if .Movie.Links}}<div><ul>{{range .Movie.Links}}<li><a href="{{.}}">{{.}}</a></li>{{end}}</ul></div>{{end}}
+	{{if .Movie.Links}}<div>
+		{{if eq (len .Movie.Links) 1 }}
+			<a href="{{(index .Movie.Links 0).Url}}">Visit {{(index .Movie.Links 0).Type}} for more Information</a>
+		{{else}}
+			<a href="{{(index .Movie.Links 0).Url}}">Visit {{(index .Movie.Links 0).Type}} for more Information</a>
+			<p>Other Links:</p>
+		<ul>{{range (slice .Movie.Links 1)}}<li><a href="{{.Url}}">{{.Url}}</a></li>{{end}}</ul>
+		{{end}}
+	</div>{{end}}
     <div>
         {{if .Movie.Votes}}
         <p>Votes: {{len .Movie.Votes}}</p>
