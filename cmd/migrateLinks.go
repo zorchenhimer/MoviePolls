@@ -137,7 +137,7 @@ func loadOldDB() error {
 		}
 		newMovie.Links = links
 
-		dc.AddMovie(&newMovie)
+		dc.UpdateMovie(&newMovie)
 	}
 
 	err = os.Rename("db/temp.json", jsonFilename)
