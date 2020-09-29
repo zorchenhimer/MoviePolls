@@ -677,8 +677,12 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 			Url:      link,
 			IsSource: source,
 		}
+		err = ls.ValidateLink()
+		if err != nil {
+			s.l.Error("unable to validate link url: %v", err)
+		}
 
-		ls.Type, err = ls.DetermineLinkType()
+		err = ls.DetermineLinkType()
 		if err != nil {
 			s.l.Error("unable to determine link type: %v", err)
 		}
@@ -1035,7 +1039,12 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 			IsSource: source,
 		}
 
-		ls.Type, err = ls.DetermineLinkType()
+		err = ls.ValidateLink()
+		if err != nil {
+			s.l.Error("unable to validate link url: %v", err)
+		}
+
+		err = ls.DetermineLinkType()
 		if err != nil {
 			s.l.Error("unable to determine link type: %v", err)
 		}
