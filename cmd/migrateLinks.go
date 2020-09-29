@@ -126,11 +126,16 @@ func loadOldDB() error {
 				Url:      linkUrl,
 				IsSource: id == 0,
 			}
-			ltype, err := link.DetermineLinkType()
+
+			err := link.ValidateLink()
 			if err != nil {
 				return err
 			}
-			link.Type = ltype
+
+			err = link.DetermineLinkType()
+			if err != nil {
+				return err
+			}
 
 			dc.AddLink(&link)
 			links = append(links, &link)
