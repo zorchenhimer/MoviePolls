@@ -654,14 +654,6 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		data.ErrLinks = true
 	}
 
-	// Validate links
-	linkstrings, err = common.VerifyLinks(linkstrings)
-	if err != nil {
-		s.l.Error(err.Error())
-		data.ErrorMessage = append(data.ErrorMessage, "Invalid link(s) given.")
-		data.ErrLinks = true
-	}
-
 	var sourcelink *common.Link
 
 	// Convert links to structs
@@ -677,9 +669,12 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 			Url:      link,
 			IsSource: source,
 		}
+
 		err = ls.ValidateLink()
 		if err != nil {
-			s.l.Error("unable to validate link url: %v", err)
+			s.l.Error(err.Error())
+			data.ErrorMessage = append(data.ErrorMessage, err.Error())
+			data.ErrLinks = true
 		}
 
 		err = ls.DetermineLinkType()
@@ -1017,14 +1012,6 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		data.ErrLinks = true
 	}
 
-	// Validate links
-	linkstrings, err = common.VerifyLinks(linkstrings)
-	if err != nil {
-		s.l.Error(err.Error())
-		data.ErrorMessage = append(data.ErrorMessage, "Invalid link(s) given.")
-		data.ErrLinks = true
-	}
-
 	// Convert links to structs
 	for id, link := range linkstrings {
 		var source bool
@@ -1041,7 +1028,9 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 
 		err = ls.ValidateLink()
 		if err != nil {
-			s.l.Error("unable to validate link url: %v", err)
+			s.l.Error(err.Error())
+			data.ErrorMessage = append(data.ErrorMessage, err.Error())
+			data.ErrLinks = true
 		}
 
 		err = ls.DetermineLinkType()
