@@ -27,22 +27,23 @@ func (l *Link) ValidateLink() error {
 		if len(url) <= 8 {
 			// lets be stupid when the link is too short
 			if !strings.ContainsAny(url, "//") {
-				l.Url = "https://" + url
+				url = "https://" + url
 			}
 		} else {
 			// lets be smart when the link is long enough
 			// url[:8] ensures that we only look at the 8 first characters of the url -> where the protocol part should be
 			if !strings.Contains(url[:8], "//") {
-				l.Url = "https://" + url
+				url = "https://" + url
 			}
 		}
+		l.Url = url
 		return nil
 	}
 	return fmt.Errorf("Invalid link: %v", l.Url)
 }
 
 func stripRefFromLink(link string) string {
-	idx := strings.Index(link, "?ref")
+	idx := strings.Index(link, "/?")
 	if idx != -1 {
 		return link[:idx]
 	}
