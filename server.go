@@ -658,35 +658,20 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 
 	// Convert links to structs
 	for id, link := range linkstrings {
-		var source bool
-		if id == 0 {
-			source = true
-		} else {
-			source = false
-		}
 
-		ls := common.Link{
-			Url:      link,
-			IsSource: source,
-		}
+		ls, err := common.NewLink(link, id)
 
-		err = ls.ValidateLink()
 		if err != nil {
-			s.l.Error(err.Error())
-			data.ErrorMessage = append(data.ErrorMessage, err.Error())
+			s.l.Error("Cannot add link")
+			data.ErrorMessage = append(data.ErrorMessage, "Could not add link: %v", err.Error())
 			data.ErrLinks = true
 		}
 
-		err = ls.DetermineLinkType()
-		if err != nil {
-			s.l.Error("unable to determine link type: %v", err)
-		}
-
 		if ls.IsSource {
-			sourcelink = &ls
+			sourcelink = ls
 		}
 
-		links = append(links, &ls)
+		links = append(links, ls)
 	}
 
 	// Check Remarks max length
@@ -1014,30 +999,16 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 
 	// Convert links to structs
 	for id, link := range linkstrings {
-		var source bool
-		if id == 0 {
-			source = true
-		} else {
-			source = false
-		}
 
-		ls := common.Link{
-			Url:      link,
-			IsSource: source,
-		}
+		ls, err := common.NewLink(link, id)
 
-		err = ls.ValidateLink()
 		if err != nil {
-			s.l.Error(err.Error())
-			data.ErrorMessage = append(data.ErrorMessage, err.Error())
+			s.l.Error("Cannot add link")
+			data.ErrorMessage = append(data.ErrorMessage, "Could not add link: %v", err.Error())
 			data.ErrLinks = true
 		}
 
-		err = ls.DetermineLinkType()
-		if err != nil {
-			s.l.Error("unable to determine link type: %v", err)
-		}
-		links = append(links, &ls)
+		links = append(links, ls)
 	}
 
 	// Check Remarks max length

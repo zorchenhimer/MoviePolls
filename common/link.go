@@ -13,6 +13,32 @@ type Link struct {
 	Url      string
 }
 
+func NewLink(link string, id int) (*Link, error) {
+	var source bool
+	if id == 0 {
+		source = true
+	} else {
+		source = false
+	}
+
+	ls := Link{
+		Url:      link,
+		IsSource: source,
+	}
+
+	err := ls.ValidateLink()
+	if err != nil {
+		return nil, err
+	}
+
+	err = ls.DetermineLinkType()
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
 func (l Link) String() string {
 	return fmt.Sprintf("Link{Id: %v Url: %s Type: %s IsSource: %v}", l.Id, l.Url, l.Type, l.IsSource)
 }
