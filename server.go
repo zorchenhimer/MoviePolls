@@ -353,6 +353,15 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				}
 
 				movie.Remarks = results[6]
+
+				for _, link := range links {
+					id, err := s.data.AddLink(link)
+					if err != nil {
+						s.l.Debug("link error: %v", err)
+					}
+					link.Id = id
+				}
+
 				movie.Links = links
 				movie.AddedBy = user
 
@@ -403,6 +412,14 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 
 				// Prepare a int for the id
 				var movieId int
+
+				for _, link := range movie.Links {
+					id, err := s.data.AddLink(link)
+					if err != nil {
+						s.l.Debug("link error: %v", err)
+					}
+					link.Id = id
+				}
 
 				movieId, err = s.data.AddMovie(movie)
 				if err != nil {
@@ -618,7 +635,7 @@ func (s *Server) handlerMovie(w http.ResponseWriter, r *http.Request) {
 }
 
 // outsourced autofill logic
-func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *http.Request) (results []string, links []string) {
+func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *http.Request) (results []string, links []*common.Link) {
 
 	// Get all needed values from the form
 
@@ -647,23 +664,32 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		data.ErrLinks = true
 	}
 
-	// Check for valid links
-	links = strings.Split(linktext, "\n")
-	links, err = common.VerifyLinks(links)
-	if err != nil {
-		s.l.Error(err.Error())
-		data.ErrorMessage = append(data.ErrorMessage, "Invalid link(s) given.")
-		data.ErrLinks = true
-	}
-
-	var sourcelink string
-	// make sure we have a link to look at
-	if len(links) == 0 {
+	// Check for links
+	linkstrings := strings.Split(linktext, "\n")
+	if len(linkstrings) == 0 {
 		s.l.Error("no links given")
 		data.ErrorMessage = append(data.ErrorMessage, "No link found.")
 		data.ErrLinks = true
-	} else {
-		sourcelink = links[0]
+	}
+
+	var sourcelink *common.Link
+
+	// Convert links to structs
+	for id, link := range linkstrings {
+
+		ls, err := common.NewLink(link, id)
+
+		if err != nil {
+			s.l.Error("Cannot add link")
+			data.ErrorMessage = append(data.ErrorMessage, "Could not add link: %v", err.Error())
+			data.ErrLinks = true
+		}
+
+		if ls.IsSource {
+			sourcelink = ls
+		}
+
+		links = append(links, ls)
 	}
 
 	// Check Remarks max length
@@ -688,10 +714,10 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		return nil, nil
 	}
 
-	if strings.Contains(sourcelink, "myanimelist") {
+	if sourcelink.Type == "MyAnimeList" {
 		s.l.Debug("MAL link")
 
-		results, err = s.handleJikan(data, w, r, sourcelink)
+		results, err = s.handleJikan(data, w, r, sourcelink.Url)
 
 		if err != nil {
 			s.l.Error(err.Error())
@@ -728,10 +754,11 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		results = append(results, remarkstext)
 		return results, links
 
-	} else if strings.Contains(sourcelink, "imdb") {
+	}
+	if sourcelink.Type == "IMDb" {
 		s.l.Debug("IMDB link")
 
-		results, err = s.handleTmdb(data, w, r, sourcelink)
+		results, err = s.handleTmdb(data, w, r, sourcelink.Url)
 
 		if err != nil {
 			s.l.Error(err.Error())
@@ -769,12 +796,13 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		results = append(results, remarkstext)
 		return results, links
 
-	} else {
-		s.l.Debug("no link")
-		data.ErrorMessage = append(data.ErrorMessage, "To use autofill an imdb or myanimelist link as first link is required")
-		data.ErrLinks = true
-		return nil, nil
 	}
+
+	s.l.Debug("no link")
+	data.ErrorMessage = append(data.ErrorMessage, "To use autofill an imdb or myanimelist link as first link is required")
+	data.ErrLinks = true
+	return nil, nil
+
 }
 
 func (s *Server) uploadFile(r *http.Request, name string) (string, error) {
@@ -953,7 +981,7 @@ func (s *Server) handleTmdb(data *dataAddMovie, w http.ResponseWriter, r *http.R
 	return results, nil
 }
 
-func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *http.Request) (results []string, links []string) {
+func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *http.Request) (results []string, links []*common.Link) {
 	// Get all links from the corresponding input field
 	linktext := strings.ReplaceAll(r.FormValue("Links"), "\r", "")
 	data.ValLinks = linktext
@@ -979,13 +1007,26 @@ func (s *Server) handleFormfill(data *dataAddMovie, w http.ResponseWriter, r *ht
 		data.ErrLinks = true
 	}
 
-	// Check for valid links
-	links = strings.Split(linktext, "\n")
-	links, err = common.VerifyLinks(links)
-	if err != nil {
-		s.l.Error(err.Error())
-		data.ErrorMessage = append(data.ErrorMessage, "Invalid link(s) given.")
+	// Check for links
+	linkstrings := strings.Split(linktext, "\n")
+	if len(linkstrings) == 0 {
+		s.l.Error("no links given")
+		data.ErrorMessage = append(data.ErrorMessage, "No link found.")
 		data.ErrLinks = true
+	}
+
+	// Convert links to structs
+	for id, link := range linkstrings {
+
+		ls, err := common.NewLink(link, id)
+
+		if err != nil {
+			s.l.Error("Cannot add link")
+			data.ErrorMessage = append(data.ErrorMessage, "Could not add link: %v", err.Error())
+			data.ErrLinks = true
+		}
+
+		links = append(links, ls)
 	}
 
 	// Check Remarks max length

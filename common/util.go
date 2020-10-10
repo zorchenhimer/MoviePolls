@@ -2,7 +2,6 @@ package common
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -23,32 +22,6 @@ func FileExists(path string) bool {
 		return false
 	}
 	return true
-}
-
-var re_validLink = *regexp.MustCompile(`[a-zA-Z0-9:._\+]{1,256}\.[a-zA-Z0-9()]{1,6}[a-zA-Z0-9%_:\+.\/]*`)
-
-// verifyLinks checks each link for valid syntax and trims spaces.
-func VerifyLinks(links []string) ([]string, error) {
-	l := []string{}
-	for _, link := range links {
-		if re_validLink.Match([]byte(link)) {
-			link := stripRefFromLink(link)
-			l = append(l, link)
-		}
-	}
-	if len(l) == 0 {
-		return nil, fmt.Errorf("No valid links provided")
-	} else {
-		return l, nil
-	}
-}
-
-func stripRefFromLink(link string) string {
-	idx := strings.Index(link, "?ref")
-	if idx != -1 {
-		return link[:idx]
-	}
-	return link
 }
 
 var re_cleanNameA = *regexp.MustCompile(`[^a-zA-Z0-9 ]`)

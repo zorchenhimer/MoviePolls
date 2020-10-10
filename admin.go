@@ -558,17 +558,35 @@ func (s *Server) handlerAdminMovieEdit(w http.ResponseWriter, r *http.Request) {
 		linktext := strings.ReplaceAll(r.FormValue("MovieLinks"), "\r", "")
 
 		links := strings.Split(linktext, "\n")
-		//links, err = common.VerifyLinks(links)
-		//if err != nil {
-		//	s.l.Error("bad link: %v", err)
-		//	errText = append(errText, "Invalid link(s) given.")
-		//} else {
+		// links is a slice of strings now
 		s.l.Debug("Links: %s", links)
-		movie.Links = links
-		//}
+
+		linkstructs := []*common.Link{}
+
+		// Convert links to structs
+		for id, link := range links {
+
+			ls, err := common.NewLink(link, id)
+
+			if err != nil || ls == nil {
+				s.l.Error("Cannot add link: %v", link)
+				continue
+			}
+
+			id, err := s.data.AddLink(ls)
+			if err != nil {
+				s.l.Error("Could not add link struct to db: %v", err.Error())
+				continue
+			}
+			ls.Id = id
+
+			linkstructs = append(linkstructs, ls)
+		}
+		movie.Links = linkstructs
 
 		posterFileName := strings.TrimSpace(r.FormValue("MovieName"))
 		posterFile, _, _ := r.FormFile("PosterFile")
+
 		if posterFile != nil {
 			file, err := s.uploadFile(r, posterFileName)
 
@@ -596,6 +614,11 @@ func (s *Server) handlerAdminMovieEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	linktext := ""
+	for _, link := range movie.Links {
+		linktext = linktext + link.Url + "\n"
+	}
+
 	data := struct {
 		dataPageBase
 		Movie    *common.Movie
@@ -603,7 +626,7 @@ func (s *Server) handlerAdminMovieEdit(w http.ResponseWriter, r *http.Request) {
 	}{
 		dataPageBase: s.newPageBase("Admin - Movies", w, r),
 		Movie:        movie,
-		LinkText:     strings.Join(movie.Links, "\n"),
+		LinkText:     linktext,
 	}
 
 	if err := s.executeTemplate(w, "adminMovieEdit", data); err != nil {
