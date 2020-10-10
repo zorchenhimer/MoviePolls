@@ -122,23 +122,13 @@ func loadOldDB() error {
 		// convert strings to link structs and add them to the db
 		links := []*mpc.Link{}
 		for id, linkUrl := range oldmovie.Links {
-			link := mpc.Link{
-				Url:      linkUrl,
-				IsSource: id == 0,
-			}
-
-			err := link.ValidateLink()
+			link, err := mpc.NewLink(linkUrl, id)
 			if err != nil {
 				return err
 			}
 
-			err = link.DetermineLinkType()
-			if err != nil {
-				return err
-			}
-
-			dc.AddLink(&link)
-			links = append(links, &link)
+			dc.AddLink(link)
+			links = append(links, link)
 		}
 		newMovie.Links = links
 
