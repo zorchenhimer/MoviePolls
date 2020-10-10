@@ -44,7 +44,7 @@
     */}}
 
     <div>
-        <div>Available votes: {{.AvailableVotes}} (total: {{.TotalVotes}})</div>
+        <div>Available votes: {{if .UnlimitedVotes}}&#x221e;{{else}}{{.AvailableVotes}}{{end}} (total: {{.TotalVotes}})</div>
         <div>Your current votes</div>
         <div>
             {{/*

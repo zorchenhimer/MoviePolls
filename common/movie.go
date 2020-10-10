@@ -30,6 +30,9 @@ type Movie struct {
 
 func (m Movie) UserVoted(userId int) bool {
 	for _, v := range m.Votes {
+		if v.User == nil {
+			continue
+		}
 		if v.User.Id == userId {
 			return true
 		}

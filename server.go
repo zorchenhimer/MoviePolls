@@ -31,6 +31,7 @@ const (
 	DefaultTmdbToken              string = ""
 	DefaultMaxNameLength          int    = 100
 	DefaultMinNameLength          int    = 4
+	DefaultUnlimitedVotes         bool   = false
 
 	DefaultMaxTitleLength       int = 100
 	DefaultMaxDescriptionLength int = 1000
@@ -53,6 +54,7 @@ const (
 	ConfigMinNameLength          string = "MinNameLength"
 	ConfigNoticeBanner           string = "NoticeBanner"
 	ConfigHostAddress            string = "HostAddress"
+	ConfigUnlimitedVotes         string = "UnlimitedVotes"
 
 	ConfigMaxTitleLength       string = "MaxTitleLength"
 	ConfigMaxDescriptionLength string = "MaxDescriptionLength"
@@ -496,22 +498,30 @@ func (s *Server) handlerRoot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if data.User != nil {
-		maxVotes, err := s.data.GetCfgInt("MaxUserVotes", DefaultMaxUserVotes)
+		unlimitedVotes, err := s.data.GetCfgBool(ConfigUnlimitedVotes, DefaultUnlimitedVotes)
 		if err != nil {
-			s.l.Error("Error getting MaxUserVotes config setting: %v", err)
-			maxVotes = DefaultMaxUserVotes
+			s.l.Error("Error getting UnlimitedVotes config setting: %v", err)
 		}
 
-		active, _, err := s.getUserVotes(data.User)
-		if err != nil {
-			s.doError(
-				http.StatusBadRequest,
-				fmt.Sprintf("Cannot get user votes :C"),
-				w, r)
-			s.l.Error("Unable to get votes for user %d: %v", data.User.Id, err)
-			return
+		data.AvailableVotes = 1
+		if !unlimitedVotes {
+			maxVotes, err := s.data.GetCfgInt(ConfigMaxUserVotes, DefaultMaxUserVotes)
+			if err != nil {
+				s.l.Error("Error getting MaxUserVotes config setting: %v", err)
+				maxVotes = DefaultMaxUserVotes
+			}
+
+			active, _, err := s.getUserVotes(data.User)
+			if err != nil {
+				s.doError(
+					http.StatusBadRequest,
+					fmt.Sprintf("Cannot get user votes :C"),
+					w, r)
+				s.l.Error("Unable to get votes for user %d: %v", data.User.Id, err)
+				return
+			}
+			data.AvailableVotes = maxVotes - len(active)
 		}
-		data.AvailableVotes = maxVotes - len(active)
 	}
 
 	data.Movies = common.SortMoviesByVotes(movieList)

@@ -57,11 +57,17 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 		s.l.Error("Unable to get movies added by user %d: %v", user.Id, err)
 	}
 
+	unlimited, err := s.data.GetCfgBool(ConfigUnlimitedVotes, DefaultUnlimitedVotes)
+	if err != nil {
+		s.l.Error("Error getting %s config setting: %v", ConfigUnlimitedVotes, err)
+	}
+
 	data := struct {
 		dataPageBase
 
 		TotalVotes     int
 		AvailableVotes int
+		UnlimitedVotes bool
 
 		ActiveVotes    []*common.Movie
 		WatchedVotes   []*common.Movie
@@ -80,6 +86,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 
 		TotalVotes:     totalVotes,
 		AvailableVotes: totalVotes - len(activeVotes),
+		UnlimitedVotes: unlimited,
 
 		ActiveVotes:  activeVotes,
 		WatchedVotes: watchedVotes,
