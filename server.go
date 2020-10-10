@@ -411,6 +411,14 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 				// Prepare a int for the id
 				var movieId int
 
+				for _, link := range movie.Links {
+					id, err := s.data.AddLink(link)
+					if err != nil {
+						s.l.Debug("link error: %v", err)
+					}
+					link.Id = id
+				}
+
 				movieId, err = s.data.AddMovie(movie)
 				if err != nil {
 					data.ErrTitle = true // For now we enable the title flag

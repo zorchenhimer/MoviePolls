@@ -556,42 +556,35 @@ func (s *Server) handlerAdminMovieEdit(w http.ResponseWriter, r *http.Request) {
 		linktext := strings.ReplaceAll(r.FormValue("MovieLinks"), "\r", "")
 
 		links := strings.Split(linktext, "\n")
-
-		// TODO verify links
+		// links is a slice of strings now
 		s.l.Debug("Links: %s", links)
 
-		movie.Links = []*common.Link{}
+		linkstructs := []*common.Link{}
 
+		// Convert links to structs
 		for id, link := range links {
-			// Create new Link struct
 
-			var source bool
-			if id == 0 {
-				source = true
-			} else {
-				source = false
+			ls, err := common.NewLink(link, id)
+
+			if err != nil || ls == nil {
+				s.l.Error("Cannot add link: %v", link)
+				continue
 			}
 
-			ls := common.Link{
-				Url:      link,
-				IsSource: source,
-			}
-
-			err = ls.ValidateLink()
+			id, err := s.data.AddLink(ls)
 			if err != nil {
-				s.l.Error("unable to validate link url: %v", err)
+				s.l.Error("Could not add link struct to db: %v", err.Error())
+				continue
 			}
+			ls.Id = id
 
-			err = ls.DetermineLinkType()
-			if err != nil {
-				s.l.Error("unable to determine link type: %v", err)
-			}
-
-			movie.Links = append(movie.Links, &ls)
+			linkstructs = append(linkstructs, ls)
 		}
+		movie.Links = linkstructs
 
 		posterFileName := strings.TrimSpace(r.FormValue("MovieName"))
 		posterFile, _, _ := r.FormFile("PosterFile")
+
 		if posterFile != nil {
 			file, err := s.uploadFile(r, posterFileName)
 
