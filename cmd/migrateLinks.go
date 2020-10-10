@@ -61,7 +61,7 @@ func loadOldDB() error {
 
 	data, err = json.MarshalIndent(fullData, "", " ")
 
-	err = ioutil.WriteFile("db/temp.json", data, 666)
+	err = ioutil.WriteFile("db/temp.json", data, 0666)
 	if err != nil {
 		return err
 	}
