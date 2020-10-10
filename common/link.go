@@ -26,17 +26,17 @@ func NewLink(link string, id int) (*Link, error) {
 		IsSource: source,
 	}
 
-	err := ls.ValidateLink()
+	err := ls.validateLink()
 	if err != nil {
 		return nil, err
 	}
 
-	err = ls.DetermineLinkType()
+	err = ls.determineLinkType()
 	if err != nil {
 		return nil, err
 	}
 
-	return nil, nil
+	return &ls, nil
 }
 
 func (l Link) String() string {
@@ -45,7 +45,7 @@ func (l Link) String() string {
 
 var re_validLink = *regexp.MustCompile(`[a-zA-Z0-9:._\+]{1,256}\.[a-zA-Z0-9()]{1,6}[a-zA-Z0-9%_:\+.\/]*`)
 
-func (l *Link) ValidateLink() error {
+func (l *Link) validateLink() error {
 	url := l.Url
 	if re_validLink.MatchString(url) {
 		url = stripRefFromLink(url)
@@ -76,7 +76,7 @@ func stripRefFromLink(link string) string {
 	return link
 }
 
-func (l *Link) DetermineLinkType() error {
+func (l *Link) determineLinkType() error {
 	if strings.Contains(l.Url, "imdb") {
 		l.Type = "IMDb"
 		return nil
