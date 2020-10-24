@@ -389,6 +389,10 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 			configValue{Key: ConfigMaxRemarksLength, Default: DefaultMaxRemarksLength, Type: ConfigInt},
 
 			configValue{Key: ConfigUnlimitedVotes, Default: DefaultUnlimitedVotes, Type: ConfigBool},
+
+			configValue{Key: ConfigTwitchOauthEnabled, Default: DefaultTwitchOauthEnabled, Type: ConfigBool},
+			configValue{Key: ConfigDiscordOauthEnabled, Default: DefaultDiscordOauthEnabled, Type: ConfigBool},
+			configValue{Key: ConfigPatreonOauthEnabled, Default: DefaultPatreonOauthEnabled, Type: ConfigBool},
 		},
 
 		TypeString: ConfigString,

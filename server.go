@@ -37,6 +37,10 @@ const (
 	DefaultMaxDescriptionLength int = 1000
 	DefaultMaxLinkLength        int = 500 // length of all links combined
 	DefaultMaxRemarksLength     int = 200
+
+	DefaultTwitchOauthEnabled  bool = false
+	DefaultDiscordOauthEnabled bool = false
+	DefaultPatreonOauthEnabled bool = false
 )
 
 // configuration keys
@@ -60,6 +64,10 @@ const (
 	ConfigMaxDescriptionLength string = "MaxDescriptionLength"
 	ConfigMaxLinkLength        string = "MaxLinkLength"
 	ConfigMaxRemarksLength     string = "MaxRemarksLength"
+
+	ConfigTwitchOauthEnabled  string = "TwitchOauthEnabled"
+	ConfigDiscordOauthEnabled string = "DiscordOauthEnabled"
+	ConfigPatreonOauthEnabled string = "PatreonOauthEnabled"
 )
 
 type Options struct {
