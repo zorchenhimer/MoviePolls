@@ -1,4 +1,8 @@
-{{/* Simple login form for mods and admins */}}
+{{/*
+	Simple login form for mods and admins
+
+	^ That is BS - This is the basic login template for ALL users
+*/}}
 
 {{define "header"}}{{end}}
 
@@ -20,26 +24,20 @@
         <div><input type="password" name="Password" /></div>
         <div><input type="submit" value="Login" /> <a href="/user/new">Create Account</a></div>
     </div>
-
-	{{if .OAuth}}
-	<div id="oauth">
-		{{if .TwitchOAuth}}
-		<form action={{.TwitchOAuthURL}} method="get">
-			<button type="submit"> Login with Twitch </button>
-		</form>
-		{{end}}
-		{{if .DiscordOAuth}}
-		<form action={{.DiscordOAuthURL}} method="get">
-			<button type="submit"> Login with Discord </button>
-		</form>
-		{{end}}
-		{{if .PatreonOAuth}}
-		<form action={{.PatreonOAuthURL}} method="get">
-			<button type="submit"> Login with Patreon </button>
-		</form>
-		{{end}}
-	</div>
-	{{end}}
 </form>
+{{if .OAuth}}
+<div id="oauth">
+	{{if .TwitchOAuth}}
+	<a href={{.TwitchOAuthURL}}>Login with Twitch</a>
+	{{end}}
+	{{if .DiscordOAuth}}
+	<a href={{.DiscordOAuthURL}}>Login with Discord</a>
+	{{end}}
+	{{if .PatreonOAuth}}
+	<a href={{.PatreonOAuth}}>Login with Patreon</a>
+	{{end}}
+</div>
+{{end}}
+
 {{end}}
 {{end}}
