@@ -23,6 +23,7 @@ SOURCES = \
 		  templates.go \
 		  user.go \
 		  util.go \
+		  oauth.go \
 		  votes.go
 
 .PHONY: all data fmt server
