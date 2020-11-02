@@ -38,9 +38,15 @@ const (
 	DefaultMaxLinkLength        int = 500 // length of all links combined
 	DefaultMaxRemarksLength     int = 200
 
-	DefaultTwitchOauthEnabled  bool = false
-	DefaultDiscordOauthEnabled bool = false
-	DefaultPatreonOauthEnabled bool = false
+	DefaultTwitchOauthEnabled       bool   = false
+	DefaultTwitchOauthClientID      string = ""
+	DefaultTwitchOauthClientSecret  string = ""
+	DefaultDiscordOauthEnabled      bool   = false
+	DefaultDiscordOauthClientID     string = ""
+	DefaultDiscordOauthClientSecret string = ""
+	DefaultPatreonOauthEnabled      bool   = false
+	DefaultPatreonOauthClientID     string = ""
+	DefaultPatreonOauthClientSecret string = ""
 )
 
 // configuration keys
@@ -65,9 +71,15 @@ const (
 	ConfigMaxLinkLength        string = "MaxLinkLength"
 	ConfigMaxRemarksLength     string = "MaxRemarksLength"
 
-	ConfigTwitchOauthEnabled  string = "TwitchOauthEnabled"
-	ConfigDiscordOauthEnabled string = "DiscordOauthEnabled"
-	ConfigPatreonOauthEnabled string = "PatreonOauthEnabled"
+	ConfigTwitchOauthEnabled       string = "TwitchOauthEnabled"
+	ConfigTwitchOauthClientID      string = "TwitchOauthClientID"
+	ConfigTwitchOauthClientSecret  string = "TwitchOauthSecret"
+	ConfigDiscordOauthEnabled      string = "DiscordOauthEnabled"
+	ConfigDiscordOauthClientID     string = "DiscordOauthClientID"
+	ConfigDiscordOauthClientSecret string = "DiscordOauthClientSecret"
+	ConfigPatreonOauthEnabled      string = "PatreonOauthEnabled"
+	ConfigPatreonOauthClientID     string = "PatreonOauthClientID"
+	ConfigPatreonOauthClientSecret string = "PatreonOauthClientSecret"
 )
 
 type Options struct {
@@ -177,6 +189,11 @@ func NewServer(options Options) (*Server, error) {
 		fmt.Printf("Claim admin: %s/auth/%s Password: %s\n", host, urlKey.Url, urlKey.Key)
 	}
 
+	err = server.initOauth()
+	if err != nil {
+		return nil, err
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiHandler{})
 	mux.HandleFunc("/movie/", server.handlerMovie)
@@ -189,6 +206,9 @@ func NewServer(options Options) (*Server, error) {
 
 	mux.HandleFunc("/user", server.handlerUser)
 	mux.HandleFunc("/user/login", server.handlerUserLogin)
+	mux.HandleFunc("/user/login/twitch", server.handlerTwitchOAuth)
+	mux.HandleFunc("/user/login/twitch/callback", server.handlerTwitchOAuthCallback)
+
 	mux.HandleFunc("/user/logout", server.handlerUserLogout)
 	mux.HandleFunc("/user/new", server.handlerUserNew)
 
