@@ -30,7 +30,7 @@ func (s *Server) initOauth() error {
 		}
 
 		twitchOAuthConfig = &oauth2.Config{
-			RedirectURL:  "http://localhost:8090/user/login",
+			RedirectURL:  "http://localhost:8090/user/login/twitch/callback",
 			ClientID:     twitchClientID,
 			ClientSecret: twitchClientSecret,
 			Scopes:       []string{},
@@ -73,6 +73,8 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	s.l.Debug("Token: %s", token)
+	http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+	return
 }
 
 func (s *Server) handlerDiscordOAuth() {
