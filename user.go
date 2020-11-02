@@ -155,6 +155,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
+
 	err := r.ParseForm()
 	if err != nil {
 		s.l.Error("Error parsing login form: %v", err)
@@ -177,10 +178,6 @@ func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	data.TwitchOAuth = twitchAuth
 
-	if twitchAuth {
-		data.TwitchOAuthURL = "TwitchOAuthURL"
-	}
-
 	discordAuth, err := s.data.GetCfgBool(ConfigDiscordOauthEnabled, DefaultDiscordOauthEnabled)
 	if err != nil {
 		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
@@ -189,10 +186,6 @@ func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	data.DiscordOAuth = discordAuth
 
-	if discordAuth {
-		data.DiscordOAuthURL = "DiscordOAuthURL"
-	}
-
 	patreonAuth, err := s.data.GetCfgBool(ConfigPatreonOauthEnabled, DefaultPatreonOauthEnabled)
 	if err != nil {
 		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
@@ -200,10 +193,6 @@ func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data.PatreonOAuth = patreonAuth
-
-	if patreonAuth {
-		data.PatreonOAuthURL = "PatreonOAuthURL"
-	}
 
 	data.OAuth = twitchAuth || discordAuth || patreonAuth
 
