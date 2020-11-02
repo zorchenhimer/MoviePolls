@@ -8,4 +8,5 @@ require (
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/rivo/uniseg v0.1.0
+	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 )
