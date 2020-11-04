@@ -504,11 +504,17 @@ func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
 	links := []*common.Link{}
 
 	for _, id := range jMovie.Tags {
-		tags = append(tags, j.GetTag(id))
+		t, ok := j.Tags[id]
+		if ok {
+			tags = append(tags, t)
+		}
 	}
 
 	for _, id := range jMovie.Links {
-		links = append(links, j.GetLink(id))
+		l, ok := j.Links[id]
+		if ok {
+			links = append(links, l)
+		}
 	}
 
 	movie := &common.Movie{
