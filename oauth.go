@@ -1,8 +1,12 @@
 package moviepoll
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
+	"time"
 
+	"github.com/zorchenhimer/MoviePolls/common"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/twitch"
 )
@@ -33,7 +37,7 @@ func (s *Server) initOauth() error {
 			RedirectURL:  "http://localhost:8090/user/login/twitch/callback",
 			ClientID:     twitchClientID,
 			ClientSecret: twitchClientSecret,
-			Scopes:       []string{},
+			Scopes:       []string{"user:read:email"},
 			Endpoint:     twitch.Endpoint,
 		}
 	}
@@ -72,7 +76,56 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
 		return
 	}
-	s.l.Debug("Token: %s", token)
+
+	req, err := http.NewRequest("GET", "https://api.twitch.tv/helix/users", nil)
+	req.Header.Add("Authorization", "Bearer "+token.AccessToken)
+	req.Header.Add("Client-Id", twitchOAuthConfig.ClientID)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		s.l.Error(err.Error())
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+
+	}
+	if resp.StatusCode != 200 {
+		s.l.Error("Status Code is not 200, its %v", resp.Status)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		s.l.Error(err.Error())
+	}
+
+	var data map[string][]map[string]interface{}
+
+	if err := json.Unmarshal(body, &data); err != nil {
+		s.l.Error(err.Error())
+		s.l.Debug("%v", data)
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
+	newUser := &common.User{
+		Name:                data["data"][0]["display_name"].(string),
+		Password:            token.AccessToken,
+		Email:               data["data"][0]["email"].(string),
+		NotifyCycleEnd:      false,
+		NotifyVoteSelection: false,
+		PassDate:            time.Now(),
+	}
+	s.l.Debug("adding user: %v", newUser)
+	_, err = s.data.AddUser(newUser)
+	if err != nil {
+		s.l.Error(err.Error())
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
+	s.l.Debug("logging in")
+	s.login(newUser, w, r)
+
 	http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
 	return
 }
