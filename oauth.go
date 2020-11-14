@@ -11,10 +11,12 @@ import (
 	"golang.org/x/oauth2/twitch"
 )
 
+// just some global variables
 var twitchOAuthConfig = &oauth2.Config{}
 var discordOAuthConfig = &oauth2.Config{}
 var patreonOAuthConfig = &oauth2.Config{}
-var oauthStateString string
+
+// var oauthStateString string
 var openStates = []string{}
 
 func (s *Server) initOauth() error {
@@ -48,8 +50,12 @@ func (s *Server) initOauth() error {
 
 func (s *Server) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+
+	// Generate a new state string for each login attempt and store it in the state list
 	oauthStateString := getCryptRandKey(32)
 	openStates = append(openStates, oauthStateString)
+
+	// Handle the Oauth redirect
 	url := twitchOAuthConfig.AuthCodeURL(oauthStateString)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
@@ -64,7 +70,7 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 		}
 	}
 	if !ok {
-		s.l.Info("Invalid OAuth state: '%s'", state)
+		s.l.Info("Invalid/Unknown OAuth state string: '%s'", state)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
 		return
 	}
@@ -72,11 +78,12 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 	code := r.FormValue("code")
 	token, err := twitchOAuthConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
-		s.l.Info("Code exchange failed with '%s'", err)
+		s.l.Info("Code exchange failed: %s", err)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
 		return
 	}
 
+	// Request the User data from the API
 	req, err := http.NewRequest("GET", "https://api.twitch.tv/helix/users", nil)
 	req.Header.Add("Authorization", "Bearer "+token.AccessToken)
 	req.Header.Add("Client-Id", twitchOAuthConfig.ClientID)
@@ -84,7 +91,7 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		s.l.Error(err.Error())
+		s.l.Info("Could not retrieve Userdata from Twitch API: %s", err)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
 		return
 
@@ -107,6 +114,11 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// TODO check if the user already exists
+	// looping through all users and checking the auth data?
+	// how to determine if a request is for a given user?
+
+	// Create a new User if no matching user is found
 	newUser := &common.User{
 		Name:                data["data"][0]["display_name"].(string),
 		Password:            token.AccessToken,
@@ -115,8 +127,10 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 		NotifyVoteSelection: false,
 		PassDate:            time.Now(),
 	}
+
 	s.l.Debug("adding user: %v", newUser)
-	_, err = s.data.AddUser(newUser)
+	newUser.Id, err = s.data.AddUser(newUser)
+
 	if err != nil {
 		s.l.Error(err.Error())
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
