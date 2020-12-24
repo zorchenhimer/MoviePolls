@@ -108,43 +108,48 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 			newPass1_raw := r.PostFormValue("PasswordNew1")
 			newPass2_raw := r.PostFormValue("PasswordNew2")
 
-			if currentPass != user.Password {
+			localAuth, err := user.GetAuthMethod(common.AUTH_LOCAL)
+			if err != nil {
 				data.ErrCurrentPass = true
-				data.PassError = append(data.PassError, "Invalid current password")
-			}
+				data.PassError = append(data.PassError, "No Password detected.")
+			} else {
 
-			if newPass1_raw == "" {
-				data.ErrNewPass = true
-				data.PassError = append(data.PassError, "New password cannot be blank")
-			}
-
-			if newPass1_raw != newPass2_raw {
-				data.ErrNewPass = true
-				data.PassError = append(data.PassError, "Passwords do not match")
-			}
-
-			if !(data.ErrCurrentPass || data.ErrNewPass || data.ErrEmail) {
-				// Change pass
-				data.SuccessMessage = "Password successfully changed"
-				user.Password = s.hashPassword(newPass1_raw)
-				user.PassDate = time.Now()
-
-				s.l.Info("new PassDate: %s", user.PassDate)
-
-				err = s.login(user, w, r)
-				if err != nil {
-					s.l.Error("Unable to login to session:", err)
-					s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
-					return
+				if currentPass != localAuth.Password {
+					data.ErrCurrentPass = true
+					data.PassError = append(data.PassError, "Invalid current password")
 				}
 
-				if err = s.data.UpdateUser(user); err != nil {
-					s.l.Error("Unable to save User with new password:", err)
-					s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
-					return
+				if newPass1_raw == "" {
+					data.ErrNewPass = true
+					data.PassError = append(data.PassError, "New password cannot be blank")
+				}
+
+				if newPass1_raw != newPass2_raw {
+					data.ErrNewPass = true
+					data.PassError = append(data.PassError, "Passwords do not match")
+				}
+				if !(data.ErrCurrentPass || data.ErrNewPass || data.ErrEmail) {
+					// Change pass
+					data.SuccessMessage = "Password successfully changed"
+					localAuth.Password = s.hashPassword(newPass1_raw)
+					localAuth.PassDate = time.Now()
+
+					if err = s.data.UpdateAuthMethod(localAuth); err != nil {
+						s.l.Error("Unable to save User with new password:", err)
+						s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
+						return
+					}
+
+					s.l.Info("new PassDate: %s", localAuth.PassDate)
+					err = s.login(user, w, r)
+					if err != nil {
+						s.l.Error("Unable to login to session:", err)
+						s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
+						return
+					}
+
 				}
 			}
-
 		} else if formVal == "Notifications" {
 			// Update notifications
 		}
@@ -201,7 +206,7 @@ func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 
 		un := r.PostFormValue("Username")
 		pw := r.PostFormValue("Password")
-		user, err = s.data.UserLogin(un, s.hashPassword(pw))
+		user, err = s.data.UserLocalLogin(un, s.hashPassword(pw))
 		if err != nil {
 			data.ErrorMessage = err.Error()
 		} else {
@@ -342,14 +347,30 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 			data.ErrorMessage = append(data.ErrorMessage, "Email required for notifications")
 		}
 
+		auth := &common.AuthMethod{
+			Type:     common.AUTH_LOCAL,
+			Password: s.hashPassword(pw1),
+			PassDate: time.Now(),
+		}
+
+		id, err := s.data.AddAuthMethod(auth)
+
+		if err != nil {
+			s.l.Error(err.Error())
+			data.ErrorMessage = append(data.ErrorMessage, "Could not create new User, message the server admin")
+		}
+
+		auth.Id = id
+
+		authMethods := []*common.AuthMethod{auth}
+
 		if len(data.ErrorMessage) == 0 {
 			newUser := &common.User{
 				Name:                un,
-				Password:            s.hashPassword(pw1),
 				Email:               email,
+				AuthMethods:         authMethods,
 				NotifyCycleEnd:      data.ValNotifyEnd,
 				NotifyVoteSelection: data.ValNotifySelected,
-				PassDate:            time.Now(),
 			}
 
 			_, err = s.data.AddUser(newUser)
