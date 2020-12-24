@@ -108,8 +108,10 @@ func (s *Server) adminDeleteUser(w http.ResponseWriter, r *http.Request, user *c
 		s.l.Info("Deleting user %s", user)
 		origName := user.Name
 		user.Name = "[deleted]"
-		user.Password = ""
-		user.PassDate = time.Now()
+		for _, auth := range user.AuthMethods {
+			s.data.DeleteAuthMethod(auth.Id)
+		}
+		user.AuthMethods = []*common.AuthMethod{}
 		user.Email = ""
 		user.NotifyCycleEnd = false
 		user.NotifyVoteSelection = false
