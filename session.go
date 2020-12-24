@@ -24,7 +24,13 @@ func (s *Server) login(user *common.User, w http.ResponseWriter, r *http.Request
 		return fmt.Errorf("Unable to get session from store: %v", err)
 	}
 
-	gobbed, err := user.PassDate.GobEncode()
+	localAuth, err := user.GetAuthMethod(common.AUTH_LOCAL)
+
+	if err != nil {
+		return err
+	}
+
+	gobbed, err := localAuth.PassDate.GobEncode()
 	if err != nil {
 		return fmt.Errorf("Unable to gob PassDate")
 	}
@@ -76,7 +82,15 @@ func (s *Server) getSessionUser(w http.ResponseWriter, r *http.Request) *common.
 	}
 
 	passDate, _ := session.Values["PassDate"].(string)
-	gobbed, err := user.PassDate.GobEncode()
+
+	localAuth, err := user.GetAuthMethod(common.AUTH_LOCAL)
+
+	if err != nil {
+		s.l.Error(err.Error())
+		return nil
+	}
+
+	gobbed, err := localAuth.PassDate.GobEncode()
 
 	if err != nil || fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed))) != passDate {
 		s.l.Info("User's PassDate did not match stored value")
