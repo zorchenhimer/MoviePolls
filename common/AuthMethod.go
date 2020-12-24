@@ -5,10 +5,10 @@ import "time"
 type AuthType string
 
 const (
-	DISCORD = "Discord"
-	TWITCH  = "Twitch"
-	PATREON = "Patreon"
-	LOCAL   = "Local"
+	AUTH_DISCORD = "Discord"
+	AUTH_TWITCH  = "Twitch"
+	AUTH_PATREON = "Patreon"
+	AUTH_LOCAL   = "Local"
 )
 
 type AuthMethod struct {
