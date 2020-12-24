@@ -14,17 +14,15 @@ const (
 )
 
 type User struct {
-	Id         int
-	Name       string
-	Password   string
-	OAuthToken string
-	Email      string // nil if user didn't opt-in.
+	Id    int
+	Name  string
+	Email string // nil if user didn't opt-in.
 
 	NotifyCycleEnd      bool
 	NotifyVoteSelection bool
 	Privilege           PrivilegeLevel
 
-	PassDate time.Time
+	AuthMethods []*AuthMethod
 
 	// Does this user ignore rate limit? (default true for mod/admin)
 	RateLimitOverride bool
@@ -52,13 +50,12 @@ func (u User) IsMod() bool {
 
 func (u User) String() string {
 	return fmt.Sprintf(
-		"User{Id:%d Name:%q Email:%q NotifyCycleEnd:%t NotifyVoteSelection:%t Privilege:%d PassDate:%s}",
+		"User{Id:%d Name:%q Email:%q NotifyCycleEnd:%t NotifyVoteSelection:%t Privilege:%d}",
 		u.Id,
 		u.Name,
 		u.Email,
 		u.NotifyCycleEnd,
 		u.NotifyVoteSelection,
 		u.Privilege,
-		u.PassDate,
 	)
 }
