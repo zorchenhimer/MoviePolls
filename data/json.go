@@ -208,12 +208,13 @@ func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error)
 		lock:     &sync.RWMutex{},
 		Settings: map[string]configValue{},
 
-		Cycles: map[int]jsonCycle{},
-		Movies: map[int]jsonMovie{},
-		Users:  map[int]jsonUser{},
-		Tags:   map[int]*common.Tag{},
-		Links:  map[int]*common.Link{},
-		l:      l,
+		Cycles:      map[int]jsonCycle{},
+		Movies:      map[int]jsonMovie{},
+		Users:       map[int]jsonUser{},
+		Tags:        map[int]*common.Tag{},
+		Links:       map[int]*common.Link{},
+		AuthMethods: map[int]*common.AuthMethod{},
+		l:           l,
 	}
 
 	return j, j.save()
