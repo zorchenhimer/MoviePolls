@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/zorchenhimer/MoviePolls/common"
 	"golang.org/x/oauth2"
@@ -114,18 +113,31 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// TODO check if the user already exists
-	// looping through all users and checking the auth data?
-	// how to determine if a request is for a given user?
+	auth := &common.AuthMethod{
+		Type:         common.AUTH_TWITCH,
+		AuthToken:    token.AccessToken,
+		RefreshToken: token.RefreshToken,
+		RefreshDate:  token.Expiry,
+	}
 
-	// Create a new User if no matching user is found
+	id, err := s.data.AddAuthMethod(auth)
+
+	if err != nil {
+		s.l.Error(err.Error())
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
+	auth.Id = id
+
+	authSlice := []*common.AuthMethod{auth}
+
 	newUser := &common.User{
 		Name:                data["data"][0]["display_name"].(string),
-		Password:            token.AccessToken,
 		Email:               data["data"][0]["email"].(string),
 		NotifyCycleEnd:      false,
 		NotifyVoteSelection: false,
-		PassDate:            time.Now(),
+		AuthMethods:         authSlice,
 	}
 
 	s.l.Debug("adding user: %v", newUser)
