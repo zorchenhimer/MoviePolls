@@ -274,12 +274,6 @@ func (s *Server) CheckAdminExists() (bool, error) {
 	return false, nil
 }
 
-func (s *Server) AddUser(user *common.User) error {
-	user.Password = s.hashPassword(user.Password)
-	_, err := s.data.AddUser(user)
-	return err
-}
-
 func (s *Server) handlerFavicon(w http.ResponseWriter, r *http.Request) {
 	if common.FileExists("data/favicon.ico") {
 		http.ServeFile(w, r, "data/favicon.ico")
