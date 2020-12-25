@@ -930,8 +930,8 @@ func (j *jsonConnector) GetAuthMethod(id int) *common.AuthMethod {
 }
 
 func (j *jsonConnector) UpdateAuthMethod(authMethod *common.AuthMethod) error {
-	j.lock.RLock()
-	defer j.lock.RUnlock()
+	j.lock.Lock()
+	defer j.lock.Unlock()
 
 	_, ok := j.AuthMethods[authMethod.Id]
 
@@ -939,8 +939,10 @@ func (j *jsonConnector) UpdateAuthMethod(authMethod *common.AuthMethod) error {
 		return fmt.Errorf("No AuthMethod with Id %d found.", authMethod.Id)
 	}
 
+	j.l.Debug("Setting AuthMethod with ID %d to %v", authMethod.Id, authMethod)
+
 	j.AuthMethods[authMethod.Id] = authMethod
-	return nil
+	return j.save()
 }
 func (j *jsonConnector) DeleteTag(id int) {
 	j.lock.Lock()
