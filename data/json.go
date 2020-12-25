@@ -600,6 +600,7 @@ func (j *jsonConnector) userFromJson(jUser jsonUser) *common.User {
 		AuthMethods:         authMethods,
 		RateLimitOverride:   jUser.RateLimitOverride,
 		LastMovieAdd:        *jUser.LastMovieAdd,
+		Privilege:           common.PrivilegeLevel(jUser.Privilege),
 	}
 
 	return user
