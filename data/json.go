@@ -956,6 +956,8 @@ func (j *jsonConnector) DeleteAuthMethod(id int) {
 	defer j.lock.Unlock()
 
 	delete(j.AuthMethods, id)
+
+	j.save()
 }
 
 func (j *jsonConnector) nextTagId() int {
