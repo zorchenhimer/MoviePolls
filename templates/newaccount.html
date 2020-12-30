@@ -22,6 +22,20 @@
             <div{{if .ErrPass}} class="errorMessage"{{end}}><label for="Password2">Retype password<label></div>
             <div><input type="password" name="Password2" id="Password2" required /></div>
         </div>
+		{{if .OAuth}}
+		<div id="oauth">
+			{{if .TwitchOAuth}}
+			<a href="/user/new/twitch">Login with Twitch</a>
+			{{end}}
+			{{if .DiscordOAuth}}
+			<a href="/user/new/discord">Login with Discord</a>
+			{{end}}
+			{{if .PatreonOAuth}}
+			<a href="/user/new/patreon">Login with Patreon</a>
+			{{end}}
+		</div>
+		{{end}}
+
 
         {{/* Disable this stuff for now
         <div>

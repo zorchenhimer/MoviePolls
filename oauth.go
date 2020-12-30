@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/zorchenhimer/MoviePolls/common"
 	"golang.org/x/oauth2"
@@ -47,16 +48,32 @@ func (s *Server) initOauth() error {
 	return nil
 }
 
-func (s *Server) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handlerTwitchOAuthLogin(w http.ResponseWriter, r *http.Request) {
 	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
 
 	// Generate a new state string for each login attempt and store it in the state list
-	oauthStateString := getCryptRandKey(32)
+	oauthStateString := "login_" + getCryptRandKey(32)
 	openStates = append(openStates, oauthStateString)
 
 	// Handle the Oauth redirect
 	url := twitchOAuthConfig.AuthCodeURL(oauthStateString)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+
+	s.l.Debug("twitch login")
+}
+
+func (s *Server) handlerTwitchOAuthSignup(w http.ResponseWriter, r *http.Request) {
+	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+
+	// Generate a new state string for each login attempt and store it in the state list
+	oauthStateString := "signup_" + getCryptRandKey(32)
+	openStates = append(openStates, oauthStateString)
+
+	// Handle the Oauth redirect
+	url := twitchOAuthConfig.AuthCodeURL(oauthStateString)
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+
+	s.l.Debug("twitch signup")
 }
 
 func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Request) {
@@ -113,48 +130,67 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	auth := &common.AuthMethod{
-		Type:         common.AUTH_TWITCH,
-		ExtId:        data["data"][0]["id"].(string),
-		AuthToken:    token.AccessToken,
-		RefreshToken: token.RefreshToken,
-		RefreshDate:  token.Expiry,
+	if strings.HasPrefix(state, "signup_") {
+
+		s.l.Debug("signup prefix")
+
+		auth := &common.AuthMethod{
+			Type:         common.AUTH_TWITCH,
+			ExtId:        data["data"][0]["id"].(string),
+			AuthToken:    token.AccessToken,
+			RefreshToken: token.RefreshToken,
+			RefreshDate:  token.Expiry,
+		}
+
+		if !s.data.CheckOauthUsage(auth.ExtId, auth.Type) {
+
+			newUser := &common.User{
+				Name:                data["data"][0]["display_name"].(string),
+				Email:               data["data"][0]["email"].(string),
+				NotifyCycleEnd:      false,
+				NotifyVoteSelection: false,
+			}
+
+			newUser.Id, err = s.data.AddUser(newUser)
+
+			if err != nil {
+				s.l.Error(err.Error())
+				http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+				return
+			}
+
+			newUser, err = s.AddAuthMethodToUser(auth, newUser)
+
+			if err != nil {
+				s.l.Error(err.Error())
+				http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+				return
+			}
+
+			err = s.data.UpdateUser(newUser)
+
+			if err != nil {
+				s.l.Error(err.Error())
+				http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+				return
+			}
+
+			s.l.Debug("logging in %v", newUser.Name)
+			s.login(newUser, common.AUTH_TWITCH, w, r)
+		} else {
+			s.l.Debug("AuthMethod already used")
+		}
+	} else if strings.HasPrefix(state, "login_") {
+		s.l.Debug("login prefix")
+		user, err := s.data.UserTwitchLogin(data["data"][0]["id"].(string))
+		if err != nil {
+			s.l.Error(err.Error())
+			http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+			return
+		}
+		s.l.Debug("logging in %v", user.Name)
+		s.login(user, common.AUTH_TWITCH, w, r)
 	}
-
-	newUser := &common.User{
-		Name:                data["data"][0]["display_name"].(string),
-		Email:               data["data"][0]["email"].(string),
-		NotifyCycleEnd:      false,
-		NotifyVoteSelection: false,
-	}
-
-	newUser.Id, err = s.data.AddUser(newUser)
-
-	if err != nil {
-		s.l.Error(err.Error())
-		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
-		return
-	}
-
-	newUser, err = s.AddAuthMethodToUser(auth, newUser)
-
-	if err != nil {
-		s.l.Error(err.Error())
-		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
-		return
-	}
-
-	err = s.data.UpdateUser(newUser)
-
-	if err != nil {
-		s.l.Error(err.Error())
-		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
-		return
-	}
-
-	s.l.Debug("logging in %v", newUser.Name)
-	s.login(newUser, common.AUTH_TWITCH, w, r)
-
 	http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
 	return
 }

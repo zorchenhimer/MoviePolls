@@ -292,6 +292,11 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 		ErrPass      bool
 		ErrEmail     bool
 
+		OAuth        bool
+		TwitchOAuth  bool
+		DiscordOAuth bool
+		PatreonOAuth bool
+
 		ValName           string
 		ValEmail          string
 		ValNotifyEnd      bool
@@ -301,6 +306,32 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	doRedirect := false
+
+	twitchAuth, err := s.data.GetCfgBool(ConfigTwitchOauthEnabled, DefaultTwitchOauthEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigTwitchOauthEnabled config value: %v", err)
+		return
+	}
+	data.TwitchOAuth = twitchAuth
+
+	discordAuth, err := s.data.GetCfgBool(ConfigDiscordOauthEnabled, DefaultDiscordOauthEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigDiscordOauthEnabled config value: %v", err)
+		return
+	}
+	data.DiscordOAuth = discordAuth
+
+	patreonAuth, err := s.data.GetCfgBool(ConfigPatreonOauthEnabled, DefaultPatreonOauthEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigPatreonOauthEnabled config value: %v", err)
+		return
+	}
+	data.PatreonOAuth = patreonAuth
+
+	data.OAuth = twitchAuth || discordAuth || patreonAuth
 
 	if r.Method == "POST" {
 		err := r.ParseForm()
