@@ -651,15 +651,35 @@ func (j *jsonConnector) UserLocalLogin(name, hashedPw string) (*common.User, err
 	return nil, fmt.Errorf("Invalid login credentials")
 }
 
-func (j *jsonConnector) UserDiscordLogin(name, hashedPw string) (*common.User, error) {
+func (j *jsonConnector) UserDiscordLogin(extid string) (*common.User, error) {
 	return nil, fmt.Errorf("Not implemented")
 }
 
-func (j *jsonConnector) UserTwitchLogin(name, hashedPw string) (*common.User, error) {
-	return nil, fmt.Errorf("Not implemented")
+func (j *jsonConnector) UserTwitchLogin(extid string) (*common.User, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	//TODO refreshing
+
+	var id int
+	for _, auth := range j.AuthMethods {
+		if auth.ExtId == extid {
+			id = auth.Id
+			break
+		}
+	}
+
+	for _, user := range j.Users {
+		for _, auth := range user.AuthMethods {
+			if auth == id {
+				return j.findUser(user.Id), nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("No user found with corresponding extid")
 }
 
-func (j *jsonConnector) UserPatreonLogin(name, hashedPw string) (*common.User, error) {
+func (j *jsonConnector) UserPatreonLogin(extid string) (*common.User, error) {
 	return nil, fmt.Errorf("Not implemented")
 }
 
@@ -1489,4 +1509,18 @@ func (j *jsonConnector) Test_GetUserVotes(userId int) ([]*common.Vote, error) {
 		votes = append(votes, &common.Vote{CycleAdded: c, Movie: m, User: u})
 	}
 	return votes, nil
+}
+
+func (j *jsonConnector) CheckOauthUsage(id string, authType common.AuthType) bool {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	for _, auth := range j.AuthMethods {
+		if auth.Type == authType {
+			if auth.ExtId == id {
+				return true
+			}
+		}
+	}
+	return false
 }

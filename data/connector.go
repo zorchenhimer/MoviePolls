@@ -105,9 +105,11 @@ type DataConnector interface {
 	// ################
 
 	UserLocalLogin(name, hashedPw string) (*common.User, error)
-	UserDiscordLogin(name, token string) (*common.User, error)
-	UserTwitchLogin(name, token string) (*common.User, error)
-	UserPatreonLogin(name, token string) (*common.User, error)
+	UserDiscordLogin(extid string) (*common.User, error)
+	UserTwitchLogin(extid string) (*common.User, error)
+	UserPatreonLogin(extid string) (*common.User, error)
+
+	CheckOauthUsage(id string, authtype common.AuthType) bool
 
 	SearchMovieTitles(query string) ([]*common.Movie, error)
 
