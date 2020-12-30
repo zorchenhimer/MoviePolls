@@ -120,27 +120,13 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 		RefreshDate:  token.Expiry,
 	}
 
-	id, err := s.data.AddAuthMethod(auth)
-
-	if err != nil {
-		s.l.Error(err.Error())
-		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
-		return
-	}
-
-	auth.Id = id
-
-	authSlice := []*common.AuthMethod{auth}
-
 	newUser := &common.User{
 		Name:                data["data"][0]["display_name"].(string),
 		Email:               data["data"][0]["email"].(string),
 		NotifyCycleEnd:      false,
 		NotifyVoteSelection: false,
-		AuthMethods:         authSlice,
 	}
 
-	s.l.Debug("adding user: %v", newUser)
 	newUser.Id, err = s.data.AddUser(newUser)
 
 	if err != nil {
@@ -149,8 +135,24 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	s.l.Debug("logging in")
-	s.login(newUser, w, r)
+	newUser, err = s.AddAuthMethodToUser(auth, newUser)
+
+	if err != nil {
+		s.l.Error(err.Error())
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
+	err = s.data.UpdateUser(newUser)
+
+	if err != nil {
+		s.l.Error(err.Error())
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
+	s.l.Debug("logging in %v", newUser.Name)
+	s.login(newUser, common.AUTH_TWITCH, w, r)
 
 	http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
 	return

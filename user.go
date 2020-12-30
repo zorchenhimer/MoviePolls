@@ -145,7 +145,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 					}
 
 					s.l.Info("new PassDate: %s", localAuth.PassDate)
-					err = s.login(user, w, r)
+					err = s.login(user, common.AUTH_LOCAL, w, r)
 					if err != nil {
 						s.l.Error("Unable to login to session:", err)
 						s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
@@ -222,7 +222,7 @@ func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user != nil {
-		err = s.login(user, w, r)
+		err = s.login(user, common.AUTH_LOCAL, w, r)
 		if err != nil {
 			s.l.Error("Unable to login: %v", err)
 			s.doError(http.StatusInternalServerError, "Unable to login", w, r)
@@ -401,7 +401,7 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				data.ErrorMessage = append(data.ErrorMessage, err.Error())
 			} else {
-				err = s.login(newUser, w, r)
+				err = s.login(newUser, common.AUTH_LOCAL, w, r)
 				if err != nil {
 					s.l.Error("Unable to login to session: %v", err)
 					s.doError(http.StatusInternalServerError, "Login error", w, r)

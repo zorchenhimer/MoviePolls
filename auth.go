@@ -137,7 +137,7 @@ func (s *Server) handlerAuth(w http.ResponseWriter, r *http.Request) {
 						return
 					}
 
-					if err = s.login(user, w, r); err != nil {
+					if err = s.login(user, common.AUTH_LOCAL, w, r); err != nil {
 						s.l.Error("Unable to login to session:", err)
 						s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
 						return
