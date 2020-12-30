@@ -252,6 +252,31 @@ func (s *Server) handlerUserLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
+func (s *Server) AddAuthMethodToUser(auth *common.AuthMethod, user *common.User) (*common.User, error) {
+
+	if user.AuthMethods == nil {
+		user.AuthMethods = []*common.AuthMethod{}
+	}
+
+	// Check if the user already has this authtype associated with him
+	if _, err := user.GetAuthMethod(auth.Type); err != nil {
+
+		id, err := s.data.AddAuthMethod(auth)
+
+		if err != nil {
+			return nil, fmt.Errorf("Could not create new AuthMethod %s for user %s", auth.Type, user.Name)
+		}
+
+		auth.Id = id
+
+		user.AuthMethods = append(user.AuthMethods, auth)
+
+		return user, err
+	} else {
+		return nil, fmt.Errorf("AuthMethod %s is already associated with the user %s", auth.Type, user.Name)
+	}
+}
+
 func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	user := s.getSessionUser(w, r)
 	if user != nil {
@@ -357,27 +382,22 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 			PassDate: time.Now(),
 		}
 
-		id, err := s.data.AddAuthMethod(auth)
-
 		if err != nil {
 			s.l.Error(err.Error())
 			data.ErrorMessage = append(data.ErrorMessage, "Could not create new User, message the server admin")
 		}
 
-		auth.Id = id
-
-		authMethods := []*common.AuthMethod{auth}
-
 		if len(data.ErrorMessage) == 0 {
 			newUser := &common.User{
 				Name:                un,
 				Email:               email,
-				AuthMethods:         authMethods,
 				NotifyCycleEnd:      data.ValNotifyEnd,
 				NotifyVoteSelection: data.ValNotifySelected,
 			}
 
-			_, err = s.data.AddUser(newUser)
+			newUser, err = s.AddAuthMethodToUser(auth, newUser)
+
+			newUser.Id, err = s.data.AddUser(newUser)
 			if err != nil {
 				data.ErrorMessage = append(data.ErrorMessage, err.Error())
 			} else {
