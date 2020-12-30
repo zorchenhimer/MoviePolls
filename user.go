@@ -65,6 +65,8 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		dataPageBase
 
+		User *common.User
+
 		TotalVotes     int
 		AvailableVotes int
 		UnlimitedVotes bool
@@ -83,6 +85,8 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 		ErrEmail       bool
 	}{
 		dataPageBase: s.newPageBase("Account", w, r),
+
+		User: user,
 
 		TotalVotes:     totalVotes,
 		AvailableVotes: totalVotes - len(activeVotes),

@@ -43,6 +43,27 @@
     </div>
     */}}
 
+	</br>
+	<hr width="75%">
+	</br>
+
+	<div>
+		<div> Your activated Login methods: </div>
+		<div>
+			<ul>
+                {{if .User}}
+                {{range .User.AuthMethods}}<li>{{.Type}}</li>{{end}}
+                {{else}}<li>No Auth Methods :c</li>{{end}}
+            </ul>
+		</div>
+	</div>
+
+
+	</br>
+	<hr width="75%">
+	</br>
+
+
     <div>
         <div>Available votes: {{if .UnlimitedVotes}}&#x221e;{{else}}{{.AvailableVotes}}{{end}} (total: {{.TotalVotes}})</div>
         <div>Your current votes</div>
