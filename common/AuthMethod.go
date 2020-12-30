@@ -13,6 +13,7 @@ const (
 
 type AuthMethod struct {
 	Id           int
+	ExtId        string
 	Type         AuthType
 	Password     string
 	PassDate     time.Time

@@ -115,6 +115,7 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 
 	auth := &common.AuthMethod{
 		Type:         common.AUTH_TWITCH,
+		ExtId:        data["data"][0]["id"].(string),
 		AuthToken:    token.AccessToken,
 		RefreshToken: token.RefreshToken,
 		RefreshDate:  token.Expiry,
