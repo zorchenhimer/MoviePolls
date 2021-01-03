@@ -76,6 +76,20 @@ func (s *Server) handlerTwitchOAuthSignup(w http.ResponseWriter, r *http.Request
 	s.l.Debug("twitch signup")
 }
 
+func (s *Server) handlerTwitchOAuthAdd(w http.ResponseWriter, r *http.Request) {
+	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+
+	// Generate a new state string for each login attempt and store it in the state list
+	oauthStateString := "add_" + getCryptRandKey(32)
+	openStates = append(openStates, oauthStateString)
+
+	// Handle the Oauth redirect
+	url := twitchOAuthConfig.AuthCodeURL(oauthStateString)
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+
+	s.l.Debug("twitch add")
+}
+
 func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	state := r.FormValue("state")
 
@@ -190,6 +204,43 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 		}
 		s.l.Debug("logging in %v", user.Name)
 		s.login(user, common.AUTH_TWITCH, w, r)
+	} else if strings.HasPrefix(state, "add_") {
+		s.l.Debug("add prefix")
+
+		user := s.getSessionUser(w, r)
+
+		auth := &common.AuthMethod{
+			Type:         common.AUTH_TWITCH,
+			ExtId:        data["data"][0]["id"].(string),
+			AuthToken:    token.AccessToken,
+			RefreshToken: token.RefreshToken,
+			RefreshDate:  token.Expiry,
+		}
+
+		if !s.data.CheckOauthUsage(auth.ExtId, auth.Type) {
+			_, err = s.AddAuthMethodToUser(auth, user)
+
+			if err != nil {
+				s.l.Error(err.Error())
+				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+				return
+			}
+
+			err = s.data.UpdateUser(user)
+
+			if err != nil {
+				s.l.Error(err.Error())
+				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+				return
+			}
+		} else {
+			s.l.Error("User %s already has linked auth %s", user.Name, auth.Type)
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+
 	}
 	http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
 	return
