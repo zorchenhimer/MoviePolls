@@ -308,6 +308,32 @@ func (s *Server) AddAuthMethodToUser(auth *common.AuthMethod, user *common.User)
 	}
 }
 
+func (s *Server) RemoveAuthMethodFromUser(auth *common.AuthMethod, user *common.User) (*common.User, error) {
+
+	if user.AuthMethods == nil {
+		user.AuthMethods = []*common.AuthMethod{}
+	}
+
+	// Check if the user already has this authtype associated with him
+	_, err := user.GetAuthMethod(auth.Type)
+	if err != nil {
+		return nil, fmt.Errorf("AuthMethod %s is not associated with the user %s", auth.Type, user.Name)
+	}
+	s.data.DeleteAuthMethod(auth.Id)
+
+	// thanks golang for not having a delete method for slices ...
+	oldauths := user.AuthMethods
+	newAuths := []*common.AuthMethod{}
+	for _, a := range oldauths {
+		if a != auth {
+			newAuths = append(newAuths, a)
+		}
+	}
+
+	user.AuthMethods = newAuths
+
+	return user, err
+}
 func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	user := s.getSessionUser(w, r)
 	if user != nil {

@@ -90,6 +90,44 @@ func (s *Server) handlerTwitchOAuthAdd(w http.ResponseWriter, r *http.Request) {
 	s.l.Debug("twitch add")
 }
 
+func (s *Server) handlerTwitchOAuthRemove(w http.ResponseWriter, r *http.Request) {
+	s.l.Debug("twitch remove")
+
+	user := s.getSessionUser(w, r)
+
+	auth, err := user.GetAuthMethod(common.AUTH_TWITCH)
+
+	if err != nil {
+		s.l.Info("User %s does not have Twitch Oauth associated with him", user.Name)
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	if len(user.AuthMethods) == 1 {
+		s.l.Info("User %v only has Twitch Oauth associated with him", user.Name)
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	user, err = s.RemoveAuthMethodFromUser(auth, user)
+
+	if err != nil {
+		s.l.Info("Could not remove Twitch Oauth from user. %s", err.Error())
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	err = s.data.UpdateUser(user)
+	if err != nil {
+		s.l.Info("Could not update user %s", user.Name)
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+	return
+}
+
 func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	state := r.FormValue("state")
 
@@ -191,8 +229,10 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 
 			s.l.Debug("logging in %v", newUser.Name)
 			s.login(newUser, common.AUTH_TWITCH, w, r)
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		} else {
 			s.l.Debug("AuthMethod already used")
+			http.Redirect(w, r, "/user/new", http.StatusTemporaryRedirect)
 		}
 	} else if strings.HasPrefix(state, "login_") {
 		s.l.Debug("login prefix")
@@ -204,6 +244,7 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 		}
 		s.l.Debug("logging in %v", user.Name)
 		s.login(user, common.AUTH_TWITCH, w, r)
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 	} else if strings.HasPrefix(state, "add_") {
 		s.l.Debug("add prefix")
 
@@ -218,31 +259,36 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 		}
 
 		if !s.data.CheckOauthUsage(auth.ExtId, auth.Type) {
-			_, err = s.AddAuthMethodToUser(auth, user)
-
+			_, err = user.GetAuthMethod(auth.Type)
 			if err != nil {
-				s.l.Error(err.Error())
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
+				_, err = s.AddAuthMethodToUser(auth, user)
 
-			err = s.data.UpdateUser(user)
+				if err != nil {
+					s.l.Error(err.Error())
+					http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+					return
+				}
 
-			if err != nil {
-				s.l.Error(err.Error())
+				err = s.data.UpdateUser(user)
+
+				if err != nil {
+					s.l.Error(err.Error())
+					http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+					return
+				}
+			} else {
+				s.l.Error("User %s already has %s Oauth associated", user.Name, auth.Type)
 				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 				return
 			}
 		} else {
-			s.l.Error("User %s already has linked auth %s", user.Name, auth.Type)
+			s.l.Error("The provided Oauth login is already used")
 			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 			return
 		}
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
-
 	}
-	http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
 	return
 }
 
