@@ -71,10 +71,15 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 		AvailableVotes int
 		UnlimitedVotes bool
 
-		OAuth        bool
-		TwitchOAuth  bool
-		DiscordOAuth bool
-		PatreonOAuth bool
+		OAuthEnabled        bool
+		TwitchOAuthEnabled  bool
+		DiscordOAuthEnabled bool
+		PatreonOAuthEnabled bool
+
+		HasLocal   bool
+		HasTwitch  bool
+		HasDiscord bool
+		HasPatreon bool
 
 		ActiveVotes    []*common.Movie
 		WatchedVotes   []*common.Movie
@@ -108,7 +113,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 		s.l.Error("Unable to get ConfigTwitchOauthEnabled config value: %v", err)
 		return
 	}
-	data.TwitchOAuth = twitchAuth
+	data.TwitchOAuthEnabled = twitchAuth
 
 	discordAuth, err := s.data.GetCfgBool(ConfigDiscordOauthEnabled, DefaultDiscordOauthEnabled)
 	if err != nil {
@@ -116,7 +121,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 		s.l.Error("Unable to get ConfigDiscordOauthEnabled config value: %v", err)
 		return
 	}
-	data.DiscordOAuth = discordAuth
+	data.DiscordOAuthEnabled = discordAuth
 
 	patreonAuth, err := s.data.GetCfgBool(ConfigPatreonOauthEnabled, DefaultPatreonOauthEnabled)
 	if err != nil {
@@ -124,9 +129,18 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 		s.l.Error("Unable to get ConfigPatreonOauthEnabled config value: %v", err)
 		return
 	}
-	data.PatreonOAuth = patreonAuth
+	data.PatreonOAuthEnabled = patreonAuth
 
-	data.OAuth = twitchAuth || discordAuth || patreonAuth
+	data.OAuthEnabled = twitchAuth || discordAuth || patreonAuth
+
+	_, err = user.GetAuthMethod(common.AUTH_LOCAL)
+	data.HasLocal = err == nil
+	_, err = user.GetAuthMethod(common.AUTH_TWITCH)
+	data.HasTwitch = err == nil
+	_, err = user.GetAuthMethod(common.AUTH_DISCORD)
+	data.HasDiscord = err == nil
+	_, err = user.GetAuthMethod(common.AUTH_PATREON)
+	data.HasPatreon = err == nil
 
 	if r.Method == "POST" {
 		err := r.ParseForm()
