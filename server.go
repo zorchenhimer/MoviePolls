@@ -208,12 +208,18 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/user/login", server.handlerUserLogin)
 	mux.HandleFunc("/user/login/twitch", server.handlerTwitchOAuthLogin)
 	mux.HandleFunc("/user/login/twitch/callback", server.handlerTwitchOAuthCallback)
+	mux.HandleFunc("/user/login/discord", server.handlerDiscordOAuthLogin)
+	mux.HandleFunc("/user/login/discord/callback", server.handlerDiscordOAuthCallback)
 
 	mux.HandleFunc("/user/logout", server.handlerUserLogout)
 	mux.HandleFunc("/user/new", server.handlerUserNew)
 	mux.HandleFunc("/user/new/twitch", server.handlerTwitchOAuthSignup)
 	mux.HandleFunc("/user/add/twitch", server.handlerTwitchOAuthAdd)
 	mux.HandleFunc("/user/remove/twitch", server.handlerTwitchOAuthRemove)
+	mux.HandleFunc("/user/new/discord", server.handlerDiscordOAuthSignup)
+	mux.HandleFunc("/user/add/discord", server.handlerDiscordOAuthAdd)
+	mux.HandleFunc("/user/remove/discord", server.handlerDiscordOAuthRemove)
+
 	mux.HandleFunc("/user/remove/local", server.handlerLocalAuthRemove)
 
 	mux.HandleFunc("/vote/", server.handlerVote)
