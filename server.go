@@ -210,6 +210,8 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/user/login/twitch/callback", server.handlerTwitchOAuthCallback)
 	mux.HandleFunc("/user/login/discord", server.handlerDiscordOAuthLogin)
 	mux.HandleFunc("/user/login/discord/callback", server.handlerDiscordOAuthCallback)
+	mux.HandleFunc("/user/login/patreon", server.handlerPatreonOAuthLogin)
+	mux.HandleFunc("/user/login/patreon/callback", server.handlerPatreonOAuthCallback)
 
 	mux.HandleFunc("/user/logout", server.handlerUserLogout)
 	mux.HandleFunc("/user/new", server.handlerUserNew)
@@ -219,6 +221,9 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/user/new/discord", server.handlerDiscordOAuthSignup)
 	mux.HandleFunc("/user/add/discord", server.handlerDiscordOAuthAdd)
 	mux.HandleFunc("/user/remove/discord", server.handlerDiscordOAuthRemove)
+	mux.HandleFunc("/user/new/patreon", server.handlerPatreonOAuthSignup)
+	mux.HandleFunc("/user/add/patreon", server.handlerPatreonOAuthAdd)
+	mux.HandleFunc("/user/remove/patreon", server.handlerPatreonOAuthRemove)
 
 	mux.HandleFunc("/user/remove/local", server.handlerLocalAuthRemove)
 

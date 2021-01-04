@@ -700,7 +700,27 @@ func (j *jsonConnector) UserTwitchLogin(extid string) (*common.User, error) {
 }
 
 func (j *jsonConnector) UserPatreonLogin(extid string) (*common.User, error) {
-	return nil, fmt.Errorf("Not implemented")
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	//TODO refreshing
+
+	var id int
+	for _, auth := range j.AuthMethods {
+		if auth.ExtId == extid {
+			id = auth.Id
+			break
+		}
+	}
+
+	for _, user := range j.Users {
+		for _, auth := range user.AuthMethods {
+			if auth == id {
+				return j.findUser(user.Id), nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("No user found with corresponding extid")
 }
 
 // Get the total number of users

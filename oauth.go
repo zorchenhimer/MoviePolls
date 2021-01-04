@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	u "net/url"
 	"strings"
 
 	"github.com/zorchenhimer/MoviePolls/common"
@@ -25,7 +26,17 @@ var discordEndpoint = oauth2.Endpoint{
 	TokenURL: "https://discord.com/api/oauth2/token",
 }
 
+var patreonEndpoint = oauth2.Endpoint{
+	AuthURL:  "https://www.patreon.com/oauth2/authorize",
+	TokenURL: "https://www.patreon.com/api/oauth2/token",
+}
+
 func (s *Server) initOauth() error {
+	baseUrl, err := s.data.GetCfgString(ConfigHostAddress, "")
+	if err != nil {
+		return err
+	}
+
 	twitchOauthEnabled, err := s.data.GetCfgBool(ConfigTwitchOauthEnabled, DefaultTwitchOauthEnabled)
 	if err != nil {
 		return err
@@ -42,7 +53,7 @@ func (s *Server) initOauth() error {
 		}
 
 		twitchOAuthConfig = &oauth2.Config{
-			RedirectURL:  "http://localhost:8090/user/login/twitch/callback",
+			RedirectURL:  baseUrl + "/user/login/twitch/callback",
 			ClientID:     twitchClientID,
 			ClientSecret: twitchClientSecret,
 			Scopes:       []string{"user:read:email"},
@@ -67,15 +78,37 @@ func (s *Server) initOauth() error {
 		}
 
 		discordOAuthConfig = &oauth2.Config{
-			RedirectURL:  "http://localhost:8090/user/login/discord/callback",
+			RedirectURL:  baseUrl + "/user/login/discord/callback",
 			ClientID:     discordClientID,
 			ClientSecret: discordClientSecret,
 			Scopes:       []string{"email", "identify"},
 			Endpoint:     discordEndpoint,
 		}
 	}
-	// TODO cry in a corner and figure out how to do this stuff for discord and patreon
+	patreonOAuthEnabled, err := s.data.GetCfgBool(ConfigPatreonOauthEnabled, DefaultPatreonOauthEnabled)
+	if err != nil {
+		return err
+	}
 
+	if patreonOAuthEnabled {
+		patreonClientID, err := s.data.GetCfgString(ConfigPatreonOauthClientID, DefaultPatreonOauthClientID)
+		if err != nil {
+			return err
+		}
+
+		patreonClientSecret, err := s.data.GetCfgString(ConfigPatreonOauthClientSecret, DefaultPatreonOauthClientSecret)
+		if err != nil {
+			return err
+		}
+
+		patreonOAuthConfig = &oauth2.Config{
+			RedirectURL:  baseUrl + "/user/login/patreon/callback",
+			ClientID:     patreonClientID,
+			ClientSecret: patreonClientSecret,
+			Scopes:       []string{"identity", "identity[email]"},
+			Endpoint:     patreonEndpoint,
+		}
+	}
 	return nil
 }
 
@@ -693,6 +726,278 @@ func (s *Server) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.Requ
 	return
 }
 
-func (s *Server) handlerPatreonOAuth() {
+func (s *Server) handlerPatreonOAuthLogin(w http.ResponseWriter, r *http.Request) {
+	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
 
+	// Generate a new state string for each login attempt and store it in the state list
+	oauthStateString := "login_" + getCryptRandKey(32)
+	openStates = append(openStates, oauthStateString)
+
+	// Handle the Oauth redirect
+	url := patreonOAuthConfig.AuthCodeURL(oauthStateString)
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+
+	s.l.Debug("patreon login")
+}
+
+func (s *Server) handlerPatreonOAuthSignup(w http.ResponseWriter, r *http.Request) {
+	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+
+	// Generate a new state string for each login attempt and store it in the state list
+	oauthStateString := "signup_" + getCryptRandKey(32)
+	openStates = append(openStates, oauthStateString)
+
+	// Handle the Oauth redirect
+	url := patreonOAuthConfig.AuthCodeURL(oauthStateString)
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+
+	s.l.Debug("patreon signup")
+}
+
+func (s *Server) handlerPatreonOAuthAdd(w http.ResponseWriter, r *http.Request) {
+	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+
+	// Generate a new state string for each login attempt and store it in the state list
+	oauthStateString := "add_" + getCryptRandKey(32)
+	openStates = append(openStates, oauthStateString)
+
+	// Handle the Oauth redirect
+	url := patreonOAuthConfig.AuthCodeURL(oauthStateString)
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+
+	s.l.Debug("patreon add")
+}
+
+func (s *Server) handlerPatreonOAuthRemove(w http.ResponseWriter, r *http.Request) {
+
+	s.l.Debug("patreon remove")
+
+	user := s.getSessionUser(w, r)
+
+	auth, err := user.GetAuthMethod(common.AUTH_PATREON)
+
+	if err != nil {
+		s.l.Info("User %s does not have Patreon Oauth associated with him", user.Name)
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	if len(user.AuthMethods) == 1 {
+		s.l.Info("User %v only has Patreon Oauth associated with him", user.Name)
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	user, err = s.RemoveAuthMethodFromUser(auth, user)
+
+	if err != nil {
+		s.l.Info("Could not remove Patreon Oauth from user. %s", err.Error())
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	err = s.data.UpdateUser(user)
+	if err != nil {
+		s.l.Info("Could not update user %s", user.Name)
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	err = s.logout(w, r)
+	if err != nil {
+		s.l.Info("Could not logout user %s", user.Name)
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	if _, err := user.GetAuthMethod(common.AUTH_TWITCH); err == nil {
+		err = s.login(user, common.AUTH_TWITCH, w, r)
+		if err != nil {
+			s.l.Info("Could not login user %s", user.Name)
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+	} else if _, err := user.GetAuthMethod(common.AUTH_DISCORD); err == nil {
+		err = s.login(user, common.AUTH_DISCORD, w, r)
+		if err != nil {
+			s.l.Info("Could not login user %s", user.Name)
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+	} else if _, err := user.GetAuthMethod(common.AUTH_LOCAL); err == nil {
+		err = s.login(user, common.AUTH_LOCAL, w, r)
+		if err != nil {
+			s.l.Info("Could not login user %s", user.Name)
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+	}
+
+	http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+	return
+}
+
+func (s *Server) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.Request) {
+	state := r.FormValue("state")
+
+	ok := false
+	for _, expectedState := range openStates {
+		if state == expectedState {
+			ok = true
+		}
+	}
+	if !ok {
+		s.l.Info("Invalid/Unknown OAuth state string: '%s'", state)
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
+	code := r.FormValue("code")
+	token, err := patreonOAuthConfig.Exchange(oauth2.NoContext, code)
+	if err != nil {
+		s.l.Info("Code exchange failed: %s", err)
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
+	// Request the User data from the API
+	req, err := http.NewRequest("GET", "https://www.patreon.com/api/oauth2/v2/identity?fields"+u.QueryEscape("[user]")+"=email,first_name,full_name,last_name,vanity", nil)
+	req.Header.Add("Authorization", "Bearer "+token.AccessToken)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		s.l.Info("Could not retrieve Userdata from Patreon API: %s", err)
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+
+	}
+	if resp.StatusCode != 200 {
+		s.l.Error("Status Code is not 200, its %v", resp.Status)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		s.l.Error(err.Error())
+	}
+
+	var data map[string]interface{}
+
+	if err := json.Unmarshal(body, &data); err != nil {
+		s.l.Error(err.Error())
+		s.l.Debug("%v", data)
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
+	data = data["data"].(map[string]interface{})
+
+	if strings.HasPrefix(state, "signup_") {
+
+		s.l.Debug("signup prefix")
+
+		auth := &common.AuthMethod{
+			Type:         common.AUTH_PATREON,
+			ExtId:        data["id"].(string),
+			AuthToken:    token.AccessToken,
+			RefreshToken: token.RefreshToken,
+			RefreshDate:  token.Expiry,
+		}
+
+		if !s.data.CheckOauthUsage(auth.ExtId, auth.Type) {
+
+			newUser := &common.User{
+				Name:                data["attributes"].(map[string]interface{})["full_name"].(string),
+				Email:               data["attributes"].(map[string]interface{})["email"].(string),
+				NotifyCycleEnd:      false,
+				NotifyVoteSelection: false,
+			}
+
+			newUser.Id, err = s.data.AddUser(newUser)
+
+			if err != nil {
+				s.l.Error(err.Error())
+				http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+				return
+			}
+
+			newUser, err = s.AddAuthMethodToUser(auth, newUser)
+
+			if err != nil {
+				s.l.Error(err.Error())
+				http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+				return
+			}
+
+			err = s.data.UpdateUser(newUser)
+
+			if err != nil {
+				s.l.Error(err.Error())
+				http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+				return
+			}
+
+			s.l.Debug("logging in %v", newUser.Name)
+			s.login(newUser, common.AUTH_PATREON, w, r)
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		} else {
+			s.l.Debug("AuthMethod already used")
+			http.Redirect(w, r, "/user/new", http.StatusTemporaryRedirect)
+		}
+	} else if strings.HasPrefix(state, "login_") {
+		s.l.Debug("login prefix")
+		user, err := s.data.UserPatreonLogin(data["id"].(string))
+		if err != nil {
+			s.l.Error(err.Error())
+			http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+			return
+		}
+		s.l.Debug("logging in %v", user.Name)
+		s.login(user, common.AUTH_PATREON, w, r)
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	} else if strings.HasPrefix(state, "add_") {
+		s.l.Debug("add prefix")
+
+		user := s.getSessionUser(w, r)
+
+		auth := &common.AuthMethod{
+			Type:         common.AUTH_PATREON,
+			ExtId:        data["id"].(string),
+			AuthToken:    token.AccessToken,
+			RefreshToken: token.RefreshToken,
+			RefreshDate:  token.Expiry,
+		}
+
+		if !s.data.CheckOauthUsage(auth.ExtId, auth.Type) {
+			_, err = user.GetAuthMethod(auth.Type)
+			if err != nil {
+				_, err = s.AddAuthMethodToUser(auth, user)
+
+				if err != nil {
+					s.l.Error(err.Error())
+					http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+					return
+				}
+
+				err = s.data.UpdateUser(user)
+
+				if err != nil {
+					s.l.Error(err.Error())
+					http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+					return
+				}
+			} else {
+				s.l.Error("User %s already has %s Oauth associated", user.Name, auth.Type)
+				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+				return
+			}
+		} else {
+			s.l.Error("The provided Oauth login is already used")
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+	return
 }
