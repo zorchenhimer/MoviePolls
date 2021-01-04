@@ -196,14 +196,64 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 						s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
 						return
 					}
-
 				}
 			}
 		} else if formVal == "Notifications" {
 			// Update notifications
+		} else if formVal == "SetPassword" {
+			pass1_raw := r.PostFormValue("Password1")
+			pass2_raw := r.PostFormValue("Password2")
+
+			_, err := user.GetAuthMethod(common.AUTH_LOCAL)
+			if err == nil {
+				data.ErrCurrentPass = true
+				data.PassError = append(data.PassError, "Existing password detected. (how did you end up here anyways?)")
+			} else {
+				localAuth := &common.AuthMethod{
+					Type: common.AUTH_LOCAL,
+				}
+
+				if pass1_raw == "" {
+					data.ErrNewPass = true
+					data.PassError = append(data.PassError, "New password cannot be blank")
+				}
+
+				if pass1_raw != pass2_raw {
+					data.ErrNewPass = true
+					data.PassError = append(data.PassError, "Passwords do not match")
+				}
+				if !(data.ErrCurrentPass || data.ErrNewPass || data.ErrEmail) {
+					// Change pass
+					data.SuccessMessage = "Password successfully changed"
+					localAuth.Password = s.hashPassword(pass1_raw)
+					localAuth.PassDate = time.Now()
+					s.l.Info("new PassDate: %s", localAuth.PassDate)
+
+					user, err = s.AddAuthMethodToUser(localAuth, user)
+
+					if err != nil {
+						s.l.Error("Unable to add AuthMethod %s to user %s", localAuth.Type, user.Name)
+						s.doError(http.StatusInternalServerError, "Unable to link password to user", w, r)
+					}
+
+					s.data.UpdateUser(user)
+
+					if err != nil {
+						s.l.Error("Unable to update user %s", user.Name)
+						s.doError(http.StatusInternalServerError, "Unable to update user", w, r)
+					}
+
+					err = s.login(user, common.AUTH_LOCAL, w, r)
+					if err != nil {
+						s.l.Error("Unable to login to session:", err)
+						s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
+					}
+
+					http.Redirect(w, r, "/user", http.StatusFound)
+				}
+			}
 		}
 	}
-
 	if err := s.executeTemplate(w, "account", data); err != nil {
 		s.l.Error("Error rendering template: %v", err)
 	}

@@ -3,9 +3,9 @@
 {{define "body"}}
 <div>
     <div>
+        {{ if .HasLocal }}
         <form method="POST" action="/user">
             <input type="hidden" name="Form" value="ChangePassword" />
-
             <div>Change password</div>
             {{if .PassError}}<div class="errorMessage"><ul>{{range .PassError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
             <div><label for="PasswordNew1">New Password</label></div>
@@ -17,6 +17,19 @@
             <div><input type="password" name="PasswordCurrent" id="PasswordCurrent" /></div>
             <div><input type="submit" value="Change Password" /></div>
         </form>
+        <a href="/user/remove/local">Remove Password Login</a>
+        {{ else }}
+        <form method="POST" action="/user">
+            <input type="hidden" name="Form" value="SetPassword" />
+            <div>Set password for local Login</div>
+            {{if .PassError}}<div class="errorMessage"><ul>{{range .PassError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+            <div><label for="Password1">Password</label></div>
+            <div><input type="password" name="Password1" id="Password1" /></div>
+            <div><label for="Password2">Confirm Password</label></div>
+            <div><input type="password" name="Password2" id="Password2" /></div>
+            <div><input type="submit" value="Set Password" /></div>
+        </form>
+        {{ end }}  
     </div>
 
     {{/*

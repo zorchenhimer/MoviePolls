@@ -214,6 +214,7 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/user/new/twitch", server.handlerTwitchOAuthSignup)
 	mux.HandleFunc("/user/add/twitch", server.handlerTwitchOAuthAdd)
 	mux.HandleFunc("/user/remove/twitch", server.handlerTwitchOAuthRemove)
+	mux.HandleFunc("/user/remove/local", server.handlerLocalAuthRemove)
 
 	mux.HandleFunc("/vote/", server.handlerVote)
 	mux.HandleFunc("/", server.handlerRoot)

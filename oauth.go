@@ -48,6 +48,72 @@ func (s *Server) initOauth() error {
 	return nil
 }
 
+func (s *Server) handlerLocalAuthRemove(w http.ResponseWriter, r *http.Request) {
+	s.l.Debug("local remove")
+
+	user := s.getSessionUser(w, r)
+
+	auth, err := user.GetAuthMethod(common.AUTH_LOCAL)
+
+	if err != nil {
+		s.l.Info("User %s does not have a password associated with him", user.Name)
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	if len(user.AuthMethods) == 1 {
+		s.l.Info("User %v only has the local Authmethod associated with him", user.Name)
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	user, err = s.RemoveAuthMethodFromUser(auth, user)
+
+	if err != nil {
+		s.l.Info("Could not remove password from user. %s", err.Error())
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	err = s.data.UpdateUser(user)
+	if err != nil {
+		s.l.Info("Could not update user %s", user.Name)
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	err = s.logout(w, r)
+	if err != nil {
+		s.l.Info("Could not logout user %s", user.Name)
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
+	}
+
+	if _, err := user.GetAuthMethod(common.AUTH_TWITCH); err == nil {
+		err = s.login(user, common.AUTH_TWITCH, w, r)
+		if err != nil {
+			s.l.Info("Could not login user %s", user.Name)
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+	} else if _, err := user.GetAuthMethod(common.AUTH_DISCORD); err == nil {
+		err = s.login(user, common.AUTH_DISCORD, w, r)
+		if err != nil {
+			s.l.Info("Could not login user %s", user.Name)
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+	} else if _, err := user.GetAuthMethod(common.AUTH_PATREON); err == nil {
+		err = s.login(user, common.AUTH_PATREON, w, r)
+		if err != nil {
+			s.l.Info("Could not login user %s", user.Name)
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+	}
+	http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+	return
+}
 func (s *Server) handlerTwitchOAuthLogin(w http.ResponseWriter, r *http.Request) {
 	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
 
