@@ -1412,6 +1412,11 @@ func (j *jsonConnector) PurgeUser(userId int) error {
 			count++
 		}
 	}
+
+	for _, auth := range j.findUser(userId).AuthMethods {
+		delete(j.AuthMethods, auth.Id)
+	}
+
 	j.Votes = newVotes
 	j.l.Info("Purged %d votes", count)
 
