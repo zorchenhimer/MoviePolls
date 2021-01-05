@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -152,6 +154,15 @@ type jsonConnector struct {
 
 func init() {
 	register("json", func(connStr string, l *common.Logger) (DataConnector, error) {
+
+		if _, err := os.Stat(filepath.Dir(connStr)); os.IsNotExist(err) {
+			os.MkdirAll(filepath.Dir(connStr), 0777)
+		}
+		_, err := os.OpenFile(connStr, os.O_RDONLY|os.O_CREATE, 0777)
+		if err != nil {
+			fmt.Printf("error creating file %s:%v", connStr, err)
+			return nil, err
+		}
 		dc, err := newJsonConnector(connStr, l)
 		return DataConnector(dc), err
 	})

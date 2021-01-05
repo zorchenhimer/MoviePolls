@@ -12,10 +12,13 @@ import (
 const jsonFilename string = "db/data.json"
 
 func main() {
-	err := os.MkdirAll(filepath.Dir(jsonFilename), 0777)
+	if _, err := os.Stat(filepath.Dir(jsonFilename)); os.IsNotExist(err) {
+		os.MkdirAll(filepath.Dir(jsonFilename), 0777)
+	}
+	_, err := os.OpenFile(jsonFilename, os.O_RDONLY|os.O_CREATE, 0777)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		fmt.Printf("error creating file %s:%v", jsonFilename, err)
+		os.Exit(-1)
 	}
 
 	err = os.Remove(jsonFilename)
