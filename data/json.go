@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -28,6 +31,14 @@ type jsonMovie struct {
 	Poster         string
 	AddedBy        int
 	Tags           []int
+}
+
+func main() {
+	db := os.Mkdir(filepath.Dir("db"), 0755)
+
+	if db != nil {
+		log.Fatal(db)
+	}
 }
 
 func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
@@ -158,6 +169,15 @@ func init() {
 }
 
 func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error) {
+
+	if _, db := os.Stat(filepath.Dir("db/")); os.IsNotExist(db) {
+		dbDir := os.Mkdir(filepath.Dir("db/"), 0777)
+		if dbDir != nil {
+			fmt.Errorf("Could not create director 'db': %v", dbDir)
+			os.Exit(1)
+		}
+	}
+
 	if common.FileExists(filename) {
 		return loadJson(filename, l)
 	}
