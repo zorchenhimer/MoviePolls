@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -31,14 +30,6 @@ type jsonMovie struct {
 	Poster         string
 	AddedBy        int
 	Tags           []int
-}
-
-func main() {
-	db := os.Mkdir(filepath.Dir("db"), 0755)
-
-	if db != nil {
-		log.Fatal(db)
-	}
 }
 
 func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
