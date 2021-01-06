@@ -504,6 +504,13 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 	// Set this down here so the Notice Banner is updated
 	data.dataPageBase = s.newPageBase("Admin - Config", w, r)
 
+	// Reload Oauth
+	err = s.initOauth()
+
+	if err != nil {
+		data.ErrorMessage = append(data.ErrorMessage, err.Error())
+	}
+
 	if err := s.executeTemplate(w, "adminConfig", data); err != nil {
 		s.l.Error("Error rendering template: %v", err)
 	}
