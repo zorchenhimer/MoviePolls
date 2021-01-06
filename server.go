@@ -204,9 +204,6 @@ func NewServer(options Options) (*Server, error) {
 	// list of past cycles
 	mux.HandleFunc("/history", server.handlerHistory)
 
-	mux.HandleFunc("/user", server.handlerUser)
-	mux.HandleFunc("/user/login", server.handlerUserLogin)
-
 	mux.HandleFunc("/oauth/twitch", server.handlerTwitchOAuth)
 	mux.HandleFunc("/oauth/twitch/callback", server.handlerTwitchOAuthCallback)
 
@@ -216,6 +213,8 @@ func NewServer(options Options) (*Server, error) {
 	mux.HandleFunc("/oauth/patreon", server.handlerPatreonOAuth)
 	mux.HandleFunc("/oauth/patreon/callback", server.handlerPatreonOAuthCallback)
 
+	mux.HandleFunc("/user", server.handlerUser)
+	mux.HandleFunc("/user/login", server.handlerUserLogin)
 	mux.HandleFunc("/user/logout", server.handlerUserLogout)
 	mux.HandleFunc("/user/new", server.handlerUserNew)
 	mux.HandleFunc("/user/remove/local", server.handlerLocalAuthRemove)
