@@ -81,7 +81,7 @@ func (s *Server) initOauth() error {
 		}
 
 		twitchOAuthConfig = &oauth2.Config{
-			RedirectURL:  baseUrl + "/user/callback/twitch",
+			RedirectURL:  baseUrl + "/oauth/twitch/callback",
 			ClientID:     twitchClientID,
 			ClientSecret: twitchClientSecret,
 			Scopes:       []string{"user:read:email"},
@@ -109,7 +109,7 @@ func (s *Server) initOauth() error {
 		}
 
 		discordOAuthConfig = &oauth2.Config{
-			RedirectURL:  baseUrl + "/user/callback/discord",
+			RedirectURL:  baseUrl + "/oauth/discord/callback",
 			ClientID:     discordClientID,
 			ClientSecret: discordClientSecret,
 			Scopes:       []string{"email", "identify"},
@@ -137,7 +137,7 @@ func (s *Server) initOauth() error {
 		}
 
 		patreonOAuthConfig = &oauth2.Config{
-			RedirectURL:  baseUrl + "/user/callback/patreon",
+			RedirectURL:  baseUrl + "/oauth/patreon/callback",
 			ClientID:     patreonClientID,
 			ClientSecret: patreonClientSecret,
 			Scopes:       []string{"identity", "identity[email]"},
@@ -218,122 +218,112 @@ func (s *Server) handlerLocalAuthRemove(w http.ResponseWriter, r *http.Request) 
 	return
 }
 
-// Creates an OAuth request to log the user in using the TWITCH OAuth
-func (s *Server) handlerTwitchOAuthLogin(w http.ResponseWriter, r *http.Request) {
-	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+func (s *Server) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
+	action := r.URL.Query().Get("action")
 
-	// Generate a new state string for each login attempt and store it in the state list
-	oauthStateString := "login_" + getCryptRandKey(32)
-	openStates = append(openStates, oauthStateString)
+	switch action {
+	case "login":
+		// Generate a new state string for each login attempt and store it in the state list
+		oauthStateString := "login_" + getCryptRandKey(32)
+		openStates = append(openStates, oauthStateString)
 
-	// Handle the Oauth redirect
-	url := twitchOAuthConfig.AuthCodeURL(oauthStateString)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+		// Handle the Oauth redirect
+		url := twitchOAuthConfig.AuthCodeURL(oauthStateString)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 
-	s.l.Debug("twitch login")
-}
+		s.l.Debug("twitch login")
 
-// Creates an OAuth request to sign up the user using the TWITCH OAuth
-// A new user is created and a new AuthMethod struct is created and associated
-func (s *Server) handlerTwitchOAuthSignup(w http.ResponseWriter, r *http.Request) {
-	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+	case "signup":
+		// Generate a new state string for each login attempt and store it in the state list
+		oauthStateString := "signup_" + getCryptRandKey(32)
+		openStates = append(openStates, oauthStateString)
 
-	// Generate a new state string for each login attempt and store it in the state list
-	oauthStateString := "signup_" + getCryptRandKey(32)
-	openStates = append(openStates, oauthStateString)
+		// Handle the Oauth redirect
+		url := twitchOAuthConfig.AuthCodeURL(oauthStateString)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 
-	// Handle the Oauth redirect
-	url := twitchOAuthConfig.AuthCodeURL(oauthStateString)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+		s.l.Debug("twitch sign up")
 
-	s.l.Debug("twitch sign up")
-}
+	case "add":
+		// Generate a new state string for each login attempt and store it in the state list
+		oauthStateString := "add_" + getCryptRandKey(32)
+		openStates = append(openStates, oauthStateString)
 
-// Creates an OAuth request to add a new Twitch AuthMethod to the currently logged in user
-func (s *Server) handlerTwitchOAuthAdd(w http.ResponseWriter, r *http.Request) {
-	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+		// Handle the Oauth redirect
+		url := twitchOAuthConfig.AuthCodeURL(oauthStateString)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 
-	// Generate a new state string for each login attempt and store it in the state list
-	oauthStateString := "add_" + getCryptRandKey(32)
-	openStates = append(openStates, oauthStateString)
+		s.l.Debug("twitch add")
 
-	// Handle the Oauth redirect
-	url := twitchOAuthConfig.AuthCodeURL(oauthStateString)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	case "remove":
+		user := s.getSessionUser(w, r)
 
-	s.l.Debug("twitch add")
-}
+		auth, err := user.GetAuthMethod(common.AUTH_TWITCH)
 
-// Removes the Twitch AuthMethod from the currently logged in user
-func (s *Server) handlerTwitchOAuthRemove(w http.ResponseWriter, r *http.Request) {
-
-	user := s.getSessionUser(w, r)
-
-	auth, err := user.GetAuthMethod(common.AUTH_TWITCH)
-
-	if err != nil {
-		s.l.Info("User %s does not have Twitch Oauth associated with him", user.Name)
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	if len(user.AuthMethods) == 1 {
-		s.l.Info("User %v only has Twitch Oauth associated with him", user.Name)
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	user, err = s.RemoveAuthMethodFromUser(auth, user)
-
-	if err != nil {
-		s.l.Info("Could not remove Twitch Oauth from user. %s", err.Error())
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	err = s.data.UpdateUser(user)
-	if err != nil {
-		s.l.Info("Could not update user %s", user.Name)
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	// Log the user out to ensure he uses an existing AuthMethod
-	err = s.logout(w, r)
-	if err != nil {
-		s.l.Info("Could not logout user %s", user.Name)
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	// Find a new AuthMethod to log the user back in
-	if _, err := user.GetAuthMethod(common.AUTH_LOCAL); err == nil {
-		err = s.login(user, common.AUTH_LOCAL, w, r)
 		if err != nil {
-			s.l.Info("Could not login user %s", user.Name)
+			s.l.Info("User %s does not have Twitch Oauth associated with him", user.Name)
 			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 			return
 		}
-	} else if _, err := user.GetAuthMethod(common.AUTH_DISCORD); err == nil {
-		err = s.login(user, common.AUTH_DISCORD, w, r)
-		if err != nil {
-			s.l.Info("Could not login user %s", user.Name)
+
+		if len(user.AuthMethods) == 1 {
+			s.l.Info("User %v only has Twitch Oauth associated with him", user.Name)
 			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 			return
 		}
-	} else if _, err := user.GetAuthMethod(common.AUTH_PATREON); err == nil {
-		err = s.login(user, common.AUTH_PATREON, w, r)
+
+		user, err = s.RemoveAuthMethodFromUser(auth, user)
+
 		if err != nil {
-			s.l.Info("Could not login user %s", user.Name)
+			s.l.Info("Could not remove Twitch Oauth from user. %s", err.Error())
 			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 			return
 		}
+
+		err = s.data.UpdateUser(user)
+		if err != nil {
+			s.l.Info("Could not update user %s", user.Name)
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+
+		// Log the user out to ensure he uses an existing AuthMethod
+		err = s.logout(w, r)
+		if err != nil {
+			s.l.Info("Could not logout user %s", user.Name)
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+
+		// Find a new AuthMethod to log the user back in
+		if _, err := user.GetAuthMethod(common.AUTH_LOCAL); err == nil {
+			err = s.login(user, common.AUTH_LOCAL, w, r)
+			if err != nil {
+				s.l.Info("Could not login user %s", user.Name)
+				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+				return
+			}
+		} else if _, err := user.GetAuthMethod(common.AUTH_DISCORD); err == nil {
+			err = s.login(user, common.AUTH_DISCORD, w, r)
+			if err != nil {
+				s.l.Info("Could not login user %s", user.Name)
+				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+				return
+			}
+		} else if _, err := user.GetAuthMethod(common.AUTH_PATREON); err == nil {
+			err = s.login(user, common.AUTH_PATREON, w, r)
+			if err != nil {
+				s.l.Info("Could not login user %s", user.Name)
+				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+				return
+			}
+		}
+
+		s.l.Debug("twitch remove")
+
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
 	}
-
-	s.l.Debug("twitch remove")
-
-	http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-	return
 }
 
 // This function handles all Twitch Callbacks (add/signup/login)
@@ -510,121 +500,113 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 	return
 }
 
-// Creates an OAuth query to log a user in using Discord OAuth
-func (s *Server) handlerDiscordOAuthLogin(w http.ResponseWriter, r *http.Request) {
-	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+func (s *Server) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) {
 
-	// Generate a new state string for each login attempt and store it in the state list
-	oauthStateString := "login_" + getCryptRandKey(32)
-	openStates = append(openStates, oauthStateString)
+	action := r.URL.Query().Get("action")
 
-	// Handle the Oauth redirect
-	url := discordOAuthConfig.AuthCodeURL(oauthStateString)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	switch action {
+	case "login":
+		// Generate a new state string for each login attempt and store it in the state list
+		oauthStateString := "login_" + getCryptRandKey(32)
+		openStates = append(openStates, oauthStateString)
 
-	s.l.Debug("discord login")
-}
+		// Handle the Oauth redirect
+		url := discordOAuthConfig.AuthCodeURL(oauthStateString)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 
-// Creates an OAuth query to sign up a user using Discord OAuth
-func (s *Server) handlerDiscordOAuthSignup(w http.ResponseWriter, r *http.Request) {
-	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+		s.l.Debug("discord login")
 
-	// Generate a new state string for each login attempt and store it in the state list
-	oauthStateString := "signup_" + getCryptRandKey(32)
-	openStates = append(openStates, oauthStateString)
+	case "signup":
+		// Generate a new state string for each login attempt and store it in the state list
+		oauthStateString := "signup_" + getCryptRandKey(32)
+		openStates = append(openStates, oauthStateString)
 
-	// Handle the Oauth redirect
-	url := discordOAuthConfig.AuthCodeURL(oauthStateString)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+		// Handle the Oauth redirect
+		url := discordOAuthConfig.AuthCodeURL(oauthStateString)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 
-	s.l.Debug("discord signup")
-}
+		s.l.Debug("discord signup")
 
-// Creates an OAuth query to add an Discord AuthMethod to the currently logged in user
-func (s *Server) handlerDiscordOAuthAdd(w http.ResponseWriter, r *http.Request) {
-	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+	case "add":
+		// Generate a new state string for each login attempt and store it in the state list
+		oauthStateString := "add_" + getCryptRandKey(32)
+		openStates = append(openStates, oauthStateString)
 
-	// Generate a new state string for each login attempt and store it in the state list
-	oauthStateString := "add_" + getCryptRandKey(32)
-	openStates = append(openStates, oauthStateString)
+		// Handle the Oauth redirect
+		url := discordOAuthConfig.AuthCodeURL(oauthStateString)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 
-	// Handle the Oauth redirect
-	url := discordOAuthConfig.AuthCodeURL(oauthStateString)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+		s.l.Debug("discord add")
 
-	s.l.Debug("discord add")
-}
+	case "remove":
+		user := s.getSessionUser(w, r)
 
-// Removes the Discord AuthMethod from the currently logged in user
-func (s *Server) handlerDiscordOAuthRemove(w http.ResponseWriter, r *http.Request) {
+		auth, err := user.GetAuthMethod(common.AUTH_DISCORD)
 
-	user := s.getSessionUser(w, r)
-
-	auth, err := user.GetAuthMethod(common.AUTH_DISCORD)
-
-	if err != nil {
-		s.l.Info("User %s does not have Discord Oauth associated with him", user.Name)
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	if len(user.AuthMethods) == 1 {
-		s.l.Info("User %v only has Discord Oauth associated with him", user.Name)
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	user, err = s.RemoveAuthMethodFromUser(auth, user)
-
-	if err != nil {
-		s.l.Info("Could not remove Discord Oauth from user. %s", err.Error())
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	err = s.data.UpdateUser(user)
-	if err != nil {
-		s.l.Info("Could not update user %s", user.Name)
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	// Log the user out to ensure he is logged in with an existing AuthMethod
-	err = s.logout(w, r)
-	if err != nil {
-		s.l.Info("Could not logout user %s", user.Name)
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	// Try to log the user back in
-	if _, err := user.GetAuthMethod(common.AUTH_TWITCH); err == nil {
-		err = s.login(user, common.AUTH_TWITCH, w, r)
 		if err != nil {
-			s.l.Info("Could not login user %s", user.Name)
+			s.l.Info("User %s does not have Discord Oauth associated with him", user.Name)
 			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 			return
 		}
-	} else if _, err := user.GetAuthMethod(common.AUTH_LOCAL); err == nil {
-		err = s.login(user, common.AUTH_LOCAL, w, r)
-		if err != nil {
-			s.l.Info("Could not login user %s", user.Name)
+
+		if len(user.AuthMethods) == 1 {
+			s.l.Info("User %v only has Discord Oauth associated with him", user.Name)
 			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 			return
 		}
-	} else if _, err := user.GetAuthMethod(common.AUTH_PATREON); err == nil {
-		err = s.login(user, common.AUTH_PATREON, w, r)
+
+		user, err = s.RemoveAuthMethodFromUser(auth, user)
+
 		if err != nil {
-			s.l.Info("Could not login user %s", user.Name)
+			s.l.Info("Could not remove Discord Oauth from user. %s", err.Error())
 			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 			return
 		}
+
+		err = s.data.UpdateUser(user)
+		if err != nil {
+			s.l.Info("Could not update user %s", user.Name)
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+
+		// Log the user out to ensure he is logged in with an existing AuthMethod
+		err = s.logout(w, r)
+		if err != nil {
+			s.l.Info("Could not logout user %s", user.Name)
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+
+		// Try to log the user back in
+		if _, err := user.GetAuthMethod(common.AUTH_TWITCH); err == nil {
+			err = s.login(user, common.AUTH_TWITCH, w, r)
+			if err != nil {
+				s.l.Info("Could not login user %s", user.Name)
+				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+				return
+			}
+		} else if _, err := user.GetAuthMethod(common.AUTH_LOCAL); err == nil {
+			err = s.login(user, common.AUTH_LOCAL, w, r)
+			if err != nil {
+				s.l.Info("Could not login user %s", user.Name)
+				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+				return
+			}
+		} else if _, err := user.GetAuthMethod(common.AUTH_PATREON); err == nil {
+			err = s.login(user, common.AUTH_PATREON, w, r)
+			if err != nil {
+				s.l.Info("Could not login user %s", user.Name)
+				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+				return
+			}
+		}
+
+		s.l.Debug("discord remove")
+
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
 	}
-
-	s.l.Debug("discord remove")
-
-	http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-	return
 }
 
 // Handler for the Discord OAuth Callbacks (add/signup/login)
@@ -788,115 +770,110 @@ func (s *Server) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.Requ
 	return
 }
 
-func (s *Server) handlerPatreonOAuthLogin(w http.ResponseWriter, r *http.Request) {
-	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+func (s *Server) handlerPatreonOAuth(w http.ResponseWriter, r *http.Request) {
+	action := r.URL.Query().Get("action")
 
-	// Generate a new state string for each login attempt and store it in the state list
-	oauthStateString := "login_" + getCryptRandKey(32)
-	openStates = append(openStates, oauthStateString)
+	switch action {
+	case "login":
+		// Generate a new state string for each login attempt and store it in the state list
+		oauthStateString := "login_" + getCryptRandKey(32)
+		openStates = append(openStates, oauthStateString)
 
-	// Handle the Oauth redirect
-	url := patreonOAuthConfig.AuthCodeURL(oauthStateString)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+		// Handle the Oauth redirect
+		url := patreonOAuthConfig.AuthCodeURL(oauthStateString)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 
-	s.l.Debug("patreon login")
-}
+		s.l.Debug("patreon login")
 
-func (s *Server) handlerPatreonOAuthSignup(w http.ResponseWriter, r *http.Request) {
-	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+	case "signup":
+		// Generate a new state string for each login attempt and store it in the state list
+		oauthStateString := "signup_" + getCryptRandKey(32)
+		openStates = append(openStates, oauthStateString)
 
-	// Generate a new state string for each login attempt and store it in the state list
-	oauthStateString := "signup_" + getCryptRandKey(32)
-	openStates = append(openStates, oauthStateString)
+		// Handle the Oauth redirect
+		url := patreonOAuthConfig.AuthCodeURL(oauthStateString)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 
-	// Handle the Oauth redirect
-	url := patreonOAuthConfig.AuthCodeURL(oauthStateString)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+		s.l.Debug("patreon signup")
 
-	s.l.Debug("patreon signup")
-}
+	case "add":
+		// Generate a new state string for each login attempt and store it in the state list
+		oauthStateString := "add_" + getCryptRandKey(32)
+		openStates = append(openStates, oauthStateString)
 
-func (s *Server) handlerPatreonOAuthAdd(w http.ResponseWriter, r *http.Request) {
-	// TODO that might cause impersonation attacks (i.e. using the token of an other user)
+		// Handle the Oauth redirect
+		url := patreonOAuthConfig.AuthCodeURL(oauthStateString)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 
-	// Generate a new state string for each login attempt and store it in the state list
-	oauthStateString := "add_" + getCryptRandKey(32)
-	openStates = append(openStates, oauthStateString)
+		s.l.Debug("patreon add")
 
-	// Handle the Oauth redirect
-	url := patreonOAuthConfig.AuthCodeURL(oauthStateString)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	case "remove":
+		user := s.getSessionUser(w, r)
 
-	s.l.Debug("patreon add")
-}
+		auth, err := user.GetAuthMethod(common.AUTH_PATREON)
 
-func (s *Server) handlerPatreonOAuthRemove(w http.ResponseWriter, r *http.Request) {
-
-	user := s.getSessionUser(w, r)
-
-	auth, err := user.GetAuthMethod(common.AUTH_PATREON)
-
-	if err != nil {
-		s.l.Info("User %s does not have Patreon Oauth associated with him", user.Name)
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	if len(user.AuthMethods) == 1 {
-		s.l.Info("User %v only has Patreon Oauth associated with him", user.Name)
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	user, err = s.RemoveAuthMethodFromUser(auth, user)
-
-	if err != nil {
-		s.l.Info("Could not remove Patreon Oauth from user. %s", err.Error())
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	err = s.data.UpdateUser(user)
-	if err != nil {
-		s.l.Info("Could not update user %s", user.Name)
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	err = s.logout(w, r)
-	if err != nil {
-		s.l.Info("Could not logout user %s", user.Name)
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
-	}
-
-	if _, err := user.GetAuthMethod(common.AUTH_TWITCH); err == nil {
-		err = s.login(user, common.AUTH_TWITCH, w, r)
 		if err != nil {
-			s.l.Info("Could not login user %s", user.Name)
+			s.l.Info("User %s does not have Patreon Oauth associated with him", user.Name)
 			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 			return
 		}
-	} else if _, err := user.GetAuthMethod(common.AUTH_DISCORD); err == nil {
-		err = s.login(user, common.AUTH_DISCORD, w, r)
-		if err != nil {
-			s.l.Info("Could not login user %s", user.Name)
+
+		if len(user.AuthMethods) == 1 {
+			s.l.Info("User %v only has Patreon Oauth associated with him", user.Name)
 			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 			return
 		}
-	} else if _, err := user.GetAuthMethod(common.AUTH_LOCAL); err == nil {
-		err = s.login(user, common.AUTH_LOCAL, w, r)
+
+		user, err = s.RemoveAuthMethodFromUser(auth, user)
+
 		if err != nil {
-			s.l.Info("Could not login user %s", user.Name)
+			s.l.Info("Could not remove Patreon Oauth from user. %s", err.Error())
 			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 			return
 		}
+
+		err = s.data.UpdateUser(user)
+		if err != nil {
+			s.l.Info("Could not update user %s", user.Name)
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+
+		err = s.logout(w, r)
+		if err != nil {
+			s.l.Info("Could not logout user %s", user.Name)
+			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+			return
+		}
+
+		if _, err := user.GetAuthMethod(common.AUTH_TWITCH); err == nil {
+			err = s.login(user, common.AUTH_TWITCH, w, r)
+			if err != nil {
+				s.l.Info("Could not login user %s", user.Name)
+				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+				return
+			}
+		} else if _, err := user.GetAuthMethod(common.AUTH_DISCORD); err == nil {
+			err = s.login(user, common.AUTH_DISCORD, w, r)
+			if err != nil {
+				s.l.Info("Could not login user %s", user.Name)
+				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+				return
+			}
+		} else if _, err := user.GetAuthMethod(common.AUTH_LOCAL); err == nil {
+			err = s.login(user, common.AUTH_LOCAL, w, r)
+			if err != nil {
+				s.l.Info("Could not login user %s", user.Name)
+				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+				return
+			}
+		}
+
+		s.l.Debug("patreon remove")
+
+		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+		return
 	}
-
-	s.l.Debug("patreon remove")
-
-	http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-	return
 }
 
 func (s *Server) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.Request) {

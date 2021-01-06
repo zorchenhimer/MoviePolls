@@ -28,13 +28,13 @@
 {{if .OAuth}}
 <div id="oauth">
 	{{if .TwitchOAuth}}
-	<a href="/user/login/twitch">Login with Twitch</a>
+	<a href="/oauth/twitch?action=login">Login with Twitch</a>
 	{{end}}
 	{{if .DiscordOAuth}}
-	<a href="/user/login/discord">Login with Discord</a>
+	<a href="/oauth/discord?action=login">Login with Discord</a>
 	{{end}}
 	{{if .PatreonOAuth}}
-	<a href="/user/login/patreon">Login with Patreon</a>
+	<a href="/oauth/patreon?action=login">Login with Patreon</a>
 	{{end}}
 </div>
 {{end}}

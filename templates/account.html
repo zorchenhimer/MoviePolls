@@ -76,9 +76,9 @@
 	    {{if .TwitchOAuthEnabled}}
         <div id="twitchAuth">
           {{ if .HasTwitch}}
-            <a href="/user/remove/twitch">Unlink Account with Twitch</a>
+            <a href="/oauth/twitch?action=remove">Unlink Account with Twitch</a>
           {{ else }}
-            <a href="/user/add/twitch">Link Account with Twitch</a>
+            <a href="/oauth/twitch?action=add">Link Account with Twitch</a>
           {{ end }}
         </div>
       {{ end }}
@@ -87,9 +87,9 @@
 	    {{if .DiscordOAuthEnabled}}
         <div id="discordAuth">
           {{ if .HasDiscord }}
-            <a href="/user/remove/discord">Unlink Account with Discord</a>
+            <a href="/oauth/discord?action=remove">Unlink Account with Discord</a>
           {{ else }}
-            <a href="/user/add/discord">Link Account with Discord</a>
+            <a href="/oauth/discord?action=add">Link Account with Discord</a>
           {{ end }}
         </div>
       {{end}}
@@ -98,9 +98,9 @@
  	    {{if .PatreonOAuthEnabled}}
         <div id="patreonAuth">
           {{ if .HasPatreon}}
-            <a href="/user/remove/patreon">Unlink Account with Patreon</a>
+            <a href="/oauth/patreon?action=remove">Unlink Account with Patreon</a>
           {{ else }}
-            <a href="/user/add/patreon">Link Account with Patreon</a>
+            <a href="/oauth/patreon?action=add">Link Account with Patreon</a>
           {{ end }}
         </div>
       {{end}}
