@@ -17,19 +17,6 @@ type dataAdminHome struct {
 	Cycle *common.Cycle
 }
 
-type dataAdminUserEdit struct {
-	dataPageBase
-
-	User           *common.User
-	CurrentVotes   []*common.Movie
-	AvailableVotes int
-
-	PassError   []string
-	NotifyError []string
-	UrlKey      *common.UrlKey
-	Host        string
-}
-
 func (s *Server) checkAdminRights(w http.ResponseWriter, r *http.Request) bool {
 	user := s.getSessionUser(w, r)
 
@@ -295,13 +282,9 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 		s.l.Error("Error getting MaxUserVotes config setting: %v", err)
 	}
 
-	votes, err := s.data.GetUserVotes(uid)
+	activeVotes, _, err := s.getUserVotes(user)
 	if err != nil {
-		s.doError(
-			http.StatusInternalServerError,
-			fmt.Sprintf("Unable to get user votes: %v", err),
-			w, r)
-		return
+		s.l.Error("Unable to get votes for user %d: %v", user.Id, err)
 	}
 
 	host, err := s.data.GetCfgString(ConfigHostAddress, "http://<host>")
@@ -313,12 +296,25 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := dataAdminUserEdit{
+	data := struct {
+		dataPageBase
+
+		User           *common.User
+		CurrentVotes   []*common.Movie
+		//PastVotes      []*common.Movie
+		AvailableVotes int
+
+		PassError   []string
+		NotifyError []string
+		UrlKey      *common.UrlKey
+		Host        string
+	}{
 		dataPageBase: s.newPageBase("Admin - User Edit", w, r),
 
 		User:           user,
-		CurrentVotes:   votes,
-		AvailableVotes: totalVotes - len(votes),
+		CurrentVotes:   activeVotes,
+		//PastVotes:      watchedVotes,
+		AvailableVotes: totalVotes - len(activeVotes),
 		UrlKey:         urlKey,
 		Host:           host,
 	}
