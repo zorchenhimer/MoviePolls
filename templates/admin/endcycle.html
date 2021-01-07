@@ -3,6 +3,13 @@
 <form method="POST" id="endCycleForm" action="/admin/cycles">
 <div class="adminCenter">
 {{if eq .Stage 1}}
+    <div>
+    Override End date: <input type="checkbox" name="OverrideEndDate" id="OverrideEndDate" />
+    <input type="date" name="NewEndDate" id="NewEndDate" />
+    </div>
+    <div><button type="submit" name="action" value="select">Select Movies</button></div>
+    <div><button type="submit" name="action" value="cancel">Cancel</button></div>
+
     {{range .Movies}}
         <div class="adminMovie">
             <div><input type="checkbox" name="cb_{{.Id}}" /></div>
@@ -11,12 +18,6 @@
 			{{if .Remarks}}<div id="remarks">Remarks:</br>{{.Remarks}}</div>{{end}}
         </div>
     {{end}}
-    <div>
-    Override End date: <input type="checkbox" name="OverrideEndDate" id="OverrideEndDate" />
-    <input type="date" name="NewEndDate" id="NewEndDate" />
-    </div>
-    <div><button type="submit" name="action" value="select">Select Movies</button></div>
-    <div><button type="submit" name="action" value="cancel">Cancel</button></div>
 
 {{else if eq .Stage 2}}
     <div>Movies picked</div>
