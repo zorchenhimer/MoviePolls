@@ -161,7 +161,7 @@ func init() {
 
 func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error) {
 
-	if !common.FileExists(filepath.Dir("db")) {
+	if !common.FileExists(filepath.Dir("db/")) {
 		err := os.Mkdir(filepath.Dir("db/"), 0744)
 		if err != nil {
 			fmt.Errorf("Could not create directory 'db': %v", err)
