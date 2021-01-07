@@ -10,7 +10,13 @@
     </head>
     <body>
         <div id="header">
-            <div id="headTitle"><a href="/" class="titleLink">MoviePolls</a>{{if .PageTitle}} - {{.PageTitle}}{{end}}</div>
+            <div id="headTitle"><a href="/" class="titleLink">MoviePolls</a></div>
+            <div class="searchbar">
+                <form action="/" method="post">
+                    <label class="searchBarLabel">Search</label>
+                    <input class="searchBarInput" type="text" name="search">
+                </form>
+            </div>
             <div id="userButtons">
                 <a href="/history">History</a>
                 {{if .User}}

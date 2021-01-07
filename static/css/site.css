@@ -1,5 +1,14 @@
+:root {
+    --bg-color: #26282C;
+}
+
+@font-face {
+    font-family: Inter;
+    src: url(../Inter.var.woff2);
+}
+
 html {
-    background-color:#333333;
+    background-color:var(--bg-color);
     font-family: "Hack", sans-serif;
     font-size: 14px;
     font-style: normal;
@@ -21,29 +30,120 @@ a:hover {
 	flex-wrap: wrap;
 }
 
-#movieCard, #movieStats {
+#movieCard {
     display:flex;
-    flex-direction: column;
+    flex-direction: row;
+    width: 70%;
+    height: 100%;
 }
 
 #movieCard {
-    border: 1px solid black;
-    background: #2266aa;
+    padding: 20px;
+    justify-content: center;
 }
 
 #movieStats {
-    border: 1px solid black;
-    background: #2266aa;
+    max-width: 30%;
+    display: inline;
 }
 
 .movieCol {
     width: 30%;
 }
 
+.movieDescription {
+width: 100%;
+height: 216px;
+left: calc(50% - 360px/2 + 192px);
+top: 120px;
+
+font-family: Inter;
+font-style: normal;
+font-weight: normal;
+font-size: 16px;
+line-height: 24px;
+text-align: justify;
+color: #FFFFFF;
+}
+
+.movieRating, .movieDuration {
+    color: #888888 !important;
+    font-family: Inter;
+}
+
+.movieTagList {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 0;
+}
+
+ul.movieTags li {
+    display: inline;
+    font-family: Inter;
+}
+
+#movieTitle {
+    width: 100%;
+    height: auto;
+    left: calc(50% - 360px/2 + 192px);
+    top: -5px;
+
+    font-family: Inter;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 36px;
+    line-height: 36px;
+}
+
+#movieMeta {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-left: auto;
+}
+
+.movieLinks {
+    height: 30px !important;
+    margin-top: auto !important;
+    font-family: Inter !important;
+}
+
+.movieAddedBy {
+    width: 165px;
+height: 16px;
+left: calc(50% - 165px/2 + 94.5px);
+top: 378px;
+
+font-family: Inter;
+font-style: normal;
+font-weight: 400;
+font-size: 16px;
+line-height: 16px;
+/* identical to box height, or 133% */
+color: #BDBDBD;
+display: flex;
+flex-direction: row;
+}
+
+.movieAddedName {
+font-family: Inter;
+font-style: normal;
+font-weight: 800;
+font-size: 14px;
+line-height: 16px;
+/* identical to box height, or 133% */
+color: #dbdbdb;
+margin-left: 5px;
+}
+
+.movieMetaCol {
+    width: 520px !important;
+}
+
 .cycleCard {
     display:flex;
     flex-direction: column;
-    width: 75%;
+    width: 100%;
 }
 
 .cycleVotes {
@@ -60,10 +160,29 @@ a:hover {
 .voteRoot {
     display:flex;
     flex-direction:column;
-    padding:1em;
     margin: 1em;
     border-radius: 5px;
-    background-color: #2266aa;
+    width: 360px;
+    height: 540px;
+    object-fit: fill;
+    transition: all 0.5s;
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0px 16px 20px rgba(0, 0, 0, 0.19);
+}
+.voteRoot:hover {
+    transform: translate(-2px, -2px);
+}
+
+.voteRootFilter {
+    position: relative;
+    width: auto;
+    height: 100%;
+    padding: 1rem;
+    background-image: linear-gradient(to bottom, #131313b9, #3f3f3f1c, rgba(255, 255, 255, 0), #3f3f3f1c, #131313b9);
+    border-radius: 5px;
+}
+.voteRootFilter:hover {
+    cursor: pointer;
 }
 
 .voteNamePoster {
@@ -77,10 +196,40 @@ a:hover {
 }
 
 .voteName {
-    font-weight:bold;
-    font-size:1.5em;
+    font-weight: 700;
+    font-size: 24px;
     margin-bottom: 10px;
     max-width: 400px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: Inter;
+}
+
+.voteName a {
+    text-decoration: none;
+    color: white;
+    font-family: Inter;
+}
+
+.movieTags {
+    margin-block-start: 0 !important;
+    margin-inline-start: 0 !important;
+    padding-inline-start: 0 !important;
+}
+
+.movieTagItem {
+    background-color: #676772;
+    border-radius: 9999999px;
+    padding: 5px;
+    margin-left: 0;
+}
+
+#moviePoster img {
+    width: 400px !important;
+    height: auto;
+    margin-right: 20px;
+    border-radius: 20px !important;
 }
 
 .votePoster img, #moviePoster img {
@@ -89,12 +238,60 @@ a:hover {
 }
 
 .errorMessage {
-    background-color: red;
-    color: #000000;
+    color: red;
+}
+
+.lblerrorMessage {
+    border: 1px solid red !important;
+}
+
+.voteLinkButton {
+    width: 100px;
+    height: 35px;
+    font-weight: 600;
+    font-size: 16px;
+    color: #ddd;
+    text-transform: uppercase;
+    background-color: transparent;
+    border: none;
+    text-decoration: none;
+    font-family: Inter;
+    letter-spacing: 0.1rem;
+    background-color: #888888;
+    border-radius: 999999px;
+    padding: 5px;
+}
+.voteLinkButton:hover {
+    cursor: pointer;
+    background-color: #535353;
+}
+.voteLinkButton2 {
+    width: 140px;
+    height: 35px;
+    font-weight: 600;
+    font-size: 16px;
+    color: #ddd;
+    text-transform: uppercase;
+    background-color: transparent;
+    border: none;
+    text-decoration: none;
+    font-family: Inter;
+    letter-spacing: 0.1rem;
+    background-color: #888888;
+    border-radius: 999999px;
+    padding: 5px;
+}
+.voteLinkButton2:hover {
+    cursor: pointer;
+    background-color: #535353;
 }
 
 .voteButton {
-    text-align: right;
+    position: absolute;
+    right: 0 !important;
+    bottom: 0 !important;
+    margin-right: 20px;
+    margin-bottom: 20px;
 }
 
 .voteRight {
@@ -121,11 +318,84 @@ a:hover {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    background-color: #70707f;
+    font-family: Inter;
+}
+
+#MovieName, #Description, #Links {
+    background-color: transparent;
+    border: 1px solid rgb(100, 100, 100) !important;
+    border-radius: 10px;
+    color: white;
+}
+
+.MovieNameLabel, .DescriptionLabel, .LinksLabel {
+    position: relative;
+    top: 10px;
+    left: 6px;
+    padding: 0px 5px 0px 5px;
+    font-size: 0.9rem;
+    background-color: var(--bg-color);
+}
+
+.MovieNameLabel {
+    width: 80px;
+}
+
+.DescriptionLabel {
+    width: 85px;
+}
+
+.LinksLabel {
+    width: 40px;
+}
+
+.searchBarInput {
+    background-color: transparent;
+    border: 1px solid rgb(100, 100, 100) !important;
+    border-radius: 10px;
+    height: 20px;
+    width: 120px !important;
+    transition: all 0.3s ease-in-out;
+    color: white;
+}
+.searchBarInput:focus {
+    outline: none;
+    width: 420px !important;
+}
+
+.searchBarLabel {
+    position: relative;
+    top: 10px;
+    left: 6px;
+    padding: 0px 5px 0px 5px;
+    font-size: 0.9rem;
+    background-color: var(--bg-color);
+}
+
+#userButtons {
+    margin-top: 20px;
+}
+
+#userButtons a {
+    text-decoration: none;
+    font-family: Inter;
+    font-size: 24px;
+    font-weight: 700;
+    margin-right: 24px;
+    color: white
+}
+
+#userButtons a:hover {
+    transform: translate(-2px, -2px) !important;
+    color: rgb(190, 190, 190);
 }
 
 .titleLink, .titleLink:hover {
     text-decoration: none;
+    font-family: Inter;
+    font-size: 68px;
+    font-weight: 700;
+    color: white
 }
 
 .flexColumn {
@@ -227,7 +497,8 @@ a:hover {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    width: 100%;
+    width: 10%;
+    margin-left: 15%;
 }
 
 .votingNotification {
@@ -242,17 +513,6 @@ a:hover {
 .searchbar input[type=text] {
 	border: none;
     padding: 6px;
-	margin-top: 8px;
-}
-
-.searchbar button {
-  float: right;
-  padding: 6px 10px;
-  margin-top: 8px;
-  margin-right: 16px;
-  background: #ddd;
-  border: none;
-  cursor: pointer;
 }
 
 #notice {
