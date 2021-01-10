@@ -379,7 +379,7 @@ func DownloadFile(filepath string, url string) error {
 	image, err := jpeg.Decode(resp.Body)
 
 	// Resize the raw image
-	resized := resize.Resize(200, 0, image, resize.NearestNeighbor)
+	resized := resize.Resize(360, 0, image, resize.NearestNeighbor)
 
 	// Reencode the image data
 	err = jpeg.Encode(file, resized, nil)

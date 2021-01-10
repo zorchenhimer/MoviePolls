@@ -326,6 +326,8 @@ margin-left: 5px;
     border: 1px solid rgb(100, 100, 100) !important;
     border-radius: 10px;
     color: white;
+    padding-top: 20px;
+    padding-left: 10px;
 }
 
 .MovieNameLabel, .DescriptionLabel, .LinksLabel {
