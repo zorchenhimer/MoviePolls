@@ -478,9 +478,6 @@ margin-left: 5px;
     border-radius: 5px;
 }
 
-.cycleItemHead {
-}
-
 .cycleMovieWrapper {
     display:flex;
     justify-content: space-evenly;
@@ -490,9 +487,6 @@ margin-left: 5px;
     display:flex;
     flex-direction: column;
     max-width: 200px;
-}
-
-.cycleMovie img {
 }
 
 .searchbar {
