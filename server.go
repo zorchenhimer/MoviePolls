@@ -683,6 +683,7 @@ func (s *Server) handleAutofill(data *dataAddMovie, w http.ResponseWriter, r *ht
 			s.l.Error("Cannot add link")
 			data.ErrorMessage = append(data.ErrorMessage, "Could not add link: %v", err.Error())
 			data.ErrLinks = true
+			return
 		}
 
 		if ls.IsSource {
