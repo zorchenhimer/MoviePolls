@@ -34,7 +34,7 @@ all: fmt $(CMD_SERVER)
 data: fmt $(CMD_DATA)
 
 server: cmd/server.go fmt $(SOURCES)
-	GOOS=linux GOARCH=386 go build -o bin/MoviePolls $<
+	GOOS=linux GOARCH=386 go$(GO_VERSION) build -o bin/MoviePolls $<
 
 clean:
 	rm -f $(CMD_SERVER) $(CMD_DATA) bin/MoviePolls
@@ -43,10 +43,10 @@ fmt:
 	gofmt -w .
 
 $(CMD_SERVER): cmd/server.go $(SOURCES)
-	go build -o $@ $<
+	go$(GO_VERSION) build -o $@ $<
 
 $(CMD_DATA): cmd/mkdata.go $(SOURCES)
-	go build -o $@ $<
+	go$(GO_VERSION) build -o $@ $<
 
 run: all
 	cmd/server
