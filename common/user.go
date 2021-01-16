@@ -23,8 +23,6 @@ type User struct {
 	Privilege           PrivilegeLevel
 
 	AuthMethods []*AuthMethod
-
-	LastMovieAdd time.Time
 }
 
 func (u User) CheckPriv(lvl string) bool {

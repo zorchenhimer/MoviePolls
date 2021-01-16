@@ -109,8 +109,6 @@ type jsonUser struct {
 	Privilege           int
 
 	AuthMethods []int
-
-	LastMovieAdd *time.Time
 }
 
 func (j *jsonConnector) newJsonUser(user *common.User) jsonUser {
@@ -131,7 +129,6 @@ func (j *jsonConnector) newJsonUser(user *common.User) jsonUser {
 		NotifyVoteSelection: user.NotifyVoteSelection,
 		Privilege:           int(user.Privilege),
 		AuthMethods:         authMethods,
-		LastMovieAdd:        &user.LastMovieAdd,
 	}
 
 	return ju
@@ -611,7 +608,6 @@ func (j *jsonConnector) userFromJson(jUser jsonUser) *common.User {
 		NotifyCycleEnd:      jUser.NotifyCycleEnd,
 		NotifyVoteSelection: jUser.NotifyVoteSelection,
 		AuthMethods:         authMethods,
-		LastMovieAdd:        *jUser.LastMovieAdd,
 		Privilege:           common.PrivilegeLevel(jUser.Privilege),
 	}
 
