@@ -29,7 +29,7 @@ type OldUser struct {
 	Email               string
 	NotifyCycleEnd      bool
 	NotifyVoteSelection bool
-	Priviledge          int
+	Privilege           int
 	PassDate            time.Time
 	RateLimitOverride   bool
 	LastMovieAdd        time.Time
@@ -52,7 +52,16 @@ func loadOldDB() error {
 	for _, user := range jUsers {
 		ou := &OldUser{}
 		mapstructure.Decode(user, &ou)
-		ou.PassDate, _ = time.Parse(time.RFC3339, user.(map[string]interface{})["PassDate"].(string))
+		// lets parse the fucking time by hand
+		if user.(map[string]interface{})["PassDate"] == nil {
+			fmt.Println("[ERROR] Could not parse field 'PassDate', was the database already converted?")
+			return nil
+		}
+		ou.PassDate, err = time.Parse(time.RFC3339, user.(map[string]interface{})["PassDate"].(string))
+		if err != nil {
+			fmt.Println("[ERROR] Could not parse field 'PassDate', was the database already converted?")
+			return nil
+		}
 		oldUsers = append(oldUsers, *ou)
 	}
 
@@ -80,8 +89,6 @@ func loadOldDB() error {
 
 	for _, oldUser := range oldUsers {
 
-		l.Debug("Old User Passdate: %s", oldUser.PassDate)
-
 		// convert old movies to new ones
 		newUser := mpc.User{
 			Id:                  oldUser.Id,
@@ -89,7 +96,16 @@ func loadOldDB() error {
 			Email:               oldUser.Email,
 			NotifyCycleEnd:      oldUser.NotifyCycleEnd,
 			NotifyVoteSelection: oldUser.NotifyVoteSelection,
-			Privilege:           mpc.PrivilegeLevel(oldUser.Priviledge),
+			Privilege:           mpc.PrivilegeLevel(oldUser.Privilege),
+		}
+
+		switch oldUser.Privilege {
+		case 0:
+			newUser.Privilege = mpc.PRIV_USER
+		case 1:
+			newUser.Privilege = mpc.PRIV_MOD
+		case 2:
+			newUser.Privilege = mpc.PRIV_ADMIN
 		}
 
 		// Do NOT build new entries for users with empty passwords (i.e. Deleted users)
@@ -99,8 +115,6 @@ func loadOldDB() error {
 				Password: oldUser.Password,
 				PassDate: oldUser.PassDate,
 			}
-
-			l.Debug("New User Passdate: %v", authMethod.PassDate)
 
 			newUser.AuthMethods = []*mpc.AuthMethod{}
 
