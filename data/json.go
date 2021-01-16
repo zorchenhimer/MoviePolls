@@ -645,16 +645,18 @@ func (j *jsonConnector) UserLocalLogin(name, hashedPw string) (*common.User, err
 
 	user := j.findUserByName(name)
 
-	for _, auth := range user.AuthMethods {
-		if auth.Type == "Local" {
-			if hashedPw == auth.Password {
-				return user, nil
+	if user != nil {
+		for _, auth := range user.AuthMethods {
+			if auth.Type == "Local" {
+				if hashedPw == auth.Password {
+					return user, nil
+				}
+				j.l.Info("Bad password for user %s\n", name)
+				return nil, fmt.Errorf("Invalid login credentials")
 			}
-			j.l.Info("Bad password for user %s\n", name)
-			return nil, fmt.Errorf("Invalid login credentials")
 		}
-	}
 
+	}
 	j.l.Info("User with name %s not found\n", name)
 	return nil, fmt.Errorf("Invalid login credentials")
 }
