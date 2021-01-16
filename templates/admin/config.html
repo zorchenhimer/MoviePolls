@@ -8,6 +8,7 @@
     {{$tString := .TypeString}}
     {{$tBool := .TypeBool}}
     {{$tInt := .TypeInt}}
+    {{$tKey := .TypeKey}}
     {{$alt := 0}}
 
     {{range .Values}}
@@ -15,6 +16,8 @@
         <label for="{{.Key}}">{{.Key}}</label>
         {{if eq .Type $tString}}
         <input type="text" id="{{.Key}}" name="{{.Key}}" value="{{.Value}}" />
+        {{else if eq .Type $tKey}}
+        <input type="password" id="{{.Key}}" name="{{.Key}}" value="{{.Value}}" />
         {{else if eq .Type $tInt}}
         <input type="number" id="{{.Key}}" name="{{.Key}}" value="{{.Value}}" />
         {{else if eq .Type $tBool}}

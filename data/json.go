@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -199,6 +201,15 @@ func init() {
 }
 
 func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error) {
+
+	if !common.FileExists(filepath.Dir("db/")) {
+		err := os.Mkdir(filepath.Dir("db/"), 0744)
+		if err != nil {
+			fmt.Errorf("Could not create directory 'db': %v", err)
+			os.Exit(1)
+		}
+	}
+
 	if common.FileExists(filename) {
 		return loadJson(filename, l)
 	}

@@ -17,19 +17,6 @@ type dataAdminHome struct {
 	Cycle *common.Cycle
 }
 
-type dataAdminUserEdit struct {
-	dataPageBase
-
-	User           *common.User
-	CurrentVotes   []*common.Movie
-	AvailableVotes int
-
-	PassError   []string
-	NotifyError []string
-	UrlKey      *common.UrlKey
-	Host        string
-}
-
 func (s *Server) checkAdminRights(w http.ResponseWriter, r *http.Request) bool {
 	user := s.getSessionUser(w, r)
 
@@ -297,13 +284,9 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 		s.l.Error("Error getting MaxUserVotes config setting: %v", err)
 	}
 
-	votes, err := s.data.GetUserVotes(uid)
+	activeVotes, _, err := s.getUserVotes(user)
 	if err != nil {
-		s.doError(
-			http.StatusInternalServerError,
-			fmt.Sprintf("Unable to get user votes: %v", err),
-			w, r)
-		return
+		s.l.Error("Unable to get votes for user %d: %v", user.Id, err)
 	}
 
 	host, err := s.data.GetCfgString(ConfigHostAddress, "http://<host>")
@@ -315,12 +298,25 @@ func (s *Server) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := dataAdminUserEdit{
+	data := struct {
+		dataPageBase
+
+		User         *common.User
+		CurrentVotes []*common.Movie
+		//PastVotes      []*common.Movie
+		AvailableVotes int
+
+		PassError   []string
+		NotifyError []string
+		UrlKey      *common.UrlKey
+		Host        string
+	}{
 		dataPageBase: s.newPageBase("Admin - User Edit", w, r),
 
-		User:           user,
-		CurrentVotes:   votes,
-		AvailableVotes: totalVotes - len(votes),
+		User:         user,
+		CurrentVotes: activeVotes,
+		//PastVotes:      watchedVotes,
+		AvailableVotes: totalVotes - len(activeVotes),
 		UrlKey:         urlKey,
 		Host:           host,
 	}
@@ -348,6 +344,7 @@ const (
 	ConfigInt ConfigValueType = iota
 	ConfigString
 	ConfigBool
+	ConfigKey
 )
 
 func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
@@ -364,6 +361,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		TypeString ConfigValueType
 		TypeBool   ConfigValueType
 		TypeInt    ConfigValueType
+		TypeKey    ConfigValueType
 	}{
 		ErrorMessage: []string{},
 		Values: []configValue{
@@ -378,7 +376,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 			configValue{Key: ConfigJikanBannedTypes, Default: DefaultJikanBannedTypes, Type: ConfigString},
 			configValue{Key: ConfigJikanMaxEpisodes, Default: DefaultJikanMaxEpisodes, Type: ConfigInt},
 			configValue{Key: ConfigTmdbEnabled, Default: DefaultTmdbEnabled, Type: ConfigBool},
-			configValue{Key: ConfigTmdbToken, Default: DefaultTmdbToken, Type: ConfigString},
+			configValue{Key: ConfigTmdbToken, Default: DefaultTmdbToken, Type: ConfigKey},
 
 			configValue{Key: ConfigFormfillEnabled, Default: DefaultFormfillEnabled, Type: ConfigBool},
 
@@ -406,6 +404,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		TypeString: ConfigString,
 		TypeBool:   ConfigBool,
 		TypeInt:    ConfigInt,
+		TypeKey:    ConfigKey,
 	}
 
 	var err error
@@ -423,7 +422,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		for _, val := range data.Values {
 			str := r.PostFormValue(val.Key)
 			switch val.Type {
-			case ConfigString:
+			case ConfigString, ConfigKey:
 				err = s.data.SetCfgString(val.Key, str)
 				if err != nil {
 					data.ErrorMessage = append(
@@ -481,7 +480,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		var v interface{}
 
 		switch val.Type {
-		case ConfigString:
+		case ConfigString, ConfigKey:
 			v, err = s.data.GetCfgString(val.Key, val.Default.(string))
 		case ConfigBool:
 			v, err = s.data.GetCfgBool(val.Key, val.Default.(bool))
