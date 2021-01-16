@@ -273,6 +273,10 @@ func loadJson(filename string, l *common.Logger) (*jsonConnector, error) {
 		data.Links = make(map[int]*common.Link)
 	}
 
+	if data.AuthMethods == nil {
+		data.AuthMethods = make(map[int]*common.AuthMethod)
+	}
+
 	return data, nil
 }
 
