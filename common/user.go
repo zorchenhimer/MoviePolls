@@ -24,9 +24,7 @@ type User struct {
 
 	AuthMethods []*AuthMethod
 
-	// Does this user ignore rate limit? (default true for mod/admin)
-	RateLimitOverride bool
-	LastMovieAdd      time.Time
+	LastMovieAdd time.Time
 }
 
 func (u User) CheckPriv(lvl string) bool {

@@ -110,8 +110,7 @@ type jsonUser struct {
 
 	AuthMethods []int
 
-	RateLimitOverride bool
-	LastMovieAdd      *time.Time
+	LastMovieAdd *time.Time
 }
 
 func (j *jsonConnector) newJsonUser(user *common.User) jsonUser {
@@ -132,7 +131,6 @@ func (j *jsonConnector) newJsonUser(user *common.User) jsonUser {
 		NotifyVoteSelection: user.NotifyVoteSelection,
 		Privilege:           int(user.Privilege),
 		AuthMethods:         authMethods,
-		RateLimitOverride:   user.RateLimitOverride,
 		LastMovieAdd:        &user.LastMovieAdd,
 	}
 
@@ -609,7 +607,6 @@ func (j *jsonConnector) userFromJson(jUser jsonUser) *common.User {
 		NotifyCycleEnd:      jUser.NotifyCycleEnd,
 		NotifyVoteSelection: jUser.NotifyVoteSelection,
 		AuthMethods:         authMethods,
-		RateLimitOverride:   jUser.RateLimitOverride,
 		LastMovieAdd:        *jUser.LastMovieAdd,
 		Privilege:           common.PrivilegeLevel(jUser.Privilege),
 	}

@@ -103,7 +103,6 @@ func (s *Server) adminDeleteUser(w http.ResponseWriter, r *http.Request, user *c
 		user.NotifyCycleEnd = false
 		user.NotifyVoteSelection = false
 		user.Privilege = 0
-		user.RateLimitOverride = false
 
 		err := s.data.UpdateUser(user)
 		if err != nil {
