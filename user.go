@@ -224,7 +224,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 				}
 				if !(data.ErrCurrentPass || data.ErrNewPass || data.ErrEmail) {
 					// Change pass
-					data.SuccessMessage = "Password successfully changed"
+					data.SuccessMessage = "Password successfully set"
 					localAuth.Password = s.hashPassword(pass1_raw)
 					localAuth.PassDate = time.Now()
 					s.l.Info("new PassDate: %s", localAuth.PassDate)

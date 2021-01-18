@@ -18,7 +18,6 @@ var twitchOAuthConfig = &oauth2.Config{}
 var discordOAuthConfig = &oauth2.Config{}
 var patreonOAuthConfig = &oauth2.Config{}
 
-// var oauthStateString string
 var openStates = []string{}
 
 // Welp we need to do the endpoints ourself i guess ...
@@ -405,7 +404,7 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 				NotifyVoteSelection: false,
 			}
 
-			// add this new server to the database
+			// add this new user to the database
 			newUser.Id, err = s.data.AddUser(newUser)
 
 			if err != nil {

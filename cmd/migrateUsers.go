@@ -99,15 +99,6 @@ func loadOldDB() error {
 			Privilege:           mpc.PrivilegeLevel(oldUser.Privilege),
 		}
 
-		switch oldUser.Privilege {
-		case 0:
-			newUser.Privilege = mpc.PRIV_USER
-		case 1:
-			newUser.Privilege = mpc.PRIV_MOD
-		case 2:
-			newUser.Privilege = mpc.PRIV_ADMIN
-		}
-
 		// Do NOT build new entries for users with empty passwords (i.e. Deleted users)
 		if oldUser.Password != "" {
 			authMethod := &mpc.AuthMethod{
