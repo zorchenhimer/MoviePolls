@@ -389,6 +389,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 
 			configValue{Key: ConfigUnlimitedVotes, Default: DefaultUnlimitedVotes, Type: ConfigBool},
 
+			configValue{Key: ConfigLocalSignupEnabled, Default: DefaultLocalSignupEnabled, Type: ConfigBool},
 			configValue{Key: ConfigTwitchOauthEnabled, Default: DefaultTwitchOauthEnabled, Type: ConfigBool},
 			configValue{Key: ConfigTwitchOauthSignupEnabled, Default: DefaultTwitchOauthSignupEnabled, Type: ConfigBool},
 			configValue{Key: ConfigTwitchOauthClientID, Default: DefaultTwitchOauthClientID, Type: ConfigString},
@@ -510,6 +511,47 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		data.ErrorMessage = append(data.ErrorMessage, err.Error())
+	}
+
+	// getting ALL the booleans
+	var localSignup, twitchSignup, patreonSignup, discordSignup, twitchOauth, patreonOauth, discordOauth bool
+
+	// lets better hope that THIS NEVER FAILS to assign a valid boolean
+	for _, val := range data.Values {
+		switch val.Key {
+		case ConfigLocalSignupEnabled:
+			localSignup = val.Value.(bool)
+		case ConfigTwitchOauthSignupEnabled:
+			twitchSignup = val.Value.(bool)
+		case ConfigTwitchOauthEnabled:
+			twitchOauth = val.Value.(bool)
+		case ConfigDiscordOauthSignupEnabled:
+			discordSignup = val.Value.(bool)
+		case ConfigDiscordOauthEnabled:
+			discordOauth = val.Value.(bool)
+		case ConfigPatreonOauthSignupEnabled:
+			patreonSignup = val.Value.(bool)
+		case ConfigPatreonOauthEnabled:
+			patreonOauth = val.Value.(bool)
+		}
+	}
+
+	// Check that we have atleast ONE signup method enabled
+	if !(localSignup || twitchSignup || discordSignup || patreonSignup) {
+		data.ErrorMessage = append(data.ErrorMessage, "No Signup method is currently enabled, please ensure to enable atleast one method")
+	}
+
+	// Check that the corresponding oauth for the signup is enabled
+	if twitchSignup && !twitchOauth {
+		data.ErrorMessage = append(data.ErrorMessage, "To enable twitch signup you need to also enable twitch Oauth (and fill the token/secret)")
+	}
+
+	if discordSignup && !discordOauth {
+		data.ErrorMessage = append(data.ErrorMessage, "To enable discord signup you need to also enable discord Oauth (and fill the token/secret)")
+	}
+
+	if patreonSignup && !patreonOauth {
+		data.ErrorMessage = append(data.ErrorMessage, "To enable patreon signup you need to also enable patreon Oauth (and fill the token/secret)")
 	}
 
 	if err := s.executeTemplate(w, "adminConfig", data); err != nil {

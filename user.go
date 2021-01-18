@@ -420,6 +420,7 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 		DiscordSignup bool
 		PatreonOAuth  bool
 		PatreonSignup bool
+		LocalSignup   bool
 
 		ValName           string
 		ValEmail          string
@@ -442,7 +443,7 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	twitchSignup, err := s.data.GetCfgBool(ConfigTwitchOauthSignupEnabled, DefaultTwitchOauthSignupEnabled)
 	if err != nil {
 		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
-		s.l.Error("Unable to get ConfigTwitchOauthEnabled config value: %v", err)
+		s.l.Error("Unable to get ConfigTwitchOauthSignupEnabled config value: %v", err)
 		return
 	}
 	data.TwitchSignup = twitchSignup
@@ -458,7 +459,7 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	discordSignup, err := s.data.GetCfgBool(ConfigDiscordOauthSignupEnabled, DefaultDiscordOauthSignupEnabled)
 	if err != nil {
 		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
-		s.l.Error("Unable to get ConfigDiscordOauthEnabled config value: %v", err)
+		s.l.Error("Unable to get ConfigDiscordOauthSignupEnabled config value: %v", err)
 		return
 	}
 	data.DiscordSignup = discordSignup
@@ -474,10 +475,18 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	patreonSignup, err := s.data.GetCfgBool(ConfigPatreonOauthSignupEnabled, DefaultPatreonOauthSignupEnabled)
 	if err != nil {
 		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
-		s.l.Error("Unable to get ConfigPatreonOauthEnabled config value: %v", err)
+		s.l.Error("Unable to get ConfigPatreonOauthSignupEnabled config value: %v", err)
 		return
 	}
 	data.PatreonSignup = patreonSignup
+
+	localSignup, err := s.data.GetCfgBool(ConfigLocalSignupEnabled, DefaultLocalSignupEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigLocalSignupEnabled config value: %v", err)
+		return
+	}
+	data.LocalSignup = localSignup
 
 	data.OAuth = twitchAuth || discordAuth || patreonAuth
 

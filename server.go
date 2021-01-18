@@ -38,6 +38,7 @@ const (
 	DefaultMaxLinkLength        int = 500 // length of all links combined
 	DefaultMaxRemarksLength     int = 200
 
+	DefaultLocalSignupEnabled        bool   = true
 	DefaultTwitchOauthEnabled        bool   = false
 	DefaultTwitchOauthSignupEnabled  bool   = false
 	DefaultTwitchOauthClientID       string = ""
@@ -74,6 +75,7 @@ const (
 	ConfigMaxLinkLength        string = "MaxLinkLength"
 	ConfigMaxRemarksLength     string = "MaxRemarksLength"
 
+	ConfigLocalSignupEnabled        string = "LocalSignupEnabled"
 	ConfigTwitchOauthEnabled        string = "TwitchOauthEnabled"
 	ConfigTwitchOauthSignupEnabled  string = "TwitchOauthSignupEnabled"
 	ConfigTwitchOauthClientID       string = "TwitchOauthClientID"

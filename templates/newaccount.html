@@ -10,6 +10,7 @@
     </div>
     {{end}}
     <div id="login">
+      {{ if .LocalSignup }}
         <div>
             <div{{if .ErrName}} class="errorMessage"{{end}}><label for="Username">Username<label></div>
             <div><input type="text" name="Username" id="Username" required value="{{.ValName}}" /></div>
@@ -22,6 +23,7 @@
             <div{{if .ErrPass}} class="errorMessage"{{end}}><label for="Password2">Retype password<label></div>
             <div><input type="password" name="Password2" id="Password2" required /></div>
         </div>
+      {{end}}
 		{{if .OAuth}}
 		<div id="oauth">
 			{{if and .TwitchOAuth .TwitchSignup}}
