@@ -56,6 +56,7 @@ type DataConnector interface {
 	GetUsers(start, count int) ([]*common.User, error)
 	GetUserVotes(userId int) ([]*common.Movie, error)
 	GetUserMovies(userId int) ([]*common.Movie, error)
+	GetUsersWithAuth(auth common.AuthType, exclusive bool) ([]*common.User, error)
 	//GetMovieVotes(userId int) []*Movie
 	GetTag(id int) *common.Tag
 	GetAuthMethod(id int) *common.AuthMethod

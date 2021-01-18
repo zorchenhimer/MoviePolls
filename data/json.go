@@ -1579,3 +1579,32 @@ func (j *jsonConnector) CheckOauthUsage(id string, authType common.AuthType) boo
 	}
 	return false
 }
+
+func (j *jsonConnector) GetUsersWithAuth(auth common.AuthType, exclusive bool) ([]*common.User, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	res := []*common.User{}
+
+	for _, juser := range j.Users {
+		user := j.userFromJson(juser)
+		for _, authMethod := range user.AuthMethods {
+			if authMethod.Type == auth {
+				// user has atleast this auth method
+				if exclusive {
+					if len(user.AuthMethods) == 1 {
+						// user has ONLY this auth method
+						res = append(res, user)
+					}
+				} else {
+					res = append(res, user)
+				}
+
+			}
+		}
+	}
+	if len(res) == 0 {
+		return nil, fmt.Errorf("No users with authmethod %s found.", auth)
+	}
+	return res, nil
+}
