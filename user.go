@@ -413,10 +413,13 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 		ErrPass      bool
 		ErrEmail     bool
 
-		OAuth        bool
-		TwitchOAuth  bool
-		DiscordOAuth bool
-		PatreonOAuth bool
+		OAuth         bool
+		TwitchOAuth   bool
+		TwitchSignup  bool
+		DiscordOAuth  bool
+		DiscordSignup bool
+		PatreonOAuth  bool
+		PatreonSignup bool
 
 		ValName           string
 		ValEmail          string
@@ -436,6 +439,14 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	}
 	data.TwitchOAuth = twitchAuth
 
+	twitchSignup, err := s.data.GetCfgBool(ConfigTwitchOauthSignupEnabled, DefaultTwitchOauthSignupEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigTwitchOauthEnabled config value: %v", err)
+		return
+	}
+	data.TwitchSignup = twitchSignup
+
 	discordAuth, err := s.data.GetCfgBool(ConfigDiscordOauthEnabled, DefaultDiscordOauthEnabled)
 	if err != nil {
 		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
@@ -444,6 +455,14 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	}
 	data.DiscordOAuth = discordAuth
 
+	discordSignup, err := s.data.GetCfgBool(ConfigDiscordOauthSignupEnabled, DefaultDiscordOauthSignupEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigDiscordOauthEnabled config value: %v", err)
+		return
+	}
+	data.DiscordSignup = discordSignup
+
 	patreonAuth, err := s.data.GetCfgBool(ConfigPatreonOauthEnabled, DefaultPatreonOauthEnabled)
 	if err != nil {
 		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
@@ -451,6 +470,14 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data.PatreonOAuth = patreonAuth
+
+	patreonSignup, err := s.data.GetCfgBool(ConfigPatreonOauthSignupEnabled, DefaultPatreonOauthSignupEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigPatreonOauthEnabled config value: %v", err)
+		return
+	}
+	data.PatreonSignup = patreonSignup
 
 	data.OAuth = twitchAuth || discordAuth || patreonAuth
 

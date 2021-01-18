@@ -24,13 +24,13 @@
         </div>
 		{{if .OAuth}}
 		<div id="oauth">
-			{{if .TwitchOAuth}}
+			{{if and .TwitchOAuth .TwitchSignup}}
 			<a href="/oauth/twitch?action=signup">Signup with Twitch</a>
 			{{end}}
-			{{if .DiscordOAuth}}
+			{{if and .DiscordOAuth  .DiscordSignup}}
 			<a href="/oauth/discord?action=signup">Signup with Discord</a>
 			{{end}}
-			{{if .PatreonOAuth}}
+			{{if and .PatreonOAuth .PatreonSignup}}
 			<a href="/oauth/patreon?action=signup">Signup with Patreon</a>
 			{{end}}
 		</div>

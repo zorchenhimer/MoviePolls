@@ -38,15 +38,18 @@ const (
 	DefaultMaxLinkLength        int = 500 // length of all links combined
 	DefaultMaxRemarksLength     int = 200
 
-	DefaultTwitchOauthEnabled       bool   = false
-	DefaultTwitchOauthClientID      string = ""
-	DefaultTwitchOauthClientSecret  string = ""
-	DefaultDiscordOauthEnabled      bool   = false
-	DefaultDiscordOauthClientID     string = ""
-	DefaultDiscordOauthClientSecret string = ""
-	DefaultPatreonOauthEnabled      bool   = false
-	DefaultPatreonOauthClientID     string = ""
-	DefaultPatreonOauthClientSecret string = ""
+	DefaultTwitchOauthEnabled        bool   = false
+	DefaultTwitchOauthSignupEnabled  bool   = false
+	DefaultTwitchOauthClientID       string = ""
+	DefaultTwitchOauthClientSecret   string = ""
+	DefaultDiscordOauthEnabled       bool   = false
+	DefaultDiscordOauthSignupEnabled bool   = false
+	DefaultDiscordOauthClientID      string = ""
+	DefaultDiscordOauthClientSecret  string = ""
+	DefaultPatreonOauthEnabled       bool   = false
+	DefaultPatreonOauthSignupEnabled bool   = false
+	DefaultPatreonOauthClientID      string = ""
+	DefaultPatreonOauthClientSecret  string = ""
 )
 
 // configuration keys
@@ -71,15 +74,18 @@ const (
 	ConfigMaxLinkLength        string = "MaxLinkLength"
 	ConfigMaxRemarksLength     string = "MaxRemarksLength"
 
-	ConfigTwitchOauthEnabled       string = "TwitchOauthEnabled"
-	ConfigTwitchOauthClientID      string = "TwitchOauthClientID"
-	ConfigTwitchOauthClientSecret  string = "TwitchOauthSecret"
-	ConfigDiscordOauthEnabled      string = "DiscordOauthEnabled"
-	ConfigDiscordOauthClientID     string = "DiscordOauthClientID"
-	ConfigDiscordOauthClientSecret string = "DiscordOauthClientSecret"
-	ConfigPatreonOauthEnabled      string = "PatreonOauthEnabled"
-	ConfigPatreonOauthClientID     string = "PatreonOauthClientID"
-	ConfigPatreonOauthClientSecret string = "PatreonOauthClientSecret"
+	ConfigTwitchOauthEnabled        string = "TwitchOauthEnabled"
+	ConfigTwitchOauthSignupEnabled  string = "TwitchOauthSignupEnabled"
+	ConfigTwitchOauthClientID       string = "TwitchOauthClientID"
+	ConfigTwitchOauthClientSecret   string = "TwitchOauthSecret"
+	ConfigDiscordOauthEnabled       string = "DiscordOauthEnabled"
+	ConfigDiscordOauthSignupEnabled string = "DiscordOauthSignupEnabled"
+	ConfigDiscordOauthClientID      string = "DiscordOauthClientID"
+	ConfigDiscordOauthClientSecret  string = "DiscordOauthClientSecret"
+	ConfigPatreonOauthEnabled       string = "PatreonOauthEnabled"
+	ConfigPatreonOauthSignupEnabled string = "PatreonOauthSignupEnabled"
+	ConfigPatreonOauthClientID      string = "PatreonOauthClientID"
+	ConfigPatreonOauthClientSecret  string = "PatreonOauthClientSecret"
 )
 
 type Options struct {
