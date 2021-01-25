@@ -49,6 +49,7 @@ func (l *Link) validateLink() error {
 	url := l.Url
 	if re_validLink.MatchString(url) {
 		url = stripRefFromLink(url)
+		url = stripMobileFromLink(url)
 
 		if len(url) <= 8 {
 			// lets be stupid when the link is too short
@@ -74,6 +75,12 @@ func stripRefFromLink(link string) string {
 		return link[:idx]
 	}
 	return link
+}
+
+// for now we just replace it for imdb, if we need others we need to adapt that
+// is it stupid, YES, does it work, i guess? do i have a better idea, no
+func stripMobileFromLink(link string) string {
+	return strings.Replace(link, "m.imdb.com", "imdb.com", 1)
 }
 
 func (l *Link) determineLinkType() error {
