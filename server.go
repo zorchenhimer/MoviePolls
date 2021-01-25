@@ -923,7 +923,17 @@ func (s *Server) handleJikan(data *dataAddMovie, w http.ResponseWriter, r *http.
 		return nil, fmt.Errorf("Error while retriving config value 'JikanMaxEpisodes':\n %v", err)
 	}
 
-	sourceAPI := jikan{id: id, l: s.l, excludedTypes: bannedTypes, maxEpisodes: maxEpisodes}
+	maxDuration, err := s.data.GetCfgInt(ConfigMaxMultEpLength, DefaultMaxMultEpLength)
+
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			"something went wrong :C",
+			w, r)
+		return nil, fmt.Errorf("Error while retriving config value 'MaxMultEpLength':\n %v", err)
+	}
+
+	sourceAPI := jikan{id: id, l: s.l, excludedTypes: bannedTypes, maxEpisodes: maxEpisodes, maxDuration: maxDuration}
 
 	// Request data from API
 	results, err := getMovieData(&sourceAPI)

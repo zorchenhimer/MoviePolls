@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/nfnt/resize"
@@ -39,6 +41,7 @@ type jikan struct {
 	excludedTypes []string
 	resp          *map[string]interface{}
 	maxEpisodes   int
+	maxDuration   int
 }
 
 func getMovieData(api dataapi) ([]string, error) {
@@ -229,6 +232,8 @@ func (t *tmdb) getTags() (string, error) {
 	return strings.Join(tags, ","), nil
 }
 
+var re_duration = regexp.MustCompile(`([0-9]{1,3}) min`)
+
 func (j *jikan) requestResults() error {
 	resp, err := http.Get("https://api.jikan.moe/v3/anime/" + j.id)
 	if err != nil || resp.StatusCode != 200 {
@@ -261,6 +266,26 @@ func (j *jikan) requestResults() error {
 			}
 		} else {
 			return fmt.Errorf("The episode count of this anime has not been published yet. Therefore this anime can not be added.")
+		}
+
+		if dat["duration"] != nil && dat["duration"] != "Unknown" && j.maxDuration >= 0 {
+			match := re_duration.FindStringSubmatch(dat["duration"].(string))
+			if len(match) < 2 {
+				j.l.Error("Could not detect episode duration.")
+				return fmt.Errorf("The episode duration of this anime has not been published or has an unexpected format. Therefore this anime can not be added.")
+			}
+			duration, err := strconv.Atoi(match[1])
+
+			if err != nil {
+				j.l.Error("Could not convert duration %v to int", match[1])
+				return fmt.Errorf("The episode duration of this anime has not been published or has an unexpected format. Therefore this anime can not be added.")
+			}
+
+			// this looks stupid but it works lul
+			if (duration * int(dat["episodes"].(float64))) > j.maxDuration {
+				j.l.Error("Duration of the anime %s is too long: %d", dat["title"].(string), (duration * int(dat["episodes"].(float64))))
+				return fmt.Errorf("The duration of this series (episode duration * episodes) is longer than the maximum duration defined by the admin. Therefore this anime can not be added.")
+			}
 		}
 
 		j.resp = &dat
