@@ -47,9 +47,8 @@ var re_validLink = *regexp.MustCompile(`[a-zA-Z0-9:._\+]{1,256}\.[a-zA-Z0-9()]{1
 
 func (l *Link) validateLink() error {
 	url := l.Url
+	url = cleanupLink(url)
 	if re_validLink.MatchString(url) {
-		url = stripRefFromLink(url)
-		url = stripMobileFromLink(url)
 
 		if len(url) <= 8 {
 			// lets be stupid when the link is too short
@@ -69,18 +68,20 @@ func (l *Link) validateLink() error {
 	return fmt.Errorf("Invalid link: %v", l.Url)
 }
 
-func stripRefFromLink(link string) string {
-	idx := strings.Index(link, "/?")
-	if idx != -1 {
-		return link[:idx]
-	}
-	return link
+var replacements = map[string]string{
+	"m.imdb.com": "imdb.com",
 }
 
-// for now we just replace it for imdb, if we need others we need to adapt that
-// is it stupid, YES, does it work, i guess? do i have a better idea, no
-func stripMobileFromLink(link string) string {
-	return strings.Replace(link, "m.imdb.com", "imdb.com", 1)
+func cleanupLink(link string) string {
+	idx := strings.Index(link, "/?")
+	if idx != -1 {
+		link = link[:idx]
+	}
+	for from, to := range replacements {
+		link = strings.Replace(link, from, to, 1)
+	}
+
+	return link
 }
 
 func (l *Link) determineLinkType() error {
