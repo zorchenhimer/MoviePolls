@@ -516,23 +516,27 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 	// getting ALL the booleans
 	var localSignup, twitchSignup, patreonSignup, discordSignup, twitchOauth, patreonOauth, discordOauth bool
 
-	// lets better hope that THIS NEVER FAILS to assign a valid boolean
 	for _, val := range data.Values {
+		bval, ok := val.Value.(bool)
+		if !ok {
+			data.ErrorMessage = append(data.ErrorMessage, "Could not parse field %s as boolean", val.Key)
+			break
+		}
 		switch val.Key {
 		case ConfigLocalSignupEnabled:
-			localSignup = val.Value.(bool)
+			localSignup = bval
 		case ConfigTwitchOauthSignupEnabled:
-			twitchSignup = val.Value.(bool)
+			twitchSignup = bval
 		case ConfigTwitchOauthEnabled:
-			twitchOauth = val.Value.(bool)
+			twitchOauth = bval
 		case ConfigDiscordOauthSignupEnabled:
-			discordSignup = val.Value.(bool)
+			discordSignup = bval
 		case ConfigDiscordOauthEnabled:
-			discordOauth = val.Value.(bool)
+			discordOauth = bval
 		case ConfigPatreonOauthSignupEnabled:
-			patreonSignup = val.Value.(bool)
+			patreonSignup = bval
 		case ConfigPatreonOauthEnabled:
-			patreonOauth = val.Value.(bool)
+			patreonOauth = bval
 		}
 	}
 
