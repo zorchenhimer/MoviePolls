@@ -558,20 +558,25 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		data.ErrorMessage = append(data.ErrorMessage, "To enable patreon signup you need to also enable patreon Oauth (and fill the token/secret)")
 	}
 
-	// i intentionally ignore the errors here since they also idicate that no user was found
-	users, _ := s.data.GetUsersWithAuth(common.AUTH_TWITCH, true)
-	if (len(users) != 0) && !twitchOauth {
-		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Disabling Twitch Oauth would cause %d users to be unable to login since they only have this auth method associated.", len(users)))
+	users, err := s.data.GetUsersWithAuth(common.AUTH_TWITCH, true)
+	if err, ok := err.(*common.ErrNoUsersFound); !ok || err == nil {
+		if (len(users) != 0) && !twitchOauth {
+			data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Disabling Twitch Oauth would cause %d users to be unable to login since they only have this auth method associated.", len(users)))
+		}
 	}
 
-	users, _ = s.data.GetUsersWithAuth(common.AUTH_PATREON, true)
-	if (len(users) != 0) && !patreonOauth {
-		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Disabling Patreon Oauth would cause %d users to be unable to login since they only have this auth method associated.", len(users)))
+	users, err = s.data.GetUsersWithAuth(common.AUTH_PATREON, true)
+	if err, ok := err.(*common.ErrNoUsersFound); !ok || err == nil {
+		if (len(users) != 0) && !patreonOauth {
+			data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Disabling Patreon Oauth would cause %d users to be unable to login since they only have this auth method associated.", len(users)))
+		}
 	}
 
-	users, _ = s.data.GetUsersWithAuth(common.AUTH_DISCORD, true)
-	if (len(users) != 0) && !discordOauth {
-		data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Disabling Discord Oauth would cause %d users to be unable to login since they only have this auth method associated.", len(users)))
+	users, err = s.data.GetUsersWithAuth(common.AUTH_DISCORD, true)
+	if err, ok := err.(*common.ErrNoUsersFound); !ok || err == nil {
+		if (len(users) != 0) && !discordOauth {
+			data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Disabling Discord Oauth would cause %d users to be unable to login since they only have this auth method associated.", len(users)))
+		}
 	}
 
 	if err := s.executeTemplate(w, "adminConfig", data); err != nil {

@@ -1604,7 +1604,7 @@ func (j *jsonConnector) GetUsersWithAuth(auth common.AuthType, exclusive bool) (
 		}
 	}
 	if len(res) == 0 {
-		return nil, fmt.Errorf("No users with authmethod %s found.", auth)
+		return nil, &common.ErrNoUsersFound{auth}
 	}
 	return res, nil
 }
