@@ -518,7 +518,7 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 
 	for _, val := range data.Values {
 		bval, ok := val.Value.(bool)
-		if !ok {
+		if !ok && val.Type == ConfigBool {
 			data.ErrorMessage = append(data.ErrorMessage, "Could not parse field %s as boolean", val.Key)
 			break
 		}
