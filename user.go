@@ -181,7 +181,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 					// Change pass
 					data.SuccessMessage = "Password successfully changed"
 					localAuth.Password = s.hashPassword(newPass1_raw)
-					localAuth.PassDate = time.Now()
+					localAuth.Date = time.Now()
 
 					if err = s.data.UpdateAuthMethod(localAuth); err != nil {
 						s.l.Error("Unable to save User with new password:", err)
@@ -189,7 +189,7 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 						return
 					}
 
-					s.l.Info("new PassDate: %s", localAuth.PassDate)
+					s.l.Info("new Date_Local: %s", localAuth.Date)
 					err = s.login(user, common.AUTH_LOCAL, w, r)
 					if err != nil {
 						s.l.Error("Unable to login to session:", err)
@@ -226,8 +226,8 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 					// Change pass
 					data.SuccessMessage = "Password successfully set"
 					localAuth.Password = s.hashPassword(pass1_raw)
-					localAuth.PassDate = time.Now()
-					s.l.Info("new PassDate: %s", localAuth.PassDate)
+					localAuth.Date = time.Now()
+					s.l.Info("new Date_Local: %s", localAuth.Date)
 
 					user, err = s.AddAuthMethodToUser(localAuth, user)
 
@@ -567,7 +567,7 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 		auth := &common.AuthMethod{
 			Type:     common.AUTH_LOCAL,
 			Password: s.hashPassword(pw1),
-			PassDate: time.Now(),
+			Date:     time.Now(),
 		}
 
 		if err != nil {

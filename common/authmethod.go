@@ -16,8 +16,7 @@ type AuthMethod struct {
 	ExtId        string
 	Type         AuthType
 	Password     string
-	PassDate     time.Time
 	AuthToken    string
 	RefreshToken string
-	RefreshDate  time.Time
+	Date         time.Time
 }

@@ -128,7 +128,7 @@ func (s *Server) handlerAuth(w http.ResponseWriter, r *http.Request) {
 					}
 
 					localAuth.Password = s.hashPassword(pass1)
-					localAuth.PassDate = time.Now()
+					localAuth.Date = time.Now()
 
 					if err = s.data.UpdateAuthMethod(localAuth); err != nil {
 						s.l.Error("Unable to save AuthMethod with new password:", err)

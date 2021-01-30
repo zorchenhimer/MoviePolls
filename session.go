@@ -31,49 +31,22 @@ func (s *Server) login(user *common.User, authType common.AuthType, w http.Respo
 
 	session.Values["UserId"] = user.Id
 
-	switch authType {
-	case common.AUTH_LOCAL:
-
-		gobbed, err := auth.PassDate.GobEncode()
-		if err != nil {
-			return fmt.Errorf("Unable to gob PassDate")
-		}
-
-		session.Values["PassDate"] = fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed)))
-	case common.AUTH_TWITCH:
-		gobbed, err := auth.RefreshDate.GobEncode()
-		if err != nil {
-			return fmt.Errorf("Unable to gob RefreshDate")
-		}
-
-		session.Values["RefreshDate_Twitch"] = fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed)))
-	case common.AUTH_PATREON:
-		gobbed, err := auth.RefreshDate.GobEncode()
-		if err != nil {
-			return fmt.Errorf("Unable to gob RefreshDate")
-		}
-
-		session.Values["RefreshDate_Patreon"] = fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed)))
-	case common.AUTH_DISCORD:
-		gobbed, err := auth.RefreshDate.GobEncode()
-		if err != nil {
-			return fmt.Errorf("Unable to gob RefreshDate")
-		}
-
-		session.Values["RefreshDate_Discord"] = fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed)))
-	default:
-		return fmt.Errorf("Login without a valid auth method")
+	gobbed, err := auth.Date.GobEncode()
+	if err != nil {
+		return fmt.Errorf("Unable to gob Date")
 	}
+
+	session.Values["Date_"+string(auth.Type)] = fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed)))
 
 	return session.Save(r, w)
 }
 
 func delSession(session *sessions.Session, w http.ResponseWriter, r *http.Request) error {
 	delete(session.Values, "UserId")
-	delete(session.Values, "PassDate")
-	delete(session.Values, "RefreshDate_Discord")
-	delete(session.Values, "RefreshDate_Twitch")
-	delete(session.Values, "RefreshDate_Patreon")
+	delete(session.Values, "Date_Local")
+	delete(session.Values, "Date_Discord")
+	delete(session.Values, "Date_Twitch")
+	delete(session.Values, "Date_Patreon")
 
 	return session.Save(r, w)
 }
@@ -112,10 +85,10 @@ func (s *Server) getSessionUser(w http.ResponseWriter, r *http.Request) *common.
 	}
 
 	// I am sorry - CptPie
-	passDate, _ := session.Values["PassDate"].(string)
-	refreshTwitch, _ := session.Values["RefreshDate_Twitch"].(string)
-	refreshDiscord, _ := session.Values["RefreshDate_Discord"].(string)
-	refreshPatreon, _ := session.Values["RefreshDate_Patreon"].(string)
+	passDate, _ := session.Values["Date_Local"].(string)
+	refreshTwitch, _ := session.Values["Date_Twitch"].(string)
+	refreshDiscord, _ := session.Values["Date_Discord"].(string)
+	refreshPatreon, _ := session.Values["Date_Patreon"].(string)
 
 	if passDate != "" {
 		localAuth, err := user.GetAuthMethod(common.AUTH_LOCAL)
@@ -125,10 +98,10 @@ func (s *Server) getSessionUser(w http.ResponseWriter, r *http.Request) *common.
 			return nil
 		}
 
-		gobbed, err := localAuth.PassDate.GobEncode()
+		gobbed, err := localAuth.Date.GobEncode()
 
 		if err != nil || fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed))) != passDate {
-			s.l.Info("User's PassDate did not match stored value")
+			s.l.Info("User's Date_Local did not match stored value")
 			err = delSession(session, w, r)
 			if err != nil {
 				s.l.Error("Unable to delete cookie: %v", err)
@@ -143,10 +116,10 @@ func (s *Server) getSessionUser(w http.ResponseWriter, r *http.Request) *common.
 			return nil
 		}
 
-		gobbed, err := twitchAuth.RefreshDate.GobEncode()
+		gobbed, err := twitchAuth.Date.GobEncode()
 
 		if err != nil || fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed))) != refreshTwitch {
-			s.l.Info("User's RefreshDate did not match stored value")
+			s.l.Info("User's Date_Twitch did not match stored value")
 			err = delSession(session, w, r)
 			if err != nil {
 				s.l.Error("Unable to delete cookie: %v", err)
@@ -161,10 +134,10 @@ func (s *Server) getSessionUser(w http.ResponseWriter, r *http.Request) *common.
 			return nil
 		}
 
-		gobbed, err := discordAuth.RefreshDate.GobEncode()
+		gobbed, err := discordAuth.Date.GobEncode()
 
 		if err != nil || fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed))) != refreshDiscord {
-			s.l.Info("User's RefreshDate did not match stored value")
+			s.l.Info("User's Date_Discord did not match stored value")
 			err = delSession(session, w, r)
 			if err != nil {
 				s.l.Error("Unable to delete cookie: %v", err)
@@ -179,10 +152,10 @@ func (s *Server) getSessionUser(w http.ResponseWriter, r *http.Request) *common.
 			return nil
 		}
 
-		gobbed, err := patreonAuth.RefreshDate.GobEncode()
+		gobbed, err := patreonAuth.Date.GobEncode()
 
 		if err != nil || fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed))) != refreshPatreon {
-			s.l.Info("User's RefreshDate did not match stored value")
+			s.l.Info("User's Date_Patreon did not match stored value")
 			err = delSession(session, w, r)
 			if err != nil {
 				s.l.Error("Unable to delete cookie: %v", err)

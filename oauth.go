@@ -391,7 +391,7 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 			ExtId:        data["data"][0]["id"].(string),
 			AuthToken:    token.AccessToken,
 			RefreshToken: token.RefreshToken,
-			RefreshDate:  token.Expiry,
+			Date:         token.Expiry,
 		}
 
 		// check if Twitch Auth is already used
@@ -460,7 +460,7 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 			ExtId:        data["data"][0]["id"].(string),
 			AuthToken:    token.AccessToken,
 			RefreshToken: token.RefreshToken,
-			RefreshDate:  token.Expiry,
+			Date:         token.Expiry,
 		}
 
 		// check if this oauth is already used
@@ -672,7 +672,7 @@ func (s *Server) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.Requ
 			ExtId:        data["id"].(string),
 			AuthToken:    token.AccessToken,
 			RefreshToken: token.RefreshToken,
-			RefreshDate:  token.Expiry,
+			Date:         token.Expiry,
 		}
 
 		if !s.data.CheckOauthUsage(auth.ExtId, auth.Type) {
@@ -732,7 +732,7 @@ func (s *Server) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.Requ
 			ExtId:        data["id"].(string),
 			AuthToken:    token.AccessToken,
 			RefreshToken: token.RefreshToken,
-			RefreshDate:  token.Expiry,
+			Date:         token.Expiry,
 		}
 
 		if !s.data.CheckOauthUsage(auth.ExtId, auth.Type) {
@@ -940,7 +940,7 @@ func (s *Server) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.Requ
 			ExtId:        data["id"].(string),
 			AuthToken:    token.AccessToken,
 			RefreshToken: token.RefreshToken,
-			RefreshDate:  token.Expiry,
+			Date:         token.Expiry,
 		}
 
 		if !s.data.CheckOauthUsage(auth.ExtId, auth.Type) {
@@ -1001,7 +1001,7 @@ func (s *Server) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.Requ
 			ExtId:        data["id"].(string),
 			AuthToken:    token.AccessToken,
 			RefreshToken: token.RefreshToken,
-			RefreshDate:  token.Expiry,
+			Date:         token.Expiry,
 		}
 
 		if !s.data.CheckOauthUsage(auth.ExtId, auth.Type) {

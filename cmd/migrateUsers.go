@@ -104,7 +104,7 @@ func loadOldDB() error {
 			authMethod := &mpc.AuthMethod{
 				Type:     mpc.AUTH_LOCAL,
 				Password: oldUser.Password,
-				PassDate: oldUser.PassDate,
+				Date:     oldUser.PassDate,
 			}
 
 			newUser.AuthMethods = []*mpc.AuthMethod{}
