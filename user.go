@@ -65,9 +65,21 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		dataPageBase
 
+		User *common.User
+
 		TotalVotes     int
 		AvailableVotes int
 		UnlimitedVotes bool
+
+		OAuthEnabled        bool
+		TwitchOAuthEnabled  bool
+		DiscordOAuthEnabled bool
+		PatreonOAuthEnabled bool
+
+		HasLocal   bool
+		HasTwitch  bool
+		HasDiscord bool
+		HasPatreon bool
 
 		ActiveVotes    []*common.Movie
 		WatchedVotes   []*common.Movie
@@ -84,6 +96,8 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 	}{
 		dataPageBase: s.newPageBase("Account", w, r),
 
+		User: user,
+
 		TotalVotes:     totalVotes,
 		AvailableVotes: totalVotes - len(activeVotes),
 		UnlimitedVotes: unlimited,
@@ -92,6 +106,41 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 		WatchedVotes: watchedVotes,
 		AddedMovies:  addedMovies,
 	}
+
+	twitchAuth, err := s.data.GetCfgBool(ConfigTwitchOauthEnabled, DefaultTwitchOauthEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigTwitchOauthEnabled config value: %v", err)
+		return
+	}
+	data.TwitchOAuthEnabled = twitchAuth
+
+	discordAuth, err := s.data.GetCfgBool(ConfigDiscordOauthEnabled, DefaultDiscordOauthEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigDiscordOauthEnabled config value: %v", err)
+		return
+	}
+	data.DiscordOAuthEnabled = discordAuth
+
+	patreonAuth, err := s.data.GetCfgBool(ConfigPatreonOauthEnabled, DefaultPatreonOauthEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigPatreonOauthEnabled config value: %v", err)
+		return
+	}
+	data.PatreonOAuthEnabled = patreonAuth
+
+	data.OAuthEnabled = twitchAuth || discordAuth || patreonAuth
+
+	_, err = user.GetAuthMethod(common.AUTH_LOCAL)
+	data.HasLocal = err == nil
+	_, err = user.GetAuthMethod(common.AUTH_TWITCH)
+	data.HasTwitch = err == nil
+	_, err = user.GetAuthMethod(common.AUTH_DISCORD)
+	data.HasDiscord = err == nil
+	_, err = user.GetAuthMethod(common.AUTH_PATREON)
+	data.HasPatreon = err == nil
 
 	if r.Method == "POST" {
 		err := r.ParseForm()
@@ -108,53 +157,109 @@ func (s *Server) handlerUser(w http.ResponseWriter, r *http.Request) {
 			newPass1_raw := r.PostFormValue("PasswordNew1")
 			newPass2_raw := r.PostFormValue("PasswordNew2")
 
-			if currentPass != user.Password {
+			localAuth, err := user.GetAuthMethod(common.AUTH_LOCAL)
+			if err != nil {
 				data.ErrCurrentPass = true
-				data.PassError = append(data.PassError, "Invalid current password")
-			}
+				data.PassError = append(data.PassError, "No Password detected.")
+			} else {
 
-			if newPass1_raw == "" {
-				data.ErrNewPass = true
-				data.PassError = append(data.PassError, "New password cannot be blank")
-			}
-
-			if newPass1_raw != newPass2_raw {
-				data.ErrNewPass = true
-				data.PassError = append(data.PassError, "Passwords do not match")
-			}
-
-			if !(data.ErrCurrentPass || data.ErrNewPass || data.ErrEmail) {
-				// Change pass
-				data.SuccessMessage = "Password successfully changed"
-				user.Password = s.hashPassword(newPass1_raw)
-				user.PassDate = time.Now()
-
-				s.l.Info("new PassDate: %s", user.PassDate)
-
-				err = s.login(user, w, r)
-				if err != nil {
-					s.l.Error("Unable to login to session:", err)
-					s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
-					return
+				if currentPass != localAuth.Password {
+					data.ErrCurrentPass = true
+					data.PassError = append(data.PassError, "Invalid current password")
 				}
 
-				if err = s.data.UpdateUser(user); err != nil {
-					s.l.Error("Unable to save User with new password:", err)
-					s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
-					return
+				if newPass1_raw == "" {
+					data.ErrNewPass = true
+					data.PassError = append(data.PassError, "New password cannot be blank")
+				}
+
+				if newPass1_raw != newPass2_raw {
+					data.ErrNewPass = true
+					data.PassError = append(data.PassError, "Passwords do not match")
+				}
+				if !(data.ErrCurrentPass || data.ErrNewPass || data.ErrEmail) {
+					// Change pass
+					data.SuccessMessage = "Password successfully changed"
+					localAuth.Password = s.hashPassword(newPass1_raw)
+					localAuth.Date = time.Now()
+
+					if err = s.data.UpdateAuthMethod(localAuth); err != nil {
+						s.l.Error("Unable to save User with new password:", err)
+						s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
+						return
+					}
+
+					s.l.Info("new Date_Local: %s", localAuth.Date)
+					err = s.login(user, common.AUTH_LOCAL, w, r)
+					if err != nil {
+						s.l.Error("Unable to login to session:", err)
+						s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
+						return
+					}
 				}
 			}
-
 		} else if formVal == "Notifications" {
 			// Update notifications
+		} else if formVal == "SetPassword" {
+			pass1_raw := r.PostFormValue("Password1")
+			pass2_raw := r.PostFormValue("Password2")
+
+			_, err := user.GetAuthMethod(common.AUTH_LOCAL)
+			if err == nil {
+				data.ErrCurrentPass = true
+				data.PassError = append(data.PassError, "Existing password detected. (how did you end up here anyways?)")
+			} else {
+				localAuth := &common.AuthMethod{
+					Type: common.AUTH_LOCAL,
+				}
+
+				if pass1_raw == "" {
+					data.ErrNewPass = true
+					data.PassError = append(data.PassError, "New password cannot be blank")
+				}
+
+				if pass1_raw != pass2_raw {
+					data.ErrNewPass = true
+					data.PassError = append(data.PassError, "Passwords do not match")
+				}
+				if !(data.ErrCurrentPass || data.ErrNewPass || data.ErrEmail) {
+					// Change pass
+					data.SuccessMessage = "Password successfully set"
+					localAuth.Password = s.hashPassword(pass1_raw)
+					localAuth.Date = time.Now()
+					s.l.Info("new Date_Local: %s", localAuth.Date)
+
+					user, err = s.AddAuthMethodToUser(localAuth, user)
+
+					if err != nil {
+						s.l.Error("Unable to add AuthMethod %s to user %s", localAuth.Type, user.Name)
+						s.doError(http.StatusInternalServerError, "Unable to link password to user", w, r)
+					}
+
+					s.data.UpdateUser(user)
+
+					if err != nil {
+						s.l.Error("Unable to update user %s", user.Name)
+						s.doError(http.StatusInternalServerError, "Unable to update user", w, r)
+					}
+
+					err = s.login(user, common.AUTH_LOCAL, w, r)
+					if err != nil {
+						s.l.Error("Unable to login to session:", err)
+						s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
+					}
+
+					http.Redirect(w, r, "/user", http.StatusFound)
+				}
+			}
 		}
 	}
-
 	if err := s.executeTemplate(w, "account", data); err != nil {
 		s.l.Error("Error rendering template: %v", err)
 	}
 }
 func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
+
 	err := r.ParseForm()
 	if err != nil {
 		s.l.Error("Error parsing login form: %v", err)
@@ -169,12 +274,38 @@ func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 	data := dataLoginForm{}
 	doRedirect := false
 
+	twitchAuth, err := s.data.GetCfgBool(ConfigTwitchOauthEnabled, DefaultTwitchOauthEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigTwitchOauthEnabled config value: %v", err)
+		return
+	}
+	data.TwitchOAuth = twitchAuth
+
+	discordAuth, err := s.data.GetCfgBool(ConfigDiscordOauthEnabled, DefaultDiscordOauthEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigDiscordOauthEnabled config value: %v", err)
+		return
+	}
+	data.DiscordOAuth = discordAuth
+
+	patreonAuth, err := s.data.GetCfgBool(ConfigPatreonOauthEnabled, DefaultPatreonOauthEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigPatreonOauthEnabled config value: %v", err)
+		return
+	}
+	data.PatreonOAuth = patreonAuth
+
+	data.OAuth = twitchAuth || discordAuth || patreonAuth
+
 	if r.Method == "POST" {
 		// do login
 
 		un := r.PostFormValue("Username")
 		pw := r.PostFormValue("Password")
-		user, err = s.data.UserLogin(un, s.hashPassword(pw))
+		user, err = s.data.UserLocalLogin(un, s.hashPassword(pw))
 		if err != nil {
 			data.ErrorMessage = err.Error()
 		} else {
@@ -186,7 +317,7 @@ func (s *Server) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user != nil {
-		err = s.login(user, w, r)
+		err = s.login(user, common.AUTH_LOCAL, w, r)
 		if err != nil {
 			s.l.Error("Unable to login: %v", err)
 			s.doError(http.StatusInternalServerError, "Unable to login", w, r)
@@ -216,6 +347,57 @@ func (s *Server) handlerUserLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
+func (s *Server) AddAuthMethodToUser(auth *common.AuthMethod, user *common.User) (*common.User, error) {
+
+	if user.AuthMethods == nil {
+		user.AuthMethods = []*common.AuthMethod{}
+	}
+
+	// Check if the user already has this authtype associated with him
+	if _, err := user.GetAuthMethod(auth.Type); err != nil {
+
+		id, err := s.data.AddAuthMethod(auth)
+
+		if err != nil {
+			return nil, fmt.Errorf("Could not create new AuthMethod %s for user %s", auth.Type, user.Name)
+		}
+
+		auth.Id = id
+
+		user.AuthMethods = append(user.AuthMethods, auth)
+
+		return user, err
+	} else {
+		return nil, fmt.Errorf("AuthMethod %s is already associated with the user %s", auth.Type, user.Name)
+	}
+}
+
+func (s *Server) RemoveAuthMethodFromUser(auth *common.AuthMethod, user *common.User) (*common.User, error) {
+
+	if user.AuthMethods == nil {
+		user.AuthMethods = []*common.AuthMethod{}
+	}
+
+	// Check if the user already has this authtype associated with him
+	_, err := user.GetAuthMethod(auth.Type)
+	if err != nil {
+		return nil, fmt.Errorf("AuthMethod %s is not associated with the user %s", auth.Type, user.Name)
+	}
+	s.data.DeleteAuthMethod(auth.Id)
+
+	// thanks golang for not having a delete method for slices ...
+	oldauths := user.AuthMethods
+	newAuths := []*common.AuthMethod{}
+	for _, a := range oldauths {
+		if a != auth {
+			newAuths = append(newAuths, a)
+		}
+	}
+
+	user.AuthMethods = newAuths
+
+	return user, err
+}
 func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	user := s.getSessionUser(w, r)
 	if user != nil {
@@ -231,6 +413,15 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 		ErrPass      bool
 		ErrEmail     bool
 
+		OAuth         bool
+		TwitchOAuth   bool
+		TwitchSignup  bool
+		DiscordOAuth  bool
+		DiscordSignup bool
+		PatreonOAuth  bool
+		PatreonSignup bool
+		LocalSignup   bool
+
 		ValName           string
 		ValEmail          string
 		ValNotifyEnd      bool
@@ -240,6 +431,64 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	doRedirect := false
+
+	twitchAuth, err := s.data.GetCfgBool(ConfigTwitchOauthEnabled, DefaultTwitchOauthEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigTwitchOauthEnabled config value: %v", err)
+		return
+	}
+	data.TwitchOAuth = twitchAuth
+
+	twitchSignup, err := s.data.GetCfgBool(ConfigTwitchOauthSignupEnabled, DefaultTwitchOauthSignupEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigTwitchOauthSignupEnabled config value: %v", err)
+		return
+	}
+	data.TwitchSignup = twitchSignup
+
+	discordAuth, err := s.data.GetCfgBool(ConfigDiscordOauthEnabled, DefaultDiscordOauthEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigDiscordOauthEnabled config value: %v", err)
+		return
+	}
+	data.DiscordOAuth = discordAuth
+
+	discordSignup, err := s.data.GetCfgBool(ConfigDiscordOauthSignupEnabled, DefaultDiscordOauthSignupEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigDiscordOauthSignupEnabled config value: %v", err)
+		return
+	}
+	data.DiscordSignup = discordSignup
+
+	patreonAuth, err := s.data.GetCfgBool(ConfigPatreonOauthEnabled, DefaultPatreonOauthEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigPatreonOauthEnabled config value: %v", err)
+		return
+	}
+	data.PatreonOAuth = patreonAuth
+
+	patreonSignup, err := s.data.GetCfgBool(ConfigPatreonOauthSignupEnabled, DefaultPatreonOauthSignupEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigPatreonOauthSignupEnabled config value: %v", err)
+		return
+	}
+	data.PatreonSignup = patreonSignup
+
+	localSignup, err := s.data.GetCfgBool(ConfigLocalSignupEnabled, DefaultLocalSignupEnabled)
+	if err != nil {
+		s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
+		s.l.Error("Unable to get ConfigLocalSignupEnabled config value: %v", err)
+		return
+	}
+	data.LocalSignup = localSignup
+
+	data.OAuth = twitchAuth || discordAuth || patreonAuth
 
 	if r.Method == "POST" {
 		err := r.ParseForm()
@@ -315,21 +564,32 @@ func (s *Server) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 			data.ErrorMessage = append(data.ErrorMessage, "Email required for notifications")
 		}
 
+		auth := &common.AuthMethod{
+			Type:     common.AUTH_LOCAL,
+			Password: s.hashPassword(pw1),
+			Date:     time.Now(),
+		}
+
+		if err != nil {
+			s.l.Error(err.Error())
+			data.ErrorMessage = append(data.ErrorMessage, "Could not create new User, message the server admin")
+		}
+
 		if len(data.ErrorMessage) == 0 {
 			newUser := &common.User{
 				Name:                un,
-				Password:            s.hashPassword(pw1),
 				Email:               email,
 				NotifyCycleEnd:      data.ValNotifyEnd,
 				NotifyVoteSelection: data.ValNotifySelected,
-				PassDate:            time.Now(),
 			}
 
-			_, err = s.data.AddUser(newUser)
+			newUser, err = s.AddAuthMethodToUser(auth, newUser)
+
+			newUser.Id, err = s.data.AddUser(newUser)
 			if err != nil {
 				data.ErrorMessage = append(data.ErrorMessage, err.Error())
 			} else {
-				err = s.login(newUser, w, r)
+				err = s.login(newUser, common.AUTH_LOCAL, w, r)
 				if err != nil {
 					s.l.Error("Unable to login to session: %v", err)
 					s.doError(http.StatusInternalServerError, "Login error", w, r)

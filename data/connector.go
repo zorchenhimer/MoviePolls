@@ -29,25 +29,38 @@ func register(backend string, initFunc constructor) {
 }
 
 type DataConnector interface {
-	GetCurrentCycle() (*common.Cycle, error) // Return nil when no cycle is active.
+
+	// ##################
+	// ##### CREATE #####
+	// ##################
+
+	// TODO: remove AddCycle()
+	AddCycle(plannedEnd *time.Time) (int, error)
+	AddOldCycle(cycle *common.Cycle) (int, error)
+	AddMovie(movie *common.Movie) (int, error)
+	AddUser(user *common.User) (int, error)
+	AddTag(tag *common.Tag) (int, error)
+	AddAuthMethod(authMethod *common.AuthMethod) (int, error)
+	AddLink(link *common.Link) (int, error)
+	AddVote(userId, movieId int) error
+
+	// ######################
+	// ##### READ (get) #####
+	// ######################
 
 	GetCycle(id int) (*common.Cycle, error)
+	GetCurrentCycle() (*common.Cycle, error) // Return nil when no cycle is active.
 	GetMovie(id int) (*common.Movie, error)
-	GetUser(id int) (*common.User, error)
 	GetActiveMovies() ([]*common.Movie, error)
-	GetTag(id int) *common.Tag
-	GetLink(id int) *common.Link
-
-	SearchMovieTitles(query string) ([]*common.Movie, error)
-	FindTag(name string) (int, error)
-	FindLink(url string) (int, error)
-
+	GetUser(id int) (*common.User, error)
+	GetUsers(start, count int) ([]*common.User, error)
 	GetUserVotes(userId int) ([]*common.Movie, error)
 	GetUserMovies(userId int) ([]*common.Movie, error)
-
+	GetUsersWithAuth(auth common.AuthType, exclusive bool) ([]*common.User, error)
 	//GetMovieVotes(userId int) []*Movie
-	UserLogin(name, hashedPw string) (*common.User, error)
-
+	GetTag(id int) *common.Tag
+	GetAuthMethod(id int) *common.AuthMethod
+	GetLink(id int) *common.Link
 	// Return a list of past cycles.  Start and end are an offset from
 	// the current.  Ie, a start of 0 and an end of 5 will get the last
 	// finished cycle and the four preceding it.  Currently active cycle will
@@ -57,36 +70,54 @@ type DataConnector interface {
 	// Get all the movies that belong to the given Cycle
 	GetMoviesFromCycle(id int) ([]*common.Movie, error)
 
-	// TODO: remove AddCycle()
-	AddCycle(plannedEnd *time.Time) (int, error)
-	AddOldCycle(cycle *common.Cycle) (int, error)
-	AddMovie(movie *common.Movie) (int, error)
-	AddUser(user *common.User) (int, error)
-	AddTag(tag *common.Tag) (int, error)
-	AddLink(link *common.Link) (int, error)
+	// #######################
+	// ##### READ (find) #####
+	// #######################
 
-	AddVote(userId, movieId int) error
-	DeleteVote(userId, movieId int) error
-	DeleteTag(tagId int)
-	DeleteLink(linkId int)
-	// Removes votes older than age
-	DecayVotes(age int) error
+	FindTag(name string) (int, error)
+	FindLink(url string) (int, error)
+
+	// ##################
+	// ##### UPDATE #####
+	// ##################
 
 	UpdateUser(user *common.User) error
 	UpdateMovie(movie *common.Movie) error
 	UpdateCycle(cycle *common.Cycle) error
+	UpdateAuthMethod(authMethod *common.AuthMethod) error
+
+	// ##################
+	// ##### DELETE #####
+	// ##################
+
+	DeleteVote(userId, movieId int) error
+	DeleteTag(tagId int)
+	DeleteAuthMethod(authMethodId int)
+	DeleteLink(linkId int)
+	RemoveMovie(movieId int) error
+	// Delete a user and their associated votes.  Should this include votes for
+	// past cycles or just the current? (currently removes all)
+	PurgeUser(userId int) error
+	// Removes votes older than age
+	DecayVotes(age int) error
+
+	// ################
+	// ##### MISC #####
+	// ################
+
+	UserLocalLogin(name, hashedPw string) (*common.User, error)
+	UserDiscordLogin(extid string) (*common.User, error)
+	UserTwitchLogin(extid string) (*common.User, error)
+	UserPatreonLogin(extid string) (*common.User, error)
+
+	CheckOauthUsage(id string, authtype common.AuthType) bool
+
+	SearchMovieTitles(query string) ([]*common.Movie, error)
 
 	CheckMovieExists(title string) (bool, error)
 	CheckUserExists(name string) (bool, error)
 
 	UserVotedForMovie(userId, movieId int) (bool, error)
-
-	// Admin stuff
-	GetUsers(start, count int) ([]*common.User, error)
-	// Delete a user and their associated votes.  Should this include votes for
-	// past cycles or just the current? (currently removes all)
-	PurgeUser(userId int) error
-	RemoveMovie(movieId int) error
 
 	// Configuration stuff
 	// The default value must be passed in.  If no key is found, the default

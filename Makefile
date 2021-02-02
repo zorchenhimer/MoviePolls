@@ -7,6 +7,7 @@ SOURCES = \
 		  admin.go \
 		  api.go \
 		  auth.go \
+		  common/authmethod.go \
 		  common/cycle.go \
 		  common/logger.go \
 		  common/movie.go \
@@ -23,6 +24,7 @@ SOURCES = \
 		  templates.go \
 		  user.go \
 		  util.go \
+		  oauth.go \
 		  votes.go
 
 .PHONY: all data fmt server

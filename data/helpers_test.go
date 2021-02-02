@@ -130,9 +130,6 @@ func compareUsers(a, b *common.User, t *testing.T) {
 	//	t.Fatalf("RateLimitOverride mismatch: %t vs %t", user.RateLimitOverride, loggedIn.RateLimitOverride)
 	//}
 
-	//if user.LastMovieAdd != loggedIn.LastMovieAdd {
-	//	t.Fatalf("LastMovieAdd mismatch: %s vs %s", user.LastMovieAdd, loggedIn.LastMovieAdd)
-	//}
 }
 
 func compareMovies(a, b *common.Movie, t *testing.T) {

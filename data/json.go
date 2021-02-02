@@ -99,6 +99,41 @@ func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
 	return jm
 }
 
+type jsonUser struct {
+	Id    int
+	Name  string
+	Email string
+
+	NotifyCycleEnd      bool
+	NotifyVoteSelection bool
+	Privilege           int
+
+	AuthMethods []int
+}
+
+func (j *jsonConnector) newJsonUser(user *common.User) jsonUser {
+	authMethods := []int{}
+	if user.AuthMethods != nil {
+		for _, auth := range user.AuthMethods {
+			authMethods = append(authMethods, auth.Id)
+		}
+	}
+
+	id := j.nextUserId()
+
+	ju := jsonUser{
+		Id:                  id,
+		Name:                user.Name,
+		Email:               user.Email,
+		NotifyCycleEnd:      user.NotifyCycleEnd,
+		NotifyVoteSelection: user.NotifyVoteSelection,
+		Privilege:           int(user.Privilege),
+		AuthMethods:         authMethods,
+	}
+
+	return ju
+}
+
 type jsonVote struct {
 	UserId  int
 	MovieId int
@@ -139,12 +174,13 @@ type jsonConnector struct {
 	filename string `json:"-"`
 	lock     *sync.RWMutex
 
-	Cycles map[int]jsonCycle
-	Movies map[int]jsonMovie
-	Users  map[int]*common.User
-	Votes  []jsonVote
-	Tags   map[int]*common.Tag
-	Links  map[int]*common.Link
+	Cycles      map[int]jsonCycle
+	Movies      map[int]jsonMovie
+	Users       map[int]jsonUser
+	Votes       []jsonVote
+	Tags        map[int]*common.Tag
+	Links       map[int]*common.Link
+	AuthMethods map[int]*common.AuthMethod
 
 	//Settings Configurator
 	Settings map[string]configValue
@@ -178,12 +214,13 @@ func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error)
 		lock:     &sync.RWMutex{},
 		Settings: map[string]configValue{},
 
-		Cycles: map[int]jsonCycle{},
-		Movies: map[int]jsonMovie{},
-		Users:  map[int]*common.User{},
-		Tags:   map[int]*common.Tag{},
-		Links:  map[int]*common.Link{},
-		l:      l,
+		Cycles:      map[int]jsonCycle{},
+		Movies:      map[int]jsonMovie{},
+		Users:       map[int]jsonUser{},
+		Tags:        map[int]*common.Tag{},
+		Links:       map[int]*common.Link{},
+		AuthMethods: map[int]*common.AuthMethod{},
+		l:           l,
 	}
 
 	return j, j.save()
@@ -210,7 +247,7 @@ func loadJson(filename string, l *common.Logger) (*jsonConnector, error) {
 	}
 
 	if data.Users == nil {
-		data.Users = make(map[int]*common.User)
+		data.Users = make(map[int]jsonUser)
 	}
 
 	if data.Votes == nil {
@@ -231,6 +268,10 @@ func loadJson(filename string, l *common.Logger) (*jsonConnector, error) {
 
 	if data.Links == nil {
 		data.Links = make(map[int]*common.Link)
+	}
+
+	if data.AuthMethods == nil {
+		data.AuthMethods = make(map[int]*common.AuthMethod)
 	}
 
 	return data, nil
@@ -548,6 +589,31 @@ func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
 	return movie
 }
 
+func (j *jsonConnector) userFromJson(jUser jsonUser) *common.User {
+
+	authMethods := []*common.AuthMethod{}
+
+	for _, id := range jUser.AuthMethods {
+		a, ok := j.AuthMethods[id]
+		if ok {
+			authMethods = append(authMethods, a)
+		}
+	}
+
+	user := &common.User{
+		Id:    jUser.Id,
+		Name:  jUser.Name,
+		Email: jUser.Email,
+
+		NotifyCycleEnd:      jUser.NotifyCycleEnd,
+		NotifyVoteSelection: jUser.NotifyVoteSelection,
+		AuthMethods:         authMethods,
+		Privilege:           common.PrivilegeLevel(jUser.Privilege),
+	}
+
+	return user
+}
+
 func (j *jsonConnector) GetMoviesFromCycle(id int) ([]*common.Movie, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
@@ -573,22 +639,98 @@ func (j *jsonConnector) GetMoviesFromCycle(id int) ([]*common.Movie, error) {
 }
 
 // UserLogin returns a user if the given username and password match a user.
-func (j *jsonConnector) UserLogin(name, hashedPw string) (*common.User, error) {
+func (j *jsonConnector) UserLocalLogin(name, hashedPw string) (*common.User, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
-	name = strings.ToLower(name)
-	for _, user := range j.Users {
-		if strings.ToLower(user.Name) == name {
-			if hashedPw == user.Password {
-				return user, nil
+	user := j.findUserByName(name)
+
+	if user != nil {
+		for _, auth := range user.AuthMethods {
+			if auth.Type == "Local" {
+				if hashedPw == auth.Password {
+					return user, nil
+				}
+				j.l.Info("Bad password for user %s\n", name)
+				return nil, fmt.Errorf("Invalid login credentials")
 			}
-			j.l.Info("Bad password for user %s\n", name)
-			return nil, fmt.Errorf("Invalid login credentials")
 		}
+
 	}
 	j.l.Info("User with name %s not found\n", name)
 	return nil, fmt.Errorf("Invalid login credentials")
+}
+
+func (j *jsonConnector) UserDiscordLogin(extid string) (*common.User, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	//TODO refreshing
+
+	var id int
+	for _, auth := range j.AuthMethods {
+		if auth.ExtId == extid {
+			id = auth.Id
+			break
+		}
+	}
+
+	for _, user := range j.Users {
+		for _, auth := range user.AuthMethods {
+			if auth == id {
+				return j.findUser(user.Id), nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("No user found with corresponding extid")
+}
+
+func (j *jsonConnector) UserTwitchLogin(extid string) (*common.User, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	//TODO refreshing
+
+	var id int
+	for _, auth := range j.AuthMethods {
+		if auth.ExtId == extid {
+			id = auth.Id
+			break
+		}
+	}
+
+	for _, user := range j.Users {
+		for _, auth := range user.AuthMethods {
+			if auth == id {
+				return j.findUser(user.Id), nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("No user found with corresponding extid")
+}
+
+func (j *jsonConnector) UserPatreonLogin(extid string) (*common.User, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	//TODO refreshing
+
+	var id int
+	for _, auth := range j.AuthMethods {
+		if auth.ExtId == extid {
+			id = auth.Id
+			break
+		}
+	}
+
+	for _, user := range j.Users {
+		for _, auth := range user.AuthMethods {
+			if auth == id {
+				return j.findUser(user.Id), nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("No user found with corresponding extid")
 }
 
 // Get the total number of users
@@ -744,7 +886,7 @@ func (j *jsonConnector) AddUser(user *common.User) (int, error) {
 	defer j.lock.Unlock()
 
 	if j.Users == nil {
-		j.Users = map[int]*common.User{}
+		j.Users = map[int]jsonUser{}
 	}
 
 	if _, exists := j.Users[user.Id]; exists {
@@ -758,10 +900,10 @@ func (j *jsonConnector) AddUser(user *common.User) (int, error) {
 		}
 	}
 
-	user.Id = j.nextUserId()
+	u := j.newJsonUser(user)
+	j.Users[u.Id] = u
 
-	j.Users[user.Id] = user
-	return user.Id, j.save()
+	return u.Id, j.save()
 }
 
 func (j *jsonConnector) AddVote(userId, movieId int) error {
@@ -819,6 +961,18 @@ func (j *jsonConnector) AddTag(tag *common.Tag) (int, error) {
 	return id, j.save()
 }
 
+func (j *jsonConnector) AddAuthMethod(authMethod *common.AuthMethod) (int, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	id := j.nextAuthMethodId()
+
+	authMethod.Id = id
+
+	j.AuthMethods[id] = authMethod
+	return id, j.save()
+}
+
 func (j *jsonConnector) FindTag(name string) (int, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
@@ -839,6 +993,27 @@ func (j *jsonConnector) GetTag(id int) *common.Tag {
 	return j.Tags[id]
 }
 
+func (j *jsonConnector) GetAuthMethod(id int) *common.AuthMethod {
+	j.lock.RLock()
+	defer j.lock.RUnlock()
+	return j.AuthMethods[id]
+}
+
+func (j *jsonConnector) UpdateAuthMethod(authMethod *common.AuthMethod) error {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	_, ok := j.AuthMethods[authMethod.Id]
+
+	if !ok {
+		return fmt.Errorf("No AuthMethod with Id %d found.", authMethod.Id)
+	}
+
+	j.l.Debug("Setting AuthMethod with ID %d to %v", authMethod.Id, authMethod)
+
+	j.AuthMethods[authMethod.Id] = authMethod
+	return j.save()
+}
 func (j *jsonConnector) DeleteTag(id int) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
@@ -846,11 +1021,30 @@ func (j *jsonConnector) DeleteTag(id int) {
 	delete(j.Tags, id)
 }
 
+func (j *jsonConnector) DeleteAuthMethod(id int) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	delete(j.AuthMethods, id)
+
+	j.save()
+}
+
 func (j *jsonConnector) nextTagId() int {
 	highest := 0
 	for _, t := range j.Tags {
 		if t.Id >= highest {
 			highest = t.Id
+		}
+	}
+	return highest + 1
+}
+
+func (j *jsonConnector) nextAuthMethodId() int {
+	highest := 0
+	for _, a := range j.AuthMethods {
+		if a.Id >= highest {
+			highest = a.Id
 		}
 	}
 	return highest + 1
@@ -1041,7 +1235,16 @@ func (j *jsonConnector) findVotes(movie *common.Movie) []*common.Vote {
 func (j *jsonConnector) findUser(id int) *common.User {
 	for _, u := range j.Users {
 		if u.Id == id {
-			return u
+			return j.userFromJson(u)
+		}
+	}
+	return nil
+}
+
+func (j *jsonConnector) findUserByName(name string) *common.User {
+	for _, u := range j.Users {
+		if strings.ToLower(u.Name) == strings.ToLower(name) {
+			return j.userFromJson(u)
 		}
 	}
 	return nil
@@ -1052,8 +1255,9 @@ func (j *jsonConnector) findUser(id int) *common.User {
 func (j *jsonConnector) UpdateUser(user *common.User) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
-
-	j.Users[user.Id] = user
+	jUser := j.newJsonUser(user)
+	jUser.Id = user.Id
+	j.Users[user.Id] = jUser
 	return j.save()
 }
 
@@ -1258,6 +1462,11 @@ func (j *jsonConnector) PurgeUser(userId int) error {
 			count++
 		}
 	}
+
+	for _, auth := range j.findUser(userId).AuthMethods {
+		delete(j.AuthMethods, auth.Id)
+	}
+
 	j.Votes = newVotes
 	j.l.Info("Purged %d votes", count)
 
@@ -1355,4 +1564,47 @@ func (j *jsonConnector) Test_GetUserVotes(userId int) ([]*common.Vote, error) {
 		votes = append(votes, &common.Vote{CycleAdded: c, Movie: m, User: u})
 	}
 	return votes, nil
+}
+
+func (j *jsonConnector) CheckOauthUsage(id string, authType common.AuthType) bool {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	for _, auth := range j.AuthMethods {
+		if auth.Type == authType {
+			if auth.ExtId == id {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (j *jsonConnector) GetUsersWithAuth(auth common.AuthType, exclusive bool) ([]*common.User, error) {
+	j.lock.Lock()
+	defer j.lock.Unlock()
+
+	res := []*common.User{}
+
+	for _, juser := range j.Users {
+		user := j.userFromJson(juser)
+		for _, authMethod := range user.AuthMethods {
+			if authMethod.Type == auth {
+				// user has atleast this auth method
+				if exclusive {
+					if len(user.AuthMethods) == 1 {
+						// user has ONLY this auth method
+						res = append(res, user)
+					}
+				} else {
+					res = append(res, user)
+				}
+
+			}
+		}
+	}
+	if len(res) == 0 {
+		return nil, &common.ErrNoUsersFound{auth}
+	}
+	return res, nil
 }

@@ -37,6 +37,20 @@ const (
 	DefaultMaxDescriptionLength int = 1000
 	DefaultMaxLinkLength        int = 500 // length of all links combined
 	DefaultMaxRemarksLength     int = 200
+
+	DefaultLocalSignupEnabled        bool   = true
+	DefaultTwitchOauthEnabled        bool   = false
+	DefaultTwitchOauthSignupEnabled  bool   = false
+	DefaultTwitchOauthClientID       string = ""
+	DefaultTwitchOauthClientSecret   string = ""
+	DefaultDiscordOauthEnabled       bool   = false
+	DefaultDiscordOauthSignupEnabled bool   = false
+	DefaultDiscordOauthClientID      string = ""
+	DefaultDiscordOauthClientSecret  string = ""
+	DefaultPatreonOauthEnabled       bool   = false
+	DefaultPatreonOauthSignupEnabled bool   = false
+	DefaultPatreonOauthClientID      string = ""
+	DefaultPatreonOauthClientSecret  string = ""
 )
 
 // configuration keys
@@ -60,6 +74,20 @@ const (
 	ConfigMaxDescriptionLength string = "MaxDescriptionLength"
 	ConfigMaxLinkLength        string = "MaxLinkLength"
 	ConfigMaxRemarksLength     string = "MaxRemarksLength"
+
+	ConfigLocalSignupEnabled        string = "LocalSignupEnabled"
+	ConfigTwitchOauthEnabled        string = "TwitchOauthEnabled"
+	ConfigTwitchOauthSignupEnabled  string = "TwitchOauthSignupEnabled"
+	ConfigTwitchOauthClientID       string = "TwitchOauthClientID"
+	ConfigTwitchOauthClientSecret   string = "TwitchOauthSecret"
+	ConfigDiscordOauthEnabled       string = "DiscordOauthEnabled"
+	ConfigDiscordOauthSignupEnabled string = "DiscordOauthSignupEnabled"
+	ConfigDiscordOauthClientID      string = "DiscordOauthClientID"
+	ConfigDiscordOauthClientSecret  string = "DiscordOauthClientSecret"
+	ConfigPatreonOauthEnabled       string = "PatreonOauthEnabled"
+	ConfigPatreonOauthSignupEnabled string = "PatreonOauthSignupEnabled"
+	ConfigPatreonOauthClientID      string = "PatreonOauthClientID"
+	ConfigPatreonOauthClientSecret  string = "PatreonOauthClientSecret"
 )
 
 type Options struct {
@@ -169,6 +197,11 @@ func NewServer(options Options) (*Server, error) {
 		fmt.Printf("Claim admin: %s/auth/%s Password: %s\n", host, urlKey.Url, urlKey.Key)
 	}
 
+	err = server.initOauth()
+	if err != nil {
+		return nil, err
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiHandler{})
 	mux.HandleFunc("/movie/", server.handlerMovie)
@@ -179,10 +212,20 @@ func NewServer(options Options) (*Server, error) {
 	// list of past cycles
 	mux.HandleFunc("/history", server.handlerHistory)
 
+	mux.HandleFunc("/oauth/twitch", server.handlerTwitchOAuth)
+	mux.HandleFunc("/oauth/twitch/callback", server.handlerTwitchOAuthCallback)
+
+	mux.HandleFunc("/oauth/discord", server.handlerDiscordOAuth)
+	mux.HandleFunc("/oauth/discord/callback", server.handlerDiscordOAuthCallback)
+
+	mux.HandleFunc("/oauth/patreon", server.handlerPatreonOAuth)
+	mux.HandleFunc("/oauth/patreon/callback", server.handlerPatreonOAuthCallback)
+
 	mux.HandleFunc("/user", server.handlerUser)
 	mux.HandleFunc("/user/login", server.handlerUserLogin)
 	mux.HandleFunc("/user/logout", server.handlerUserLogout)
 	mux.HandleFunc("/user/new", server.handlerUserNew)
+	mux.HandleFunc("/user/remove/local", server.handlerLocalAuthRemove)
 
 	mux.HandleFunc("/vote/", server.handlerVote)
 	mux.HandleFunc("/", server.handlerRoot)
@@ -244,12 +287,6 @@ func (s *Server) CheckAdminExists() (bool, error) {
 
 	s.l.Debug("[CheckAdminExists] end of loop")
 	return false, nil
-}
-
-func (s *Server) AddUser(user *common.User) error {
-	user.Password = s.hashPassword(user.Password)
-	_, err := s.data.AddUser(user)
-	return err
 }
 
 func (s *Server) handlerFavicon(w http.ResponseWriter, r *http.Request) {
