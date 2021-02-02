@@ -171,7 +171,6 @@ func Test_AddUser(t *testing.T) {
 		Privilege:           common.PRIV_MOD,
 		PassDate:            passDate,
 		RateLimitOverride:   true,
-		LastMovieAdd:        passDate.Add(time.Hour),
 	}
 
 	uid, err := conn.AddUser(testUser)

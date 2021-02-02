@@ -3,9 +3,9 @@
 {{define "body"}}
 <div>
     <div>
+        {{ if .HasLocal }}
         <form method="POST" action="/user">
             <input type="hidden" name="Form" value="ChangePassword" />
-
             <div>Change password</div>
             {{if .PassError}}<div class="errorMessage"><ul>{{range .PassError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
             <div><label for="PasswordNew1">New Password</label></div>
@@ -17,6 +17,19 @@
             <div><input type="password" name="PasswordCurrent" id="PasswordCurrent" /></div>
             <div><input type="submit" value="Change Password" /></div>
         </form>
+        <a href="/user/remove/local">Remove Password Login</a>
+        {{ else }}
+        <form method="POST" action="/user">
+            <input type="hidden" name="Form" value="SetPassword" />
+            <div>Set password for local Login</div>
+            {{if .PassError}}<div class="errorMessage"><ul>{{range .PassError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+            <div><label for="Password1">Password</label></div>
+            <div><input type="password" name="Password1" id="Password1" /></div>
+            <div><label for="Password2">Confirm Password</label></div>
+            <div><input type="password" name="Password2" id="Password2" /></div>
+            <div><input type="submit" value="Set Password" /></div>
+        </form>
+        {{ end }}  
     </div>
 
     {{/*
@@ -43,7 +56,62 @@
     </div>
     */}}
 
-    <div>
+	</br>
+	<hr width="75%">
+	</br>
+
+	<div>
+		<div> Your activated Login methods: </div>
+		<div>
+			<ul>
+         {{if .User}}
+         {{range .User.AuthMethods}}<li>{{.Type}}</li>{{end}}
+         {{else}}<li>No Auth Methods :c</li>{{end}}
+      </ul>
+		</div>
+	</div>
+  {{if .OAuthEnabled}}
+		<div id="oauth">
+      <!-- Twitch -->
+	    {{if .TwitchOAuthEnabled}}
+        <div id="twitchAuth">
+          {{ if .HasTwitch}}
+            <a href="/oauth/twitch?action=remove">Unlink Account with Twitch</a>
+          {{ else }}
+            <a href="/oauth/twitch?action=add">Link Account with Twitch</a>
+          {{ end }}
+        </div>
+      {{ end }}
+
+      <!-- Discord -->
+	    {{if .DiscordOAuthEnabled}}
+        <div id="discordAuth">
+          {{ if .HasDiscord }}
+            <a href="/oauth/discord?action=remove">Unlink Account with Discord</a>
+          {{ else }}
+            <a href="/oauth/discord?action=add">Link Account with Discord</a>
+          {{ end }}
+        </div>
+      {{end}}
+
+      <!-- Patreon -->
+ 	    {{if .PatreonOAuthEnabled}}
+        <div id="patreonAuth">
+          {{ if .HasPatreon}}
+            <a href="/oauth/patreon?action=remove">Unlink Account with Patreon</a>
+          {{ else }}
+            <a href="/oauth/patreon?action=add">Link Account with Patreon</a>
+          {{ end }}
+        </div>
+      {{end}}
+		</div>
+	{{end}}
+
+	</br>
+	<hr width="75%">
+	</br>
+    
+  <div>
         <div>Available votes: {{if .UnlimitedVotes}}&#x221e;{{else}}{{.AvailableVotes}}{{end}} (total: {{.TotalVotes}})</div>
         <div>Your current votes</div>
         <div>

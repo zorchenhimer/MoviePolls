@@ -116,6 +116,10 @@ type dataLoginForm struct {
 	dataPageBase
 	ErrorMessage string
 	Authed       bool
+	OAuth        bool
+	TwitchOAuth  bool
+	DiscordOAuth bool
+	PatreonOAuth bool
 }
 
 type dataAddMovie struct {

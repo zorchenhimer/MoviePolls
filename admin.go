@@ -95,13 +95,14 @@ func (s *Server) adminDeleteUser(w http.ResponseWriter, r *http.Request, user *c
 		s.l.Info("Deleting user %s", user)
 		origName := user.Name
 		user.Name = "[deleted]"
-		user.Password = ""
-		user.PassDate = time.Now()
+		for _, auth := range user.AuthMethods {
+			s.data.DeleteAuthMethod(auth.Id)
+		}
+		user.AuthMethods = []*common.AuthMethod{}
 		user.Email = ""
 		user.NotifyCycleEnd = false
 		user.NotifyVoteSelection = false
 		user.Privilege = 0
-		user.RateLimitOverride = false
 
 		err := s.data.UpdateUser(user)
 		if err != nil {
@@ -388,6 +389,20 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 			configValue{Key: ConfigMaxMultEpLength, Default: DefaultMaxMultEpLength, Type: ConfigInt},
 
 			configValue{Key: ConfigUnlimitedVotes, Default: DefaultUnlimitedVotes, Type: ConfigBool},
+
+			configValue{Key: ConfigLocalSignupEnabled, Default: DefaultLocalSignupEnabled, Type: ConfigBool},
+			configValue{Key: ConfigTwitchOauthEnabled, Default: DefaultTwitchOauthEnabled, Type: ConfigBool},
+			configValue{Key: ConfigTwitchOauthSignupEnabled, Default: DefaultTwitchOauthSignupEnabled, Type: ConfigBool},
+			configValue{Key: ConfigTwitchOauthClientID, Default: DefaultTwitchOauthClientID, Type: ConfigString},
+			configValue{Key: ConfigTwitchOauthClientSecret, Default: DefaultTwitchOauthClientSecret, Type: ConfigString},
+			configValue{Key: ConfigDiscordOauthEnabled, Default: DefaultDiscordOauthEnabled, Type: ConfigBool},
+			configValue{Key: ConfigDiscordOauthSignupEnabled, Default: DefaultDiscordOauthSignupEnabled, Type: ConfigBool},
+			configValue{Key: ConfigDiscordOauthClientID, Default: DefaultDiscordOauthClientID, Type: ConfigString},
+			configValue{Key: ConfigDiscordOauthClientSecret, Default: DefaultDiscordOauthClientSecret, Type: ConfigString},
+			configValue{Key: ConfigPatreonOauthEnabled, Default: DefaultPatreonOauthEnabled, Type: ConfigBool},
+			configValue{Key: ConfigPatreonOauthSignupEnabled, Default: DefaultPatreonOauthSignupEnabled, Type: ConfigBool},
+			configValue{Key: ConfigPatreonOauthClientID, Default: DefaultPatreonOauthClientID, Type: ConfigString},
+			configValue{Key: ConfigPatreonOauthClientSecret, Default: DefaultPatreonOauthClientSecret, Type: ConfigString},
 		},
 
 		TypeString: ConfigString,
@@ -491,6 +506,79 @@ func (s *Server) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 
 	// Set this down here so the Notice Banner is updated
 	data.dataPageBase = s.newPageBase("Admin - Config", w, r)
+
+	// Reload Oauth
+	err = s.initOauth()
+
+	if err != nil {
+		data.ErrorMessage = append(data.ErrorMessage, err.Error())
+	}
+
+	// getting ALL the booleans
+	var localSignup, twitchSignup, patreonSignup, discordSignup, twitchOauth, patreonOauth, discordOauth bool
+
+	for _, val := range data.Values {
+		bval, ok := val.Value.(bool)
+		if !ok && val.Type == ConfigBool {
+			data.ErrorMessage = append(data.ErrorMessage, "Could not parse field %s as boolean", val.Key)
+			break
+		}
+		switch val.Key {
+		case ConfigLocalSignupEnabled:
+			localSignup = bval
+		case ConfigTwitchOauthSignupEnabled:
+			twitchSignup = bval
+		case ConfigTwitchOauthEnabled:
+			twitchOauth = bval
+		case ConfigDiscordOauthSignupEnabled:
+			discordSignup = bval
+		case ConfigDiscordOauthEnabled:
+			discordOauth = bval
+		case ConfigPatreonOauthSignupEnabled:
+			patreonSignup = bval
+		case ConfigPatreonOauthEnabled:
+			patreonOauth = bval
+		}
+	}
+
+	// Check that we have atleast ONE signup method enabled
+	if !(localSignup || twitchSignup || discordSignup || patreonSignup) {
+		data.ErrorMessage = append(data.ErrorMessage, "No Signup method is currently enabled, please ensure to enable atleast one method")
+	}
+
+	// Check that the corresponding oauth for the signup is enabled
+	if twitchSignup && !twitchOauth {
+		data.ErrorMessage = append(data.ErrorMessage, "To enable twitch signup you need to also enable twitch Oauth (and fill the token/secret)")
+	}
+
+	if discordSignup && !discordOauth {
+		data.ErrorMessage = append(data.ErrorMessage, "To enable discord signup you need to also enable discord Oauth (and fill the token/secret)")
+	}
+
+	if patreonSignup && !patreonOauth {
+		data.ErrorMessage = append(data.ErrorMessage, "To enable patreon signup you need to also enable patreon Oauth (and fill the token/secret)")
+	}
+
+	users, err := s.data.GetUsersWithAuth(common.AUTH_TWITCH, true)
+	if err, ok := err.(*common.ErrNoUsersFound); !ok || err == nil {
+		if (len(users) != 0) && !twitchOauth {
+			data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Disabling Twitch Oauth would cause %d users to be unable to login since they only have this auth method associated.", len(users)))
+		}
+	}
+
+	users, err = s.data.GetUsersWithAuth(common.AUTH_PATREON, true)
+	if err, ok := err.(*common.ErrNoUsersFound); !ok || err == nil {
+		if (len(users) != 0) && !patreonOauth {
+			data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Disabling Patreon Oauth would cause %d users to be unable to login since they only have this auth method associated.", len(users)))
+		}
+	}
+
+	users, err = s.data.GetUsersWithAuth(common.AUTH_DISCORD, true)
+	if err, ok := err.(*common.ErrNoUsersFound); !ok || err == nil {
+		if (len(users) != 0) && !discordOauth {
+			data.ErrorMessage = append(data.ErrorMessage, fmt.Sprintf("Disabling Discord Oauth would cause %d users to be unable to login since they only have this auth method associated.", len(users)))
+		}
+	}
 
 	if err := s.executeTemplate(w, "adminConfig", data); err != nil {
 		s.l.Error("Error rendering template: %v", err)

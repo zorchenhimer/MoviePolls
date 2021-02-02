@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	//"strconv"
 	"strings"
 	"time"
 
@@ -120,16 +119,24 @@ func (s *Server) handlerAuth(w http.ResponseWriter, r *http.Request) {
 						return
 					}
 
-					user.Password = s.hashPassword(pass1)
-					user.PassDate = time.Now()
+					var localAuth *common.AuthMethod
+					for _, auth := range user.AuthMethods {
+						if auth.Type == common.AUTH_LOCAL {
+							localAuth = auth
+							break
+						}
+					}
 
-					if err = s.data.UpdateUser(user); err != nil {
-						s.l.Error("Unable to save User with new password:", err)
+					localAuth.Password = s.hashPassword(pass1)
+					localAuth.Date = time.Now()
+
+					if err = s.data.UpdateAuthMethod(localAuth); err != nil {
+						s.l.Error("Unable to save AuthMethod with new password:", err)
 						s.doError(http.StatusInternalServerError, "Unable to update password", w, r)
 						return
 					}
 
-					if err = s.login(user, w, r); err != nil {
+					if err = s.login(user, common.AUTH_LOCAL, w, r); err != nil {
 						s.l.Error("Unable to login to session:", err)
 						s.doError(http.StatusInternalServerError, "Something went wrong :C", w, r)
 						return
