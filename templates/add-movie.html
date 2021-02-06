@@ -35,8 +35,8 @@
 		{{end}}
 
 		<div class="movieInput">
-            <div{{if .ErrRemarks}} class="errorMessage"{{end}}><label for="Remarks">Enter your remarks here:</label></div>
-            <div><textarea name="Remarks" id="Remarks" style="width:400px">{{if .ValRemarks}}{{.ValRemarks}}{{end}}</textarea></div>
+            <div{{if .ErrRemarks}} class="errorMessage"{{end}}><label for="Remarks">Enter your remarks here (max {{.MaxRemarksLength}} characters):</label></div>
+            <div><textarea name="Remarks" id="Remarks" style="width:400px" maxlength="{{.MaxRemarksLength}}">{{if .ValRemarks}}{{.ValRemarks}}{{end}}</textarea></div>
         </div>
         <div class="movieInput">
             <div><input type="submit" value="Add Movie" /></div>

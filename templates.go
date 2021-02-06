@@ -143,6 +143,8 @@ type dataAddMovie struct {
 
 	AutofillEnabled bool
 	FormfillEnabled bool
+
+	MaxRemarksLength int
 }
 
 func (d dataAddMovie) isError() bool {

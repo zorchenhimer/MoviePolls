@@ -358,9 +358,21 @@ func (s *Server) handlerAddMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	maxRemLen, err := s.data.GetCfgInt(ConfigMaxRemarksLength, DefaultMaxRemarksLength)
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			"Something went wrong :C",
+			w, r)
+
+		s.l.Error("Unable to get config value %s: %v", ConfigMaxRemarksLength, err)
+		return
+	}
+
 	data := dataAddMovie{
-		dataPageBase:    s.newPageBase("Add Movie", w, r),
-		FormfillEnabled: formfillEnabled,
+		dataPageBase:     s.newPageBase("Add Movie", w, r),
+		FormfillEnabled:  formfillEnabled,
+		MaxRemarksLength: maxRemLen,
 	}
 
 	if r.Method == "POST" {
