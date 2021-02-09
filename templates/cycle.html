@@ -110,4 +110,10 @@ var x = setInterval(function() {
 
     </div>
 </div>
+<script>
+    const voteEntries = Array.from(document.querySelectorAll('.voteRoot'))
+    document.querySelector('input').addEventListener('keyup', e => {
+        voteEntries.forEach(item => item.style.display = item.querySelector('.voteName a').innerText.toLowerCase().includes(e.target.value.toLowerCase()) ? 'block' : 'none')
+    })
+</script>
 {{end}}
