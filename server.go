@@ -95,6 +95,9 @@ const (
 	ConfigPatreonOauthClientSecret  string = "PatreonOauthClientSecret"
 )
 
+var ReleaseVersion string
+var Commit string
+
 type Options struct {
 	Listen   string // eg, "127.0.0.1:8080" or ":8080" (defaults to 0.0.0.0:8080)
 	Debug    bool   // debug logging to console
@@ -152,6 +155,8 @@ func NewServer(options Options) (*Server, error) {
 		data.SetCfgString("SessionEncrypt", encryptKey)
 	}
 
+	l.Info("Running version: %s", ReleaseVersion)
+	l.Info("Latest Commit: %s", Commit)
 	if options.Debug {
 		l.Info("Debug mode turned on")
 	}
