@@ -38,7 +38,7 @@ const (
 	DefaultMaxLinkLength        int = 500 // length of all links combined
 	DefaultMaxRemarksLength     int = 200
 
-	DefaultMaxMultEpLength      int = 120 // length of multiple episode entries in minutes
+	DefaultMaxMultEpLength int = 120 // length of multiple episode entries in minutes
 
 	DefaultLocalSignupEnabled        bool   = true
 	DefaultTwitchOauthEnabled        bool   = false
@@ -53,7 +53,6 @@ const (
 	DefaultPatreonOauthSignupEnabled bool   = false
 	DefaultPatreonOauthClientID      string = ""
 	DefaultPatreonOauthClientSecret  string = ""
-
 )
 
 // configuration keys
@@ -78,7 +77,7 @@ const (
 	ConfigMaxLinkLength        string = "MaxLinkLength"
 	ConfigMaxRemarksLength     string = "MaxRemarksLength"
 
-	ConfigMaxMultEpLength      string = "ConfigMaxMultEpLength"
+	ConfigMaxMultEpLength string = "ConfigMaxMultEpLength"
 
 	ConfigLocalSignupEnabled        string = "LocalSignupEnabled"
 	ConfigTwitchOauthEnabled        string = "TwitchOauthEnabled"
@@ -96,7 +95,6 @@ const (
 )
 
 var ReleaseVersion string
-var Commit string
 
 type Options struct {
 	Listen   string // eg, "127.0.0.1:8080" or ":8080" (defaults to 0.0.0.0:8080)
@@ -156,7 +154,6 @@ func NewServer(options Options) (*Server, error) {
 	}
 
 	l.Info("Running version: %s", ReleaseVersion)
-	l.Info("Latest Commit: %s", Commit)
 	if options.Debug {
 		l.Info("Debug mode turned on")
 	}
