@@ -6,15 +6,15 @@
     <div id="addMovieForm">
 		{{if .FormfillEnabled}}
         <div class="movieInput">
-            <div{{if .ErrTitle}} class="errorMessage"{{end}}><label for="MovieName">Movie Title</label></div>
-			<div><textarea name="MovieName" id="MovieName" style="width:400px">{{if .ValTitle}} {{.ValTitle}}{{end}}</textarea></div>
+            <div{{if .ErrTitle}} class="errorMessage"{{end}}><label class="MovieNameLabel">Movie Name</label></div>
+			<div><textarea {{if .ErrTitle}} class="lblerrorMessage"{{end}}  name="MovieName" id="MovieName" style="width:400px">{{if .ValTitle}} {{.ValTitle}}{{end}}</textarea></div>
         </div>
         <div class="movieInput">
-            <div{{if .ErrDescription}} class="errorMessage"{{end}}><label for="Description">Description</label></div>
-            <div><textarea name="Description" id="Description" style="width:400px">{{if .ValDescription}}{{.ValDescription}}{{end}}</textarea></div>
+            <div{{if .ErrDescription}} class="errorMessage"{{end}}><label class="DescriptionLabel">Description</label></div>
+            <div><textarea {{if .ErrDescription}} class="lblerrorMessage"{{end}} name="Description" id="Description" style="width:400px">{{if .ValDescription}}{{.ValDescription}}{{end}}</textarea></div>
         <div class="movieInput">
-            <div{{if .ErrLinks}} class="errorMessage"{{end}}><label for="Links">Links</label></div>
-            <div><textarea name="Links" id="Links" style="width:400px">{{if .ValLinks}}{{.ValLinks}}{{end}}</textarea></div>
+            <div{{if .ErrLinks}} class="errorMessage"{{end}}><label class="LinksLabel">Links</label></div>
+            <div><textarea {{if .ErrLinks}} class="lblerrorMessage"{{end}} name="Links" id="Links" style="width:400px">{{if .ValLinks}}{{.ValLinks}}{{end}}</textarea></div>
         </div>
         <div class="movieInput">
             <div{{if .ErrPoster}} class="errorMessage"{{end}}><label for="PosterFile">Poster Image</label></div>

@@ -30,7 +30,8 @@ var x = setInterval(function() {
 	}
 }, 1000);
 </script>
-
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet">
 <div class="countdown">
 	<p>
 	The next Movienight will be in: <strong id="countdown-clock"></strong>
@@ -53,13 +54,6 @@ var x = setInterval(function() {
 {{end}}
 {{end}}
 
-<div class="searchbar">
-	<form action="/" method="post">
-		<input type="text" placeholder="Search..." name="search">
-		<button type="submit">Submit</button>
-	</form>
-</div>
-
 <div class="cycleCard">
     {{if not $votingEnabled}}
     <div class="votingNotification">
@@ -70,37 +64,33 @@ var x = setInterval(function() {
     <div class="cycleVotes">
         {{if .Movies}}
         {{range .Movies}}
-        <div class="voteRoot">
-            <div class="voteName">
-                <a href="/movie/{{.Id}}">{{.Name}}</a>
-            </div>
-            <div class="votePosterList">
-                <div class="votePoster"><a href="/movie/{{.Id}}"><img src="/posters/{{.Poster}}" /></a></div>
-                <div class="voteRight">
-                    {{if .CycleWatched}}
-                    <div style="padding-bottom: 0.5em">Watched:<br />{{.CycleWatched.EndedString}}</div>
-                    {{end}}
-                    <div class="voteList">
-                        <b>Votes: {{len .Votes}}</b>
-                        <ul>{{ $votes := .Votes }}{{ $vl := len $votes}}
-                            {{if gt $vl $voteListSize}}{{$votes = slice $votes 0 $voteListSize}}{{end}}
-                            {{range $votes}}<li>{{.User.Name}}</li>{{else}}<li>No Votes</li>{{end}}
-                            {{if gt $vl $voteListSize}}<li><a href="#">[...]</a></li>{{end}}
-                        </ul>
-                    </div>
-                    {{if $user}}
+        <div class="voteRoot" style="background: url(/posters/{{.Poster}}) no-repeat center center; background-size: 100%;">
+            <div class="voteRootFilter" onclick="window.location.href='/movie/{{.Id}}'">
+                <div class="voteName">
+                    <a href="/movie/{{.Id}}">{{.Name}}</a>
+                </div>
+                <div class="votePoster"><a href="/movie/{{.Id}}"></a></div>
+                    <div class="voteRight">
+                        {{if .CycleWatched}}
+                        <div style="padding-bottom: 0.5em">Watched:<br />{{.CycleWatched.EndedString}}</div>
+                        {{end}}
+                </div>
+                {{if $user}}
                     <div class="voteButton">
                         {{if .UserVoted $user.Id }}
-                        Voted! {{if and $votingEnabled (not .CycleWatched)}}(<a href="/vote/{{.Id}}">Remove</a>){{end}}
+                        {{if and $votingEnabled (not .CycleWatched)}}<a href="/vote/{{.Id}}"><span class="material-icons">
+                            favorite
+                            </span></a>{{end}}
                         {{else}}
                         {{if not .CycleWatched}}
                             {{if lt $votesAvailable 1}}No votes<br />available
-                            {{else if and (gt $votesAvailable 0) $votingEnabled }}<a href="/vote/{{.Id}}">Vote</a>{{end}}
+                            {{else if and (gt $votesAvailable 0) $votingEnabled }}<a href="/vote/{{.Id}}"><span class="material-icons">
+                                favorite_border
+                                </span></a>{{end}}
                             {{end}}
                         {{end}}
                     </div>
                     {{end}}
-                </div>
             </div>
         </div>
         {{end}}
