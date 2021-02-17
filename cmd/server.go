@@ -13,10 +13,18 @@ func main() {
 	var logFile string
 	var logLevel string
 	var debug bool
+	var version bool
+
 	flag.StringVar(&logFile, "logfile", "", "File to write logs")
 	flag.StringVar(&logLevel, "loglevel", "debug", "Log verbosity")
 	flag.BoolVar(&debug, "debug", false, "Enable debug code")
+	flag.BoolVar(&version, "version", false, "Enable debug code")
 	flag.Parse()
+
+	if version {
+		fmt.Println("Version", moviepoll.ReleaseVersion)
+		os.Exit(0)
+	}
 
 	s, err := moviepoll.NewServer(moviepoll.Options{Debug: debug, LogLevel: common.LogLevel(logLevel), LogFile: logFile})
 	if err != nil {
