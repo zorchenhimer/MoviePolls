@@ -18,7 +18,7 @@ func main() {
 	flag.StringVar(&logFile, "logfile", "", "File to write logs")
 	flag.StringVar(&logLevel, "loglevel", "debug", "Log verbosity")
 	flag.BoolVar(&debug, "debug", false, "Enable debug code")
-	flag.BoolVar(&version, "version", false, "Enable debug code")
+	flag.BoolVar(&version, "version", false, "Show the version of the binary file")
 	flag.Parse()
 
 	if version {
