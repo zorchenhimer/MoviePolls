@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/zorchenhimer/MoviePolls"
-	"github.com/zorchenhimer/MoviePolls/common"
+	mpm "github.com/zorchenhimer/MoviePolls/models"
+	mps "github.com/zorchenhimer/MoviePolls/server"
 )
 
 func main() {
@@ -22,11 +22,11 @@ func main() {
 	flag.Parse()
 
 	if version {
-		fmt.Println("Version", moviepoll.ReleaseVersion)
+		fmt.Println("Version", mps.ReleaseVersion)
 		os.Exit(0)
 	}
 
-	s, err := moviepoll.NewServer(moviepoll.Options{Debug: debug, LogLevel: common.LogLevel(logLevel), LogFile: logFile})
+	s, err := mps.NewServer(mps.Options{Debug: debug, LogLevel: mpm.LogLevel(logLevel), LogFile: logFile})
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

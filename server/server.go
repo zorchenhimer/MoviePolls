@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/gorilla/sessions"
-	"github.com/zorchenhimer/MoviePolls/common"
 	mpd "github.com/zorchenhimer/MoviePolls/data"
+	mpm "github.com/zorchenhimer/MoviePolls/models"
 )
 
 const SessionName string = "moviepoll-session"
@@ -99,7 +99,7 @@ var ReleaseVersion string
 type Options struct {
 	Listen   string // eg, "127.0.0.1:8080" or ":8080" (defaults to 0.0.0.0:8080)
 	Debug    bool   // debug logging to console
-	LogLevel common.LogLevel
+	LogLevel mpm.LogLevel
 	LogFile  string
 }
 
@@ -112,9 +112,9 @@ type Server struct {
 	cookies      *sessions.CookieStore
 	passwordSalt string
 
-	l *common.Logger
+	l *mpm.Logger
 
-	urlKeys map[string]*common.UrlKey
+	urlKeys map[string]*mpm.UrlKey
 }
 
 func NewServer(options Options) (*Server, error) {
@@ -122,7 +122,7 @@ func NewServer(options Options) (*Server, error) {
 		options.Listen = ":8090"
 	}
 
-	l, err := common.NewLogger(options.LogLevel, options.LogFile)
+	l, err := mpm.NewLogger(options.LogLevel, options.LogFile)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to setup logger: %v", err)
 	}
@@ -164,7 +164,7 @@ func NewServer(options Options) (*Server, error) {
 
 		cookies: sessions.NewCookieStore([]byte(authKey), []byte(encryptKey)),
 		l:       l,
-		urlKeys: make(map[string]*common.UrlKey),
+		urlKeys: make(map[string]*mpm.UrlKey),
 	}
 
 	server.passwordSalt, err = server.data.GetCfgString("PassSalt", "")
@@ -179,7 +179,7 @@ func NewServer(options Options) (*Server, error) {
 	}
 
 	if !adminExists {
-		urlKey, err := common.NewAdminAuth()
+		urlKey, err := mpm.NewAdminAuth()
 		if err != nil {
 			return nil, fmt.Errorf("Unable to get Url/Key pair for admin auth: %v", err)
 		}

@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zorchenhimer/MoviePolls/common"
+	mpm "github.com/zorchenhimer/MoviePolls/models"
 )
 
 type jsonMovie struct {
@@ -32,7 +32,7 @@ type jsonMovie struct {
 	Tags           []int
 }
 
-func (j *jsonConnector) newJsonMovie(movie *common.Movie) jsonMovie {
+func (j *jsonConnector) newJsonMovie(movie *mpm.Movie) jsonMovie {
 	currentCycle := j.currentCycle()
 	cycleId := 0
 	if currentCycle != nil {
@@ -111,7 +111,7 @@ type jsonUser struct {
 	AuthMethods []int
 }
 
-func (j *jsonConnector) newJsonUser(user *common.User) jsonUser {
+func (j *jsonConnector) newJsonUser(user *mpm.User) jsonUser {
 	authMethods := []int{}
 	if user.AuthMethods != nil {
 		for _, auth := range user.AuthMethods {
@@ -154,7 +154,7 @@ type jsonLink struct {
 	Url      string
 }
 
-func (j *jsonConnector) newJsonCycle(cycle *common.Cycle) jsonCycle {
+func (j *jsonConnector) newJsonCycle(cycle *mpm.Cycle) jsonCycle {
 	watched := []int{}
 	if cycle.Watched != nil {
 		for _, movie := range cycle.Watched {
@@ -178,26 +178,26 @@ type jsonConnector struct {
 	Movies      map[int]jsonMovie
 	Users       map[int]jsonUser
 	Votes       []jsonVote
-	Tags        map[int]*common.Tag
-	Links       map[int]*common.Link
-	AuthMethods map[int]*common.AuthMethod
+	Tags        map[int]*mpm.Tag
+	Links       map[int]*mpm.Link
+	AuthMethods map[int]*mpm.AuthMethod
 
 	//Settings Configurator
 	Settings map[string]configValue
 
-	l *common.Logger
+	l *mpm.Logger
 }
 
 func init() {
-	register("json", func(connStr string, l *common.Logger) (DataConnector, error) {
+	register("json", func(connStr string, l *mpm.Logger) (DataConnector, error) {
 		dc, err := newJsonConnector(connStr, l)
 		return DataConnector(dc), err
 	})
 }
 
-func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error) {
+func newJsonConnector(filename string, l *mpm.Logger) (*jsonConnector, error) {
 
-	if !common.FileExists(filepath.Dir("db/")) {
+	if !mpm.FileExists(filepath.Dir("db/")) {
 		err := os.Mkdir(filepath.Dir("db/"), 0744)
 		if err != nil {
 			fmt.Errorf("Could not create directory 'db': %v", err)
@@ -205,7 +205,7 @@ func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error)
 		}
 	}
 
-	if common.FileExists(filename) {
+	if mpm.FileExists(filename) {
 		return loadJson(filename, l)
 	}
 
@@ -217,16 +217,16 @@ func newJsonConnector(filename string, l *common.Logger) (*jsonConnector, error)
 		Cycles:      map[int]jsonCycle{},
 		Movies:      map[int]jsonMovie{},
 		Users:       map[int]jsonUser{},
-		Tags:        map[int]*common.Tag{},
-		Links:       map[int]*common.Link{},
-		AuthMethods: map[int]*common.AuthMethod{},
+		Tags:        map[int]*mpm.Tag{},
+		Links:       map[int]*mpm.Link{},
+		AuthMethods: map[int]*mpm.AuthMethod{},
 		l:           l,
 	}
 
 	return j, j.save()
 }
 
-func loadJson(filename string, l *common.Logger) (*jsonConnector, error) {
+func loadJson(filename string, l *mpm.Logger) (*jsonConnector, error) {
 	raw, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -263,15 +263,15 @@ func loadJson(filename string, l *common.Logger) (*jsonConnector, error) {
 	}
 
 	if data.Tags == nil {
-		data.Tags = make(map[int]*common.Tag)
+		data.Tags = make(map[int]*mpm.Tag)
 	}
 
 	if data.Links == nil {
-		data.Links = make(map[int]*common.Link)
+		data.Links = make(map[int]*mpm.Link)
 	}
 
 	if data.AuthMethods == nil {
-		data.AuthMethods = make(map[int]*common.AuthMethod)
+		data.AuthMethods = make(map[int]*mpm.AuthMethod)
 	}
 
 	return data, nil
@@ -299,7 +299,7 @@ func (j *jsonConnector) save() error {
    If not, only the current cycle would have an end date, which would define
    the current cycle as the cycle without an end date.
 */
-func (j *jsonConnector) currentCycle() *common.Cycle {
+func (j *jsonConnector) currentCycle() *mpm.Cycle {
 	for _, c := range j.Cycles {
 		if c.Ended == nil {
 			return j.cycleFromJson(c)
@@ -308,8 +308,8 @@ func (j *jsonConnector) currentCycle() *common.Cycle {
 	return nil
 }
 
-func (j *jsonConnector) cycleFromJson(cycle jsonCycle) *common.Cycle {
-	c := &common.Cycle{
+func (j *jsonConnector) cycleFromJson(cycle jsonCycle) *mpm.Cycle {
+	c := &mpm.Cycle{
 		Id:         cycle.Id,
 		PlannedEnd: cycle.PlannedEnd,
 		Ended:      cycle.Ended,
@@ -325,7 +325,7 @@ func (j *jsonConnector) cycleFromJson(cycle jsonCycle) *common.Cycle {
 	}
 
 	if cycle.Watched != nil {
-		movies := []*common.Movie{}
+		movies := []*mpm.Movie{}
 		for _, m := range cycle.Watched {
 			movies = append(movies, j.findMovie(m))
 		}
@@ -335,7 +335,7 @@ func (j *jsonConnector) cycleFromJson(cycle jsonCycle) *common.Cycle {
 	return c
 }
 
-func (j *jsonConnector) jsonFromCycle(cycle *common.Cycle) jsonCycle {
+func (j *jsonConnector) jsonFromCycle(cycle *mpm.Cycle) jsonCycle {
 	c := jsonCycle{
 		Id:         cycle.Id,
 		PlannedEnd: cycle.PlannedEnd,
@@ -362,7 +362,7 @@ func (j *jsonConnector) jsonFromCycle(cycle *common.Cycle) jsonCycle {
 	return c
 }
 
-func (j *jsonConnector) jsonFromVote(vote *common.Vote) jsonVote {
+func (j *jsonConnector) jsonFromVote(vote *mpm.Vote) jsonVote {
 	if vote.User == nil || vote.Movie == nil || vote.CycleAdded == nil {
 		panic("Invalid vote.  Missing user, move, or cycle")
 	}
@@ -374,14 +374,14 @@ func (j *jsonConnector) jsonFromVote(vote *common.Vote) jsonVote {
 	}
 }
 
-func (j *jsonConnector) GetCurrentCycle() (*common.Cycle, error) {
+func (j *jsonConnector) GetCurrentCycle() (*mpm.Cycle, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
 	return j.currentCycle(), nil
 }
 
-func (j *jsonConnector) GetCycle(id int) (*common.Cycle, error) {
+func (j *jsonConnector) GetCycle(id int) (*mpm.Cycle, error) {
 	for _, c := range j.Cycles {
 		if c.Id == id {
 			return j.cycleFromJson(c), nil
@@ -414,7 +414,7 @@ func (j *jsonConnector) AddCycle(plannedEnd *time.Time) (int, error) {
 	return c.Id, j.save()
 }
 
-func (j *jsonConnector) AddOldCycle(c *common.Cycle) (int, error) {
+func (j *jsonConnector) AddOldCycle(c *mpm.Cycle) (int, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -456,7 +456,7 @@ func (j *jsonConnector) nextMovieId() int {
 	return highest + 1
 }
 
-func (j *jsonConnector) AddMovie(movie *common.Movie) (int, error) {
+func (j *jsonConnector) AddMovie(movie *mpm.Movie) (int, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -465,11 +465,11 @@ func (j *jsonConnector) AddMovie(movie *common.Movie) (int, error) {
 	}
 
 	if j.Tags == nil {
-		j.Tags = map[int]*common.Tag{}
+		j.Tags = map[int]*mpm.Tag{}
 	}
 
 	if j.Links == nil {
-		j.Links = map[int]*common.Link{}
+		j.Links = map[int]*mpm.Link{}
 	}
 
 	m := j.newJsonMovie(movie)
@@ -478,7 +478,7 @@ func (j *jsonConnector) AddMovie(movie *common.Movie) (int, error) {
 	return m.Id, j.save()
 }
 
-func (j *jsonConnector) GetMovie(id int) (*common.Movie, error) {
+func (j *jsonConnector) GetMovie(id int) (*mpm.Movie, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
@@ -491,11 +491,11 @@ func (j *jsonConnector) GetMovie(id int) (*common.Movie, error) {
 	return movie, nil
 }
 
-func (j *jsonConnector) GetActiveMovies() ([]*common.Movie, error) {
+func (j *jsonConnector) GetActiveMovies() ([]*mpm.Movie, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
-	movies := []*common.Movie{}
+	movies := []*mpm.Movie{}
 
 	for _, m := range j.Movies {
 		mov, _ := j.GetMovie(m.Id)
@@ -516,7 +516,7 @@ func (s sortableCycle) Len() int { return len(s) }
 func (s sortableCycle) Less(i, j int) bool { return s[i].Id > s[j].Id }
 func (s sortableCycle) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
-func (j *jsonConnector) GetPastCycles(start, end int) ([]*common.Cycle, error) {
+func (j *jsonConnector) GetPastCycles(start, end int) ([]*mpm.Cycle, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
@@ -528,7 +528,7 @@ func (j *jsonConnector) GetPastCycles(start, end int) ([]*common.Cycle, error) {
 	}
 
 	sort.Sort(past)
-	filtered := []*common.Cycle{}
+	filtered := []*mpm.Cycle{}
 	idx := start
 	for i := 0; i < end && i+idx < len(past); i++ {
 		f := past[idx+i]
@@ -548,12 +548,12 @@ func (j *jsonConnector) GetPastCycles(start, end int) ([]*common.Cycle, error) {
 	return filtered, nil
 }
 
-func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
+func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *mpm.Movie {
 	user := j.findUser(jMovie.AddedBy)
 
-	tags := []*common.Tag{}
+	tags := []*mpm.Tag{}
 
-	links := []*common.Link{}
+	links := []*mpm.Link{}
 
 	for _, id := range jMovie.Tags {
 		t, ok := j.Tags[id]
@@ -569,7 +569,7 @@ func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
 		}
 	}
 
-	movie := &common.Movie{
+	movie := &mpm.Movie{
 		Id:          jMovie.Id,
 		Name:        jMovie.Name,
 		Description: jMovie.Description,
@@ -589,9 +589,9 @@ func (j *jsonConnector) movieFromJson(jMovie jsonMovie) *common.Movie {
 	return movie
 }
 
-func (j *jsonConnector) userFromJson(jUser jsonUser) *common.User {
+func (j *jsonConnector) userFromJson(jUser jsonUser) *mpm.User {
 
-	authMethods := []*common.AuthMethod{}
+	authMethods := []*mpm.AuthMethod{}
 
 	for _, id := range jUser.AuthMethods {
 		a, ok := j.AuthMethods[id]
@@ -600,7 +600,7 @@ func (j *jsonConnector) userFromJson(jUser jsonUser) *common.User {
 		}
 	}
 
-	user := &common.User{
+	user := &mpm.User{
 		Id:    jUser.Id,
 		Name:  jUser.Name,
 		Email: jUser.Email,
@@ -608,13 +608,13 @@ func (j *jsonConnector) userFromJson(jUser jsonUser) *common.User {
 		NotifyCycleEnd:      jUser.NotifyCycleEnd,
 		NotifyVoteSelection: jUser.NotifyVoteSelection,
 		AuthMethods:         authMethods,
-		Privilege:           common.PrivilegeLevel(jUser.Privilege),
+		Privilege:           mpm.PrivilegeLevel(jUser.Privilege),
 	}
 
 	return user
 }
 
-func (j *jsonConnector) GetMoviesFromCycle(id int) ([]*common.Movie, error) {
+func (j *jsonConnector) GetMoviesFromCycle(id int) ([]*mpm.Movie, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
@@ -623,7 +623,7 @@ func (j *jsonConnector) GetMoviesFromCycle(id int) ([]*common.Movie, error) {
 		return nil, fmt.Errorf("Cycle with ID %d not found", id)
 	}
 
-	movies := []*common.Movie{}
+	movies := []*mpm.Movie{}
 	for _, movie := range j.Movies {
 		if movie.CycleWatchedId == id {
 			m := j.movieFromJson(movie)
@@ -639,7 +639,7 @@ func (j *jsonConnector) GetMoviesFromCycle(id int) ([]*common.Movie, error) {
 }
 
 // UserLogin returns a user if the given username and password match a user.
-func (j *jsonConnector) UserLocalLogin(name, hashedPw string) (*common.User, error) {
+func (j *jsonConnector) UserLocalLogin(name, hashedPw string) (*mpm.User, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
@@ -661,7 +661,7 @@ func (j *jsonConnector) UserLocalLogin(name, hashedPw string) (*common.User, err
 	return nil, fmt.Errorf("Invalid login credentials")
 }
 
-func (j *jsonConnector) UserDiscordLogin(extid string) (*common.User, error) {
+func (j *jsonConnector) UserDiscordLogin(extid string) (*mpm.User, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -685,7 +685,7 @@ func (j *jsonConnector) UserDiscordLogin(extid string) (*common.User, error) {
 	return nil, fmt.Errorf("No user found with corresponding extid")
 }
 
-func (j *jsonConnector) UserTwitchLogin(extid string) (*common.User, error) {
+func (j *jsonConnector) UserTwitchLogin(extid string) (*mpm.User, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -709,7 +709,7 @@ func (j *jsonConnector) UserTwitchLogin(extid string) (*common.User, error) {
 	return nil, fmt.Errorf("No user found with corresponding extid")
 }
 
-func (j *jsonConnector) UserPatreonLogin(extid string) (*common.User, error) {
+func (j *jsonConnector) UserPatreonLogin(extid string) (*mpm.User, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -741,7 +741,7 @@ func (j *jsonConnector) GetUserCount() int {
 	return len(j.Users)
 }
 
-func (j *jsonConnector) GetUsers(start, count int) ([]*common.User, error) {
+func (j *jsonConnector) GetUsers(start, count int) ([]*mpm.User, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
@@ -752,7 +752,7 @@ func (j *jsonConnector) GetUsers(start, count int) ([]*common.User, error) {
 
 	sort.Ints(uids)
 
-	ulist := []*common.User{}
+	ulist := []*mpm.User{}
 	for i := 0; i < len(uids) && len(ulist) <= count; i++ {
 		id := uids[i]
 		if id < start {
@@ -768,7 +768,7 @@ func (j *jsonConnector) GetUsers(start, count int) ([]*common.User, error) {
 	return ulist, nil
 }
 
-func (j *jsonConnector) GetUser(userId int) (*common.User, error) {
+func (j *jsonConnector) GetUser(userId int) (*mpm.User, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
@@ -779,11 +779,11 @@ func (j *jsonConnector) GetUser(userId int) (*common.User, error) {
 	return u, nil
 }
 
-func (j *jsonConnector) GetUserVotes(userId int) ([]*common.Movie, error) {
+func (j *jsonConnector) GetUserVotes(userId int) ([]*mpm.Movie, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
-	votes := []*common.Movie{}
+	votes := []*mpm.Movie{}
 	for _, v := range j.Votes {
 		if v.UserId == userId {
 			mov := j.findMovie(v.MovieId)
@@ -796,11 +796,11 @@ func (j *jsonConnector) GetUserVotes(userId int) ([]*common.Movie, error) {
 	return votes, nil
 }
 
-func (j *jsonConnector) GetUserMovies(userId int) ([]*common.Movie, error) {
+func (j *jsonConnector) GetUserMovies(userId int) ([]*mpm.Movie, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
-	movies := []*common.Movie{}
+	movies := []*mpm.Movie{}
 	for _, m := range j.Movies {
 		if m.AddedBy == userId {
 			mov := j.findMovie(m.Id)
@@ -881,7 +881,7 @@ func (j *jsonConnector) nextUserId() int {
 	return highest + 1
 }
 
-func (j *jsonConnector) AddUser(user *common.User) (int, error) {
+func (j *jsonConnector) AddUser(user *mpm.User) (int, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -937,7 +937,7 @@ func (j *jsonConnector) AddVote(userId, movieId int) error {
 	return j.save()
 }
 
-func (j *jsonConnector) AddTag(tag *common.Tag) (int, error) {
+func (j *jsonConnector) AddTag(tag *mpm.Tag) (int, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -961,7 +961,7 @@ func (j *jsonConnector) AddTag(tag *common.Tag) (int, error) {
 	return id, j.save()
 }
 
-func (j *jsonConnector) AddAuthMethod(authMethod *common.AuthMethod) (int, error) {
+func (j *jsonConnector) AddAuthMethod(authMethod *mpm.AuthMethod) (int, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -987,19 +987,19 @@ func (j *jsonConnector) FindTag(name string) (int, error) {
 	return 0, fmt.Errorf("No tag found with name: %s", name)
 }
 
-func (j *jsonConnector) GetTag(id int) *common.Tag {
+func (j *jsonConnector) GetTag(id int) *mpm.Tag {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 	return j.Tags[id]
 }
 
-func (j *jsonConnector) GetAuthMethod(id int) *common.AuthMethod {
+func (j *jsonConnector) GetAuthMethod(id int) *mpm.AuthMethod {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 	return j.AuthMethods[id]
 }
 
-func (j *jsonConnector) UpdateAuthMethod(authMethod *common.AuthMethod) error {
+func (j *jsonConnector) UpdateAuthMethod(authMethod *mpm.AuthMethod) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -1050,7 +1050,7 @@ func (j *jsonConnector) nextAuthMethodId() int {
 	return highest + 1
 }
 
-func (j *jsonConnector) AddLink(link *common.Link) (int, error) {
+func (j *jsonConnector) AddLink(link *mpm.Link) (int, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -1092,7 +1092,7 @@ func (j *jsonConnector) FindLink(url string) (int, error) {
 	return 0, fmt.Errorf("No link found with url: %s", url)
 }
 
-func (j *jsonConnector) GetLink(id int) *common.Link {
+func (j *jsonConnector) GetLink(id int) *mpm.Link {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 	return j.Links[id]
@@ -1151,9 +1151,9 @@ func (j *jsonConnector) CheckMovieExists(title string) (bool, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
-	clean := common.CleanMovieName(title)
+	clean := mpm.CleanMovieName(title)
 	for _, m := range j.Movies {
-		if clean == common.CleanMovieName(m.Name) {
+		if clean == mpm.CleanMovieName(m.Name) {
 			return true, nil
 		}
 	}
@@ -1175,7 +1175,7 @@ func (j *jsonConnector) CheckUserExists(name string) (bool, error) {
 
 /* Find */
 
-func (j *jsonConnector) findMovie(id int) *common.Movie {
+func (j *jsonConnector) findMovie(id int) *mpm.Movie {
 	if id == 0 {
 		return nil
 	}
@@ -1193,14 +1193,14 @@ func (j *jsonConnector) findMovie(id int) *common.Movie {
 	return nil
 }
 
-func (j *jsonConnector) findCycle(id int) *common.Cycle {
+func (j *jsonConnector) findCycle(id int) *mpm.Cycle {
 	if id == 0 {
 		return nil
 	}
 
 	c, ok := j.Cycles[id]
 	if ok {
-		cycle := &common.Cycle{
+		cycle := &mpm.Cycle{
 			Id: c.Id,
 		}
 		if c.PlannedEnd != nil {
@@ -1217,11 +1217,11 @@ func (j *jsonConnector) findCycle(id int) *common.Cycle {
 	return nil
 }
 
-func (j *jsonConnector) findVotes(movie *common.Movie) []*common.Vote {
-	votes := []*common.Vote{}
+func (j *jsonConnector) findVotes(movie *mpm.Movie) []*mpm.Vote {
+	votes := []*mpm.Vote{}
 	for _, v := range j.Votes {
 		if v.MovieId == movie.Id {
-			votes = append(votes, &common.Vote{
+			votes = append(votes, &mpm.Vote{
 				Movie:      movie,
 				CycleAdded: j.findCycle(v.CycleId),
 				User:       j.findUser(v.UserId),
@@ -1232,7 +1232,7 @@ func (j *jsonConnector) findVotes(movie *common.Movie) []*common.Vote {
 	return votes
 }
 
-func (j *jsonConnector) findUser(id int) *common.User {
+func (j *jsonConnector) findUser(id int) *mpm.User {
 	for _, u := range j.Users {
 		if u.Id == id {
 			return j.userFromJson(u)
@@ -1241,7 +1241,7 @@ func (j *jsonConnector) findUser(id int) *common.User {
 	return nil
 }
 
-func (j *jsonConnector) findUserByName(name string) *common.User {
+func (j *jsonConnector) findUserByName(name string) *mpm.User {
 	for _, u := range j.Users {
 		if strings.ToLower(u.Name) == strings.ToLower(name) {
 			return j.userFromJson(u)
@@ -1252,7 +1252,7 @@ func (j *jsonConnector) findUserByName(name string) *common.User {
 
 /* Update */
 
-func (j *jsonConnector) UpdateUser(user *common.User) error {
+func (j *jsonConnector) UpdateUser(user *mpm.User) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 	jUser := j.newJsonUser(user)
@@ -1261,7 +1261,7 @@ func (j *jsonConnector) UpdateUser(user *common.User) error {
 	return j.save()
 }
 
-func (j *jsonConnector) UpdateMovie(movie *common.Movie) error {
+func (j *jsonConnector) UpdateMovie(movie *mpm.Movie) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -1272,7 +1272,7 @@ func (j *jsonConnector) UpdateMovie(movie *common.Movie) error {
 	return j.save()
 }
 
-func (j *jsonConnector) UpdateCycle(cycle *common.Cycle) error {
+func (j *jsonConnector) UpdateCycle(cycle *mpm.Cycle) error {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -1474,11 +1474,11 @@ func (j *jsonConnector) PurgeUser(userId int) error {
 	return j.save()
 }
 
-func (j *jsonConnector) SearchMovieTitles(query string) ([]*common.Movie, error) {
+func (j *jsonConnector) SearchMovieTitles(query string) ([]*mpm.Movie, error) {
 	j.lock.RLock()
 	defer j.lock.RUnlock()
 
-	found := []*common.Movie{}
+	found := []*mpm.Movie{}
 	query = strings.ToLower(query)
 	words := strings.Split(query, " ")
 
@@ -1551,8 +1551,8 @@ func (j *jsonConnector) DeleteMovie(movieId int) error {
 	return nil
 }
 
-func (j *jsonConnector) Test_GetUserVotes(userId int) ([]*common.Vote, error) {
-	votes := []*common.Vote{}
+func (j *jsonConnector) Test_GetUserVotes(userId int) ([]*mpm.Vote, error) {
+	votes := []*mpm.Vote{}
 	for _, vote := range j.Votes {
 		if vote.UserId != userId {
 			continue
@@ -1561,12 +1561,12 @@ func (j *jsonConnector) Test_GetUserVotes(userId int) ([]*common.Vote, error) {
 		m := j.findMovie(vote.MovieId)
 		c := j.findCycle(vote.CycleId)
 
-		votes = append(votes, &common.Vote{CycleAdded: c, Movie: m, User: u})
+		votes = append(votes, &mpm.Vote{CycleAdded: c, Movie: m, User: u})
 	}
 	return votes, nil
 }
 
-func (j *jsonConnector) CheckOauthUsage(id string, authType common.AuthType) bool {
+func (j *jsonConnector) CheckOauthUsage(id string, authType mpm.AuthType) bool {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
@@ -1580,11 +1580,11 @@ func (j *jsonConnector) CheckOauthUsage(id string, authType common.AuthType) boo
 	return false
 }
 
-func (j *jsonConnector) GetUsersWithAuth(auth common.AuthType, exclusive bool) ([]*common.User, error) {
+func (j *jsonConnector) GetUsersWithAuth(auth mpm.AuthType, exclusive bool) ([]*mpm.User, error) {
 	j.lock.Lock()
 	defer j.lock.Unlock()
 
-	res := []*common.User{}
+	res := []*mpm.User{}
 
 	for _, juser := range j.Users {
 		user := j.userFromJson(juser)
@@ -1604,7 +1604,7 @@ func (j *jsonConnector) GetUsersWithAuth(auth common.AuthType, exclusive bool) (
 		}
 	}
 	if len(res) == 0 {
-		return nil, &common.ErrNoUsersFound{auth}
+		return nil, &mpm.ErrNoUsersFound{auth}
 	}
 	return res, nil
 }
