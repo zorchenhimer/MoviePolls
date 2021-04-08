@@ -4,28 +4,27 @@ EXE=.exe
 endif
 
 SOURCES = \
-		  admin.go \
-		  api.go \
-		  auth.go \
-		  common/authmethod.go \
-		  common/cycle.go \
-		  common/logger.go \
-		  common/movie.go \
-		  common/user.go \
-		  common/util.go \
-		  common/vote.go \
-		  common/link.go \
+		  logic/admin.go \
+		  logic/auth.go \
+		  models/authmethod.go \
+		  models/cycle.go \
+		  models/logger.go \
+		  models/movie.go \
+		  models/user.go \
+		  models/util.go \
+		  models/vote.go \
+		  models/link.go \
 		  data/connector.go \
 		  data/json.go \
 		  data/mysql.go \
-		  dataimporter.go \
-		  server.go \
-		  session.go \
-		  templates.go \
-		  user.go \
-		  util.go \
-		  oauth.go \
-		  votes.go
+		  logic/dataimporter.go \
+		  server/server.go \
+		  logic/session.go \
+		  templates/templates.go \
+		  logic/user.go \
+		  logic/util.go \
+		  logic/oauth.go \
+		  logic/votes.go
 
 .PHONY: all data fmt server
 
@@ -38,7 +37,7 @@ RELEASEVERSION ?=$(shell git describe --tags --dirty --broken)
 all: fmt $(CMD_SERVER)
 data: fmt $(CMD_DATA)
 
-server: cmd/server.go fmt $(SOURCES)
+server: main.go fmt $(SOURCES)
 	GOOS=linux GOARCH=386 go$(GO_VERSION) build -ldflags "-X github.com/zorchenhimer/MoviePolls.ReleaseVersion=${RELEASEVERSION}" -o bin/MoviePolls $<
 
 clean:
@@ -47,10 +46,10 @@ clean:
 fmt:
 	gofmt -w .
 
-$(CMD_SERVER): cmd/server.go $(SOURCES)
+$(CMD_SERVER): main.go $(SOURCES)
 	go$(GO_VERSION) build -ldflags "-X github.com/zorchenhimer/MoviePolls.ReleaseVersion=${RELEASEVERSION}" -o $@ $<
 
-$(CMD_DATA): cmd/mkdata.go $(SOURCES)
+$(CMD_DATA): scripts/mkdata.go $(SOURCES)
 	go$(GO_VERSION) build -ldflags "-X github.com/zorchenhimer/MoviePolls.ReleaseVersion=${RELEASEVERSION}" -o $@ $<
 
 run: all
