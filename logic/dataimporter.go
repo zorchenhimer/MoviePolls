@@ -1,4 +1,4 @@
-package moviepoll
+package logic
 
 // Comment to test nightly build
 

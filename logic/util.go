@@ -1,4 +1,4 @@
-package moviepoll
+package logic
 
 import (
 	"crypto/rand"
