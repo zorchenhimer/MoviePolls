@@ -1,16 +1,12 @@
 package logic
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	u "net/url"
-	"strings"
 
-	"github.com/zorchenhimer/MoviePolls/common"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/twitch"
+
+	mpm "github.com/zorchenhimer/MoviePolls/models"
 )
 
 // just some global variables
@@ -33,24 +29,24 @@ var patreonEndpoint = oauth2.Endpoint{
 
 // Initiate the OAuth configs, this includes loading the ConfigValues into "memory" to be used in the login methods
 // Returns: Error if a config value could not be retrieved
-func (s *Server) initOauth() error {
+func (l *LogicData) initOauth() error {
 
-	twitchOauthEnabled, err := s.data.GetCfgBool(ConfigTwitchOauthEnabled, DefaultTwitchOauthEnabled)
+	twitchOauthEnabled, err := l.Database.GetCfgBool(ConfigTwitchOauthEnabled, DefaultTwitchOauthEnabled)
 	if err != nil {
 		return err
 	}
 
-	discordOAuthEnabled, err := s.data.GetCfgBool(ConfigDiscordOauthEnabled, DefaultDiscordOauthEnabled)
+	discordOAuthEnabled, err := l.Database.GetCfgBool(ConfigDiscordOauthEnabled, DefaultDiscordOauthEnabled)
 	if err != nil {
 		return err
 	}
 
-	patreonOAuthEnabled, err := s.data.GetCfgBool(ConfigPatreonOauthEnabled, DefaultPatreonOauthEnabled)
+	patreonOAuthEnabled, err := l.Database.GetCfgBool(ConfigPatreonOauthEnabled, DefaultPatreonOauthEnabled)
 	if err != nil {
 		return err
 	}
 
-	baseUrl, err := s.data.GetCfgString(ConfigHostAddress, "")
+	baseUrl, err := l.Database.GetCfgString(ConfigHostAddress, "")
 	if err != nil {
 		return err
 	}
@@ -62,7 +58,7 @@ func (s *Server) initOauth() error {
 	}
 
 	if twitchOauthEnabled {
-		twitchClientID, err := s.data.GetCfgString(ConfigTwitchOauthClientID, DefaultTwitchOauthClientID)
+		twitchClientID, err := l.Database.GetCfgString(ConfigTwitchOauthClientID, DefaultTwitchOauthClientID)
 		if err != nil {
 			return err
 		}
@@ -70,7 +66,7 @@ func (s *Server) initOauth() error {
 			return fmt.Errorf("Config Value for TwitchOauthClientID cannot be empty to use OAuth")
 		}
 
-		twitchClientSecret, err := s.data.GetCfgString(ConfigTwitchOauthClientSecret, DefaultTwitchOauthClientSecret)
+		twitchClientSecret, err := l.Database.GetCfgString(ConfigTwitchOauthClientSecret, DefaultTwitchOauthClientSecret)
 		if err != nil {
 			return err
 		}
@@ -89,7 +85,7 @@ func (s *Server) initOauth() error {
 	}
 
 	if discordOAuthEnabled {
-		discordClientID, err := s.data.GetCfgString(ConfigDiscordOauthClientID, DefaultDiscordOauthClientID)
+		discordClientID, err := l.Database.GetCfgString(ConfigDiscordOauthClientID, DefaultDiscordOauthClientID)
 		if err != nil {
 			return err
 		}
@@ -98,7 +94,7 @@ func (s *Server) initOauth() error {
 			return fmt.Errorf("Config Value for DiscordOauthClientID cannot be empty to use OAuth")
 		}
 
-		discordClientSecret, err := s.data.GetCfgString(ConfigDiscordOauthClientSecret, DefaultDiscordOauthClientSecret)
+		discordClientSecret, err := l.Database.GetCfgString(ConfigDiscordOauthClientSecret, DefaultDiscordOauthClientSecret)
 		if err != nil {
 			return err
 		}
@@ -117,7 +113,7 @@ func (s *Server) initOauth() error {
 	}
 
 	if patreonOAuthEnabled {
-		patreonClientID, err := s.data.GetCfgString(ConfigPatreonOauthClientID, DefaultPatreonOauthClientID)
+		patreonClientID, err := l.Database.GetCfgString(ConfigPatreonOauthClientID, DefaultPatreonOauthClientID)
 		if err != nil {
 			return err
 		}
@@ -126,7 +122,7 @@ func (s *Server) initOauth() error {
 			return fmt.Errorf("Config Value for PatreonOauthClientSecret cannot be empty to use OAuth")
 		}
 
-		patreonClientSecret, err := s.data.GetCfgString(ConfigPatreonOauthClientSecret, DefaultPatreonOauthClientSecret)
+		patreonClientSecret, err := l.Database.GetCfgString(ConfigPatreonOauthClientSecret, DefaultPatreonOauthClientSecret)
 		if err != nil {
 			return err
 		}
@@ -145,4 +141,117 @@ func (s *Server) initOauth() error {
 	}
 
 	return nil
+}
+
+func (l *LogicData) discordOauth(action string, user *mpm.User) string {
+	switch action {
+	case "login":
+		// Generate a new state string for each login attempt and store it in the state list
+		oauthStateString := "login_" + l.getCryptRandKey(32)
+		openStates = append(openStates, oauthStateString)
+
+		// Handle the Oauth redirect
+		url := discordOAuthConfig.AuthCodeURL(oauthStateString)
+		l.Logger.Debug("discord login")
+		return url
+
+	case "signup":
+		// Generate a new state string for each login attempt and store it in the state list
+		oauthStateString := "signup_" + l.getCryptRandKey(32)
+		openStates = append(openStates, oauthStateString)
+
+		// Handle the Oauth redirect
+		url := discordOAuthConfig.AuthCodeURL(oauthStateString)
+		l.Logger.Debug("discord signup")
+		return url
+
+	case "add":
+		// Generate a new state string for each login attempt and store it in the state list
+		oauthStateString := "add_" + l.getCryptRandKey(32)
+		openStates = append(openStates, oauthStateString)
+
+		// Handle the Oauth redirect
+		url := discordOAuthConfig.AuthCodeURL(oauthStateString)
+		l.Logger.Debug("discord add")
+		return url
+
+	case "remove":
+		auth, err := user.GetAuthMethod(mpm.AUTH_DISCORD)
+
+		if err != nil {
+			l.Logger.Info("User %s does not have Discord Oauth associated with him", user.Name)
+			return "/user"
+		}
+
+		if len(user.AuthMethods) == 1 {
+			l.Logger.Info("User %v only has Discord Oauth associated with him", user.Name)
+			return "/user"
+		}
+
+		user, err = l.RemoveAuthMethodFromUser(auth, user)
+
+		if err != nil {
+			l.Logger.Info("Could not remove Discord Oauth from user. %s", err.Error())
+			return "/user"
+		}
+
+		err = l.Database.UpdateUser(user)
+		if err != nil {
+			l.Logger.Info("Could not update user %s", user.Name)
+			return "/user"
+		}
+
+		// Log the user out to ensure he is logged in with an existing AuthMethod
+		err = l.logout(user)
+		if err != nil {
+			l.Logger.Info("Could not logout user %s", user.Name)
+			return "/user"
+		}
+
+		// Try to log the user back in
+		if _, err := user.GetAuthMethod(mpm.AUTH_TWITCH); err == nil {
+			err = l.login(user, mpm.AUTH_TWITCH)
+			if err != nil {
+				l.Logger.Info("Could not login user %s", user.Name)
+				return "/user"
+			}
+		} else if _, err := user.GetAuthMethod(mpm.AUTH_LOCAL); err == nil {
+			err = l.login(user, mpm.AUTH_LOCAL)
+			if err != nil {
+				l.Logger.Info("Could not login user %s", user.Name)
+				return "/user"
+			}
+		} else if _, err := user.GetAuthMethod(mpm.AUTH_PATREON); err == nil {
+			err = l.login(user, mpm.AUTH_PATREON)
+			if err != nil {
+				l.Logger.Info("Could not login user %s", user.Name)
+				return "/user"
+			}
+		}
+
+		l.Logger.Debug("discord remove")
+
+		return "/user"
+	}
+
+}
+
+func (l *LogicData) discordOauthCallback() {
+
+}
+
+func (l *LogicData) patreonOauth() {
+
+}
+
+func (l *LogicData) patreonOauthCallback() {
+
+}
+
+func (l *LogicData) twitchOauth() {
+
+}
+
+func (l *LogicData) twitchOauthCallback() {
+
 }

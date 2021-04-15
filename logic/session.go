@@ -9,38 +9,6 @@ import (
 	"github.com/zorchenhimer/MoviePolls/common"
 )
 
-func (s *Server) logout(w http.ResponseWriter, r *http.Request) error {
-	session, err := s.cookies.Get(r, SessionName)
-	if err != nil {
-		return fmt.Errorf("Unable to get session from store: %v", err)
-	}
-
-	return delSession(session, w, r)
-}
-
-func (s *Server) login(user *common.User, authType common.AuthType, w http.ResponseWriter, r *http.Request) error {
-	session, err := s.cookies.Get(r, SessionName)
-	if err != nil {
-		return fmt.Errorf("Unable to get session from store: %v", err)
-	}
-
-	auth, err := user.GetAuthMethod(authType)
-	if err != nil {
-		return err
-	}
-
-	session.Values["UserId"] = user.Id
-
-	gobbed, err := auth.Date.GobEncode()
-	if err != nil {
-		return fmt.Errorf("Unable to gob Date")
-	}
-
-	session.Values["Date_"+string(auth.Type)] = fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed)))
-
-	return session.Save(r, w)
-}
-
 func delSession(session *sessions.Session, w http.ResponseWriter, r *http.Request) error {
 	delete(session.Values, "UserId")
 	delete(session.Values, "Date_Local")

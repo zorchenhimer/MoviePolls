@@ -1,5 +1,17 @@
 package server
 
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"regexp"
+	"strings"
+	"time"
+
+	"golang.org/x/oauth2"
+)
+
 var re_auth = regexp.MustCompile(`^/auth/([^/#?]+)$`)
 
 func (s *Server) handlerAuth(w http.ResponseWriter, r *http.Request) {
@@ -530,111 +542,9 @@ func (s *Server) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Reque
 func (s *Server) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) {
 
 	action := r.URL.Query().Get("action")
-
-	switch action {
-	case "login":
-		// Generate a new state string for each login attempt and store it in the state list
-		oauthStateString := "login_" + getCryptRandKey(32)
-		openStates = append(openStates, oauthStateString)
-
-		// Handle the Oauth redirect
-		url := discordOAuthConfig.AuthCodeURL(oauthStateString)
-		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-
-		s.l.Debug("discord login")
-
-	case "signup":
-		// Generate a new state string for each login attempt and store it in the state list
-		oauthStateString := "signup_" + getCryptRandKey(32)
-		openStates = append(openStates, oauthStateString)
-
-		// Handle the Oauth redirect
-		url := discordOAuthConfig.AuthCodeURL(oauthStateString)
-		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-
-		s.l.Debug("discord signup")
-
-	case "add":
-		// Generate a new state string for each login attempt and store it in the state list
-		oauthStateString := "add_" + getCryptRandKey(32)
-		openStates = append(openStates, oauthStateString)
-
-		// Handle the Oauth redirect
-		url := discordOAuthConfig.AuthCodeURL(oauthStateString)
-		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-
-		s.l.Debug("discord add")
-
-	case "remove":
-		user := s.getSessionUser(w, r)
-
-		auth, err := user.GetAuthMethod(common.AUTH_DISCORD)
-
-		if err != nil {
-			s.l.Info("User %s does not have Discord Oauth associated with him", user.Name)
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
-		}
-
-		if len(user.AuthMethods) == 1 {
-			s.l.Info("User %v only has Discord Oauth associated with him", user.Name)
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
-		}
-
-		user, err = s.RemoveAuthMethodFromUser(auth, user)
-
-		if err != nil {
-			s.l.Info("Could not remove Discord Oauth from user. %s", err.Error())
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
-		}
-
-		err = s.data.UpdateUser(user)
-		if err != nil {
-			s.l.Info("Could not update user %s", user.Name)
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
-		}
-
-		// Log the user out to ensure he is logged in with an existing AuthMethod
-		err = s.logout(w, r)
-		if err != nil {
-			s.l.Info("Could not logout user %s", user.Name)
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
-		}
-
-		// Try to log the user back in
-		if _, err := user.GetAuthMethod(common.AUTH_TWITCH); err == nil {
-			err = s.login(user, common.AUTH_TWITCH, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		} else if _, err := user.GetAuthMethod(common.AUTH_LOCAL); err == nil {
-			err = s.login(user, common.AUTH_LOCAL, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		} else if _, err := user.GetAuthMethod(common.AUTH_PATREON); err == nil {
-			err = s.login(user, common.AUTH_PATREON, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		}
-
-		s.l.Debug("discord remove")
-
-		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-		return
+	
+	s.LogicData.
 	}
-}
 
 // Handler for the Discord OAuth Callbacks (add/signup/login)
 func (s *Server) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.Request) {
