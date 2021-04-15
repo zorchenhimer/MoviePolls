@@ -7,7 +7,7 @@ import (
 	"math/big"
 )
 
-func getCryptRandKey(size int) string {
+func (l *LogicData) getCryptRandKey(size int) string {
 	out := ""
 	large := big.NewInt(int64(1 << 60))
 	large = large.Add(large, large)
@@ -25,11 +25,11 @@ func getCryptRandKey(size int) string {
 	return out
 }
 
-func (s *Server) hashPassword(pass string) string {
-	return fmt.Sprintf("%x", sha512.Sum512([]byte(s.passwordSalt+pass)))
+func (l *LogicData) hashPassword(pass string) string {
+	return fmt.Sprintf("%x", sha512.Sum512([]byte(l.PasswordSalt+pass)))
 }
 
-func generatePass() (string, error) {
+func (l *LogicData) generatePass() (string, error) {
 	out := ""
 	for len(out) < 20 {
 		num, err := rand.Int(rand.Reader, big.NewInt(int64(15)))
