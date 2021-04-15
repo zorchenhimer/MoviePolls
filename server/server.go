@@ -6,13 +6,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/gorilla/sessions"
 	mpd "github.com/zorchenhimer/MoviePolls/data"
+	mpl "github.com/zorchenhimer/MoviePolls/logic"
 	mpm "github.com/zorchenhimer/MoviePolls/models"
 )
 
@@ -258,6 +256,14 @@ func NewServer(options Options) (*Server, error) {
 	}
 
 	return server, nil
+}
+
+func (s *Server) initLogic() *mpl.LogicData {
+	logicData := &mpl.LogicData{
+		Database: s.data,
+		Logger:   s.l,
+	}
+	return logicData
 }
 
 func (s *Server) Run() error {
