@@ -126,10 +126,6 @@ func (b *backend) validateForm(fields map[string]*InputField) (map[string]*Input
 			b.l.Debug("Description too long: %d", length)
 			fields["Description"].Error = fmt.Errorf("Description too long! Max Length: %d characters", maxDescriptionLength)
 		}
-
-		if length == 0 {
-			fields["Description"].Error = fmt.Errorf("Missing description")
-		}
 	}
 	return fields, autofill, links
 }
