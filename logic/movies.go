@@ -49,16 +49,73 @@ func (b *backend) GetMovie(id int) *models.Movie {
 	return m
 }
 
-func (b *backend) parseFields(fields map[string]*InputField) ([]*models.Link, error) {
-	return nil, nil
+type FormContents struct {
+	Title       string
+	Description string
+	Links       []*models.Link
+	Poster      string
+	Autofill    bool
+	Remarks     string
 }
 
+func (b *backend) parseForm(fields map[string]*InputField) (FormContents, error) {
+	contents := *&FormContents{}
+
+	if fields["Title"] != nil && fields["Title"].Value != "" {
+		contents.Title = fields["Title"].Value
+	}
+
+	if fields["Description"] != nil && fields["Description"].Value != "" {
+		contents.Description = fields["Description"].Value
+	}
+
+	if fields["Remarks"] != nil && fields["Remarks"].Value != "" {
+		contents.Remarks = fields["Remarks"].Value
+	}
+
+	if fields["AutofillBox"] != nil && fields["AutofillBox"].Value != "" {
+		if fields["AutofillBox"].Value == "on" {
+			contents.Autofill = true
+		} else {
+			contents.Autofill = false
+		}
+	}
+
+	if fields["Links"] != nil && fields["Links"].Value != "" {
+		links, err := b.parseLinks(fields["Links"])
+		if err != nil {
+			return contents, err
+		}
+		contents.Links = links
+	}
+
+	return contents, nil
+}
+
+func (b *backend) parseLinks(linkField *InputField) ([]*models.Link, error) {
+
+	links := strings.Split(linkField.Value, "\n")
+
+	linkList := []*models.Link{}
+
+	for id, linkString := range links {
+		link, err := models.NewLink(linkString, id)
+		if err != nil {
+			return nil, err
+		}
+		linkList = append(linkList, link)
+	}
+
+	return linkList, nil
+}
+
+// `fields` contains the key: {value,error} pairs from the input form on the 'addMovie' page. (i think?)
 func (b *backend) AddMovie(fields map[string]*InputField, user *models.User) (int, map[string]InputField, error) {
 
-	links, err := b.parseFields(fields)
+	parsedForm, err := b.parseForm(fields)
 
-	if parsed.Autofill {
-		b.doAutofill(links)
+	if parsedForm.Autofill {
+		b.doAutofill(parsedForm.Links)
 	} else {
 		b.doFormfill()
 	}
