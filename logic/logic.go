@@ -15,7 +15,7 @@ type Logic interface {
 	GetActiveMovies() ([]*models.Movie, error)
 	SearchMovieTitles(query string) ([]*models.Movie, error)
 	GetMovie(id int) *models.Movie
-	AddMovie(values *multipart.Form, user *models.User) (int, map[string]InputField, error)
+	AddMovie(fields map[string]*InputField, user *models.User) (int, map[string]*InputField)
 
 	AddAuthMethodToUser(auth *models.AuthMethod, user *models.User) (*models.User, error)
 	GetUserVotes(user *models.User) ([]*models.Movie, []*models.Movie, error)

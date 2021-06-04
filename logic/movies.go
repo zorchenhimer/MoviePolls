@@ -49,171 +49,152 @@ func (b *backend) GetMovie(id int) *models.Movie {
 	return m
 }
 
-type FormContents struct {
-	Title       string
-	Description string
-	Links       []*models.Link
-	Poster      string
-	Autofill    bool
-	Remarks     string
-}
+func (b *backend) validateForm(fields map[string]*InputField) (map[string]*InputField, bool, []*models.Link) {
 
-func (b *backend) parseForm(fields map[string]*InputField) (FormContents, error) {
-	contents := *&FormContents{}
+	ret, links := b.parseLinks(fields["Links"])
 
-	if fields["Title"] != nil && fields["Title"].Value != "" {
-		contents.Title = fields["Title"].Value
+	if ret.Error != nil {
+		return fields, false, nil
 	}
 
-	if fields["Description"] != nil && fields["Description"].Value != "" {
-		contents.Description = fields["Description"].Value
-	}
-
-	if fields["Remarks"] != nil && fields["Remarks"].Value != "" {
-		contents.Remarks = fields["Remarks"].Value
-	}
-
-	if fields["AutofillBox"] != nil && fields["AutofillBox"].Value != "" {
-		if fields["AutofillBox"].Value == "on" {
-			contents.Autofill = true
-		} else {
-			contents.Autofill = false
-		}
-	}
-
-	if fields["Links"] != nil && fields["Links"].Value != "" {
-		links, err := b.parseLinks(fields["Links"])
-		if err != nil {
-			return contents, err
-		}
-		contents.Links = links
-	}
-
-	return contents, nil
-}
-
-func (b *backend) parseLinks(linkField *InputField) ([]*models.Link, error) {
-
-	links := strings.Split(linkField.Value, "\n")
-
-	linkList := []*models.Link{}
-
-	for id, linkString := range links {
-		link, err := models.NewLink(linkString, id)
-		if err != nil {
-			return nil, err
-		}
-		linkList = append(linkList, link)
-	}
-
-	return linkList, nil
-}
-
-// `fields` contains the key: {value,error} pairs from the input form on the 'addMovie' page. (i think?)
-func (b *backend) AddMovie(fields map[string]*InputField, user *models.User) (int, map[string]InputField, error) {
-
-	parsedForm, err := b.parseForm(fields)
-
-	if parsedForm.Autofill {
-		b.doAutofill(parsedForm.Links)
-	} else {
-		b.doFormfill()
-	}
-
-	// TODO: make sure this actually works, lmao
-	input := &inputForm{*form}
-
-	autofill := false
-	val, err := input.GetValue("AutofillBox")
-	//val, ok := form.Value["AutofillBox"]
-	if val == "on" || err != nil {
-		autofill = true
-	}
-
-	// Get all needed values from the form
-	output := map[string]InputField{}
-	inputErr := false
-
-	// Get all links from the corresponding input field
-	linktext, err := input.GetValue("Links")
-	if err != nil {
-		b.l.Error("[handleAutofill] Links: %w", err)
-	}
-	linktext = strings.ReplaceAll(linktext, "\r", "")
-	links := InputField{Value: linktext}
-
-	// Get the remarks from the corresponding input field
-	remarkstext, err := input.GetValue("Remarks")
-	if err != nil {
-		b.l.Error("[handleAutofill] Remarks: %w", err)
-	}
-	remarkstext = strings.ReplaceAll(remarkstext, "\r", "")
-	output["Remarks"] = InputField{Value: remarkstext}
-
-	// Check link maxlength
-	maxLinkLength, err := b.GetMaxLinkLength()
-	if err != nil {
-		b.l.Error("Unable to get %q: %w", ConfigMaxLinkLength, err)
-		return nil, nil, fmt.Errorf("something went wrong :C")
-	}
-
-	if models.GetStringLength(linktext) > maxLinkLength {
-		b.l.Debug("Links too long: %d", models.GetStringLength(linktext))
-		links.Error = fmt.Errorf("Links too long! Max Length: %d characters", maxLinkLength)
-		inputErr = true
-	}
-
-	// Check for links
-	if len(linktext) == 0 {
-		b.l.Error("no links given")
-		links.Error = fmt.Errorf("No link found")
-		inputErr = true
-	}
-
-	linkstrings := strings.Split(linktext, "\n")
-	var sourcelink *models.Link
-
-	linkErrors := []string{}
-	// Convert links to structs
-	linkList := []*models.Link{}
-	for id, link := range linkstrings {
-
-		ls, err := models.NewLink(link, id)
-		if err != nil {
-			b.l.Error("Cannot add link: %w", err)
-			linkErrors = append(linkErrors, fmt.Sprintf("Could not add link: %v.", err.Error()))
-			inputErr = true
-		}
-
-		if ls.IsSource {
-			sourcelink = ls
-		}
-
-		linkList = append(linkList, ls)
-	}
-	if len(linkErrors) != 0 {
-		// FIXME: format this better
-		links.Error = fmt.Errorf("%s", strings.Join(linkErrors, " "))
-	}
-
-	output["Links"] = links
-	// FIXME: left off here
+	fields["Links"] = ret
 
 	// Check Remarks max length
 	maxRemarksLength, err := b.GetMaxRemarksLength()
 	if err != nil {
-		return nil, output, err
+		b.l.Debug("%v", err.Error)
+		fields["Remarks"].Error = fmt.Errorf("Something went wrong :C")
+		return fields, false, nil
 	}
 
-	if models.GetStringLength(remarkstext) > maxRemarksLength {
-		s.l.Debug("Remarks too long: %d", models.GetStringLength(remarkstext))
-		output["Remarks"] = InputField{Value: remarkstext, Error: fmt.Errorf("Remarks too long! Max Length: %d characters", maxRemarksLength)}
-		inputErr = true
+	length := models.GetStringLength(fields["Remarks"].Value)
+	if length > maxRemarksLength {
+		b.l.Debug("Remarks too long: %d", length)
+		fields["Remarks"].Error = fmt.Errorf("Remarks too long! Max Length: %d characters", maxRemarksLength)
+		return fields, false, nil
 	}
+
+	autofill := false
+	autofillField, ok := fields["AutofillBox"]
+	if ok && autofillField.Value == "on" {
+		autofill = true
+	}
+
+	if !autofill {
+		maxTitleLength, err := b.GetMaxTitleLength()
+		if err != nil {
+			b.l.Debug("%v", err.Error)
+			fields["Title"].Error = fmt.Errorf("Something went wrong :C")
+			return fields, autofill, nil
+		}
+
+		title, ok := fields["Title"]
+		length = models.GetStringLength(title.Value)
+		if !ok || length == 0 {
+			b.l.Debug("Title empty")
+			fields["Title"].Error = fmt.Errorf("A title is required when not using autofill!")
+		}
+
+		if length > maxTitleLength {
+			b.l.Debug("Title too long: %d", length)
+			fields["Title"].Error = fmt.Errorf("Title too long! Max Length: %d characters", maxTitleLength)
+		}
+
+		movieExists, err := b.CheckMovieExists(title)
+		if err != nil {
+			b.l.Debug("%v", err.Error)
+			fields["Title"].Error = fmt.Errorf("Something went wrong :C")
+			return fields, autofill, nil
+		}
+
+		if movieExists {
+			b.l.Debug("Movie exists")
+			fields["Title"].Error = fmt.Errorf("Movie already added to the poll or has been already watched")
+		}
+
+		maxDescriptionLength, err := b.GetMaxDescriptionLength()
+		if err != nil {
+			b.l.Debug("%v", err.Error)
+			fields["Description"].Error = fmt.Errorf("Something went wrong :C")
+			return fields, autofill, nil
+		}
+
+		description, ok := fields["Description"]
+		length = models.GetStringLength(description.Value)
+
+		if length > maxDescriptionLength {
+			b.l.Debug("Description too long: %d", length)
+			fields["Description"].Error = fmt.Errorf("Description too long! Max Length: %d characters", maxDescriptionLength)
+		}
+
+		if length == 0 {
+			fields["Description"].Error = fmt.Errorf("Missing description")
+		}
+	}
+	return fields, autofill, links
+}
+
+// Welcome to the ugliest error handling ever - I have to surround the actual errors with the `InputField`
+// struct to send it back to the frontend. To check for a error from this function one has to check the
+// first return parameters .Error field for not nil. If it is NOT nil, the error is there and the second
+// return parameter is to be expected nil / only partially filled.
+func (b *backend) parseLinks(linkField *InputField) (*InputField, []*models.Link) {
+
+	linktext := strings.ReplaceAll(linkField.Value, "\r", "")
+
+	// Check for links
+	if len(linktext) == 0 {
+		b.l.Error("no links given")
+		linkField.Error = fmt.Errorf("No link found")
+		return linkField, nil
+	}
+
+	links := strings.Split(linktext, "\n")
+
+	linkList := []*models.Link{}
+
+	maxLinkLength, err := b.GetMaxLinkLength()
+	if err != nil {
+		b.l.Error("Unable to get %q: %w", ConfigMaxLinkLength, err)
+		linkField.Error = fmt.Errorf("something went wrong :C")
+		return linkField, nil
+	}
+
+	for id, linkString := range links {
+		// Check link maxlength
+		length := models.GetStringLength(linkString)
+		if length > maxLinkLength {
+			b.l.Debug("Link too long: %d", length)
+			linkField.Error = fmt.Errorf("A Link is too long! Max Length: %d characters, found a link with %d characters.", maxLinkLength, length)
+			return linkField, nil
+		}
+		link, err := models.NewLink(linkString, id)
+		if err != nil {
+			linkField.Error = err
+			return linkField, nil
+		}
+		linkList = append(linkList, link)
+	}
+
+	return linkField, linkList
+}
+
+// `fields` contains the key: {value,error} pairs from the input form on the 'addMovie' page. (i think?)
+func (b *backend) AddMovie(fields map[string]*InputField, user *models.User) (int, map[string]*InputField) {
+
+	validatedForm, autofill, links := b.validateForm(fields)
 
 	// Exit early if any errors got reported
-	if data.isError() {
-		return nil, nil
+	for _, input := range validatedForm {
+		if input.Error != nil {
+			return 0, validatedForm
+		}
+	}
+
+	if autofill {
+		b.doAutofill(links)
+	} else {
+		b.doFormfill(validatedForm)
 	}
 
 	///////////////////////////////////////////////////
