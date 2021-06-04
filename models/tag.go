@@ -1,4 +1,4 @@
-package common
+package models
 
 type Tag struct {
 	Id   int
