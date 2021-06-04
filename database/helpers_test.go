@@ -1,4 +1,4 @@
-package data
+package database
 
 import (
 	"fmt"
@@ -17,14 +17,14 @@ var (
 	l   *common.Logger
 )
 
-var testConnectors = map[string]func() (TestableDataConnector, error){
+var testConnectors = map[string]func() (TestableDatabase, error){
 	//"mysql": func() (TestableDataConnector, error) {
 	//	dc, err := newMySqlConnector("root:buttslol@tcp(127.0.0.1:3306)/moviepolls?parseTime=true&loc=Local")
 	//	return TestableDataConnector(dc), err
 	//},
-	"json": func() (TestableDataConnector, error) {
+	"json": func() (TestableDatabase, error) {
 		dc, err := newJsonConnector("test.json", l)
-		return TestableDataConnector(dc), err
+		return TestableDatabase(dc), err
 	},
 }
 

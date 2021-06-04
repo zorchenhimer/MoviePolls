@@ -189,9 +189,9 @@ type jsonConnector struct {
 }
 
 func init() {
-	register("json", func(connStr string, l *mpm.Logger) (DataConnector, error) {
-		dc, err := newJsonConnector(connStr, l)
-		return DataConnector(dc), err
+	register("json", func(connStr string, l *mpm.Logger) (Database, error) {
+		db, err := newJsonConnector(connStr, l)
+		return Database(db), err
 	})
 }
 
