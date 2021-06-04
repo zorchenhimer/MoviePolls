@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/zorchenhimer/MoviePolls/database"
-	//"github.com/zorchenhimer/MoviePolls/common"
 )
 
 // defaults
@@ -121,6 +120,3 @@ func (b *backend) GetMaxLinkLength() (int, error) {
 
 	return val, err
 }
-
-
-

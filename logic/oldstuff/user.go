@@ -2,18 +2,22 @@ package logic
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
 
-	"github.com/zorchenhimer/MoviePolls/models"
+	"github.com/zorchenhimer/MoviePolls/common"
 )
 
-func (b *backend) GetUserVotes(user *models.User) ([]*models.Movie, []*models.Movie, error) {
-	voted, err := b.data.GetUserVotes(user.Id)
+// Returns current active votes and votes for watched movies
+func (s *Server) getUserVotes(user *common.User) ([]*common.Movie, []*common.Movie, error) {
+	voted, err := s.data.GetUserVotes(user.Id)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Unable to get all user votes for ID %d: %v", user.Id, err)
 	}
 
-	current := []*models.Movie{}
-	watched := []*models.Movie{}
+	current := []*common.Movie{}
+	watched := []*common.Movie{}
 
 	for _, movie := range voted {
 		if movie.Removed == true {
@@ -30,16 +34,16 @@ func (b *backend) GetUserVotes(user *models.User) ([]*models.Movie, []*models.Mo
 	return current, watched, nil
 }
 
-func (b *backend) AddAuthMethodToUser(auth *models.AuthMethod, user *models.User) (*models.User, error) {
+func (s *Server) AddAuthMethodToUser(auth *common.AuthMethod, user *common.User) (*common.User, error) {
 
 	if user.AuthMethods == nil {
-		user.AuthMethods = []*models.AuthMethod{}
+		user.AuthMethods = []*common.AuthMethod{}
 	}
 
 	// Check if the user already has this authtype associated with him
 	if _, err := user.GetAuthMethod(auth.Type); err != nil {
 
-		id, err := b.data.AddAuthMethod(auth)
+		id, err := s.data.AddAuthMethod(auth)
 
 		if err != nil {
 			return nil, fmt.Errorf("Could not create new AuthMethod %s for user %s", auth.Type, user.Name)
@@ -55,10 +59,10 @@ func (b *backend) AddAuthMethodToUser(auth *models.AuthMethod, user *models.User
 	}
 }
 
-func (b *backend) RemoveAuthMethodFromUser(auth *models.AuthMethod, user *models.User) (*models.User, error) {
+func (s *Server) RemoveAuthMethodFromUser(auth *common.AuthMethod, user *common.User) (*common.User, error) {
 
 	if user.AuthMethods == nil {
-		user.AuthMethods = []*models.AuthMethod{}
+		user.AuthMethods = []*common.AuthMethod{}
 	}
 
 	// Check if the user already has this authtype associated with him
@@ -66,11 +70,11 @@ func (b *backend) RemoveAuthMethodFromUser(auth *models.AuthMethod, user *models
 	if err != nil {
 		return nil, fmt.Errorf("AuthMethod %s is not associated with the user %s", auth.Type, user.Name)
 	}
-	b.data.DeleteAuthMethod(auth.Id)
+	s.data.DeleteAuthMethod(auth.Id)
 
 	// thanks golang for not having a delete method for slices ...
 	oldauths := user.AuthMethods
-	newAuths := []*models.AuthMethod{}
+	newAuths := []*common.AuthMethod{}
 	for _, a := range oldauths {
 		if a != auth {
 			newAuths = append(newAuths, a)
