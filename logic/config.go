@@ -82,6 +82,10 @@ const (
 	ConfigPatreonOauthClientSecret  string = "PatreonOauthClientSecret"
 )
 
+func (b *backend) CheckMovieExists(title string) (bool, error) {
+	return b.data.CheckMovieExists(title)
+}
+
 func (b *backend) GetFormFillEnabled() (bool, error) {
 	val, err := b.data.GetCfgBool(ConfigFormfillEnabled, DefaultFormfillEnabled)
 	if errors.Is(err, database.ErrNoValue) {
@@ -114,6 +118,32 @@ func (b *backend) GetMaxLinkLength() (int, error) {
 		err = b.data.SetCfgInt(ConfigMaxLinkLength, DefaultMaxLinkLength)
 		if err != nil {
 			b.l.Error("Unable to set default value for %s: %v", ConfigMaxLinkLength, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
+func (b *backend) GetMaxTitleLength() (int, error) {
+	val, err := b.data.GetCfgInt(ConfigMaxTitleLength, DefaultMaxTitleLength)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgInt(ConfigMaxTitleLength, DefaultMaxTitleLength)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigMaxTitleLength, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
+func (b *backend) GetMaxDescriptionLength() (int, error) {
+	val, err := b.data.GetCfgInt(ConfigMaxDescriptionLength, DefaultMaxDescriptionLength)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgInt(ConfigMaxDescriptionLength, DefaultMaxDescriptionLength)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigMaxDescriptionLength, err)
 		}
 		return val, nil
 	}

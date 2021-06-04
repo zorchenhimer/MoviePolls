@@ -100,7 +100,7 @@ func (b *backend) validateForm(fields map[string]*InputField) (map[string]*Input
 			fields["Title"].Error = fmt.Errorf("Title too long! Max Length: %d characters", maxTitleLength)
 		}
 
-		movieExists, err := b.CheckMovieExists(title)
+		movieExists, err := b.CheckMovieExists(title.Value)
 		if err != nil {
 			b.l.Debug("%v", err.Error)
 			fields["Title"].Error = fmt.Errorf("Something went wrong :C")
@@ -191,15 +191,15 @@ func (b *backend) AddMovie(fields map[string]*InputField, user *models.User) (in
 		}
 	}
 
+	id := -1
 	if autofill {
-		b.doAutofill(links)
+		id = b.doAutofill(links, user)
 	} else {
-		b.doFormfill(validatedForm)
+		id = b.doFormfill(validatedForm, user)
 	}
 
 	///////////////////////////////////////////////////
 
-	jovie := &models.Movie{}
 	if autofill {
 		b.l.Debug("autofill")
 		results, links, err := b.handleAutofill(input)
@@ -260,17 +260,18 @@ func (b *backend) AddMovie(fields map[string]*InputField, user *models.User) (in
 	return 0, fields, fmt.Errorf("// TODO")
 }
 
-// outsourced autofill logic
-func (b *backend) handleAutofill(input *inputForm) (map[string]InputField, []*models.Link, error) {
+func (b *backend) doAutofill(links []*models.Link) (int, error) {
+
+	sourcelink := links[0]
 
 	if sourcelink.Type == "MyAnimeList" {
-		s.l.Debug("MAL link")
+		b.l.Debug("MAL link")
 
-		results, err = s.handleJikan(data, w, r, sourcelink.Url)
+		results, err = b.handleJikan(data, sourcelink.Url)
 
 		if err != nil {
 			s.l.Error(err.Error())
-			return nil, nil
+			return nil, err
 		}
 
 		var title string
