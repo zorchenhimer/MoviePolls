@@ -1,18 +1,20 @@
-package data
+package database
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
-	mpm "github.com/zorchenhimer/MoviePolls/models"
+	"github.com/zorchenhimer/MoviePolls/models"
 )
 
-type constructor func(string, *mpm.Logger) (DataConnector, error)
+type constructor func(string, *models.Logger) (Database, error)
 
-var registeredConnectors map[string]constructor
+var registeredDatabases map[string]constructor
+var ErrNoValue = errors.New("No value for key")
 
-func GetDataConnector(backend, connectionString string, l *mpm.Logger) (DataConnector, error) {
-	dc, ok := registeredConnectors[backend]
+func GetDatabase(backend, connectionString string, l *models.Logger) (Database, error) {
+	dc, ok := registeredDatabases[backend]
 	if !ok {
 		return nil, fmt.Errorf("Backend %s is not available", backend)
 	}
@@ -21,14 +23,14 @@ func GetDataConnector(backend, connectionString string, l *mpm.Logger) (DataConn
 }
 
 func register(backend string, initFunc constructor) {
-	if registeredConnectors == nil {
-		registeredConnectors = map[string]constructor{}
+	if registeredDatabases == nil {
+		registeredDatabases = map[string]constructor{}
 	}
 
-	registeredConnectors[backend] = initFunc
+	registeredDatabases[backend] = initFunc
 }
 
-type DataConnector interface {
+type Database interface {
 
 	// ##################
 	// ##### CREATE #####
@@ -36,39 +38,39 @@ type DataConnector interface {
 
 	// TODO: remove AddCycle()
 	AddCycle(plannedEnd *time.Time) (int, error)
-	AddOldCycle(cycle *mpm.Cycle) (int, error)
-	AddMovie(movie *mpm.Movie) (int, error)
-	AddUser(user *mpm.User) (int, error)
-	AddTag(tag *mpm.Tag) (int, error)
-	AddAuthMethod(authMethod *mpm.AuthMethod) (int, error)
-	AddLink(link *mpm.Link) (int, error)
+	AddOldCycle(cycle *models.Cycle) (int, error)
+	AddMovie(movie *models.Movie) (int, error)
+	AddUser(user *models.User) (int, error)
+	AddTag(tag *models.Tag) (int, error)
+	AddAuthMethod(authMethod *models.AuthMethod) (int, error)
+	AddLink(link *models.Link) (int, error)
 	AddVote(userId, movieId int) error
 
 	// ######################
 	// ##### READ (get) #####
 	// ######################
 
-	GetCycle(id int) (*mpm.Cycle, error)
-	GetCurrentCycle() (*mpm.Cycle, error) // Return nil when no cycle is active.
-	GetMovie(id int) (*mpm.Movie, error)
-	GetActiveMovies() ([]*mpm.Movie, error)
-	GetUser(id int) (*mpm.User, error)
-	GetUsers(start, count int) ([]*mpm.User, error)
-	GetUserVotes(userId int) ([]*mpm.Movie, error)
-	GetUserMovies(userId int) ([]*mpm.Movie, error)
-	GetUsersWithAuth(auth mpm.AuthType, exclusive bool) ([]*mpm.User, error)
+	GetCycle(id int) (*models.Cycle, error)
+	GetCurrentCycle() (*models.Cycle, error) // Return nil when no cycle is active.
+	GetMovie(id int) (*models.Movie, error)
+	GetActiveMovies() ([]*models.Movie, error)
+	GetUser(id int) (*models.User, error)
+	GetUsers(start, count int) ([]*models.User, error)
+	GetUserVotes(userId int) ([]*models.Movie, error)
+	GetUserMovies(userId int) ([]*models.Movie, error)
+	GetUsersWithAuth(auth models.AuthType, exclusive bool) ([]*models.User, error)
 	//GetMovieVotes(userId int) []*Movie
-	GetTag(id int) *mpm.Tag
-	GetAuthMethod(id int) *mpm.AuthMethod
-	GetLink(id int) *mpm.Link
+	GetTag(id int) *models.Tag
+	GetAuthMethod(id int) *models.AuthMethod
+	GetLink(id int) *models.Link
 	// Return a list of past cycles.  Start and end are an offset from
 	// the current.  Ie, a start of 0 and an end of 5 will get the last
 	// finished cycle and the four preceding it.  Currently active cycle will
 	// not be returned.
-	GetPastCycles(start, count int) ([]*mpm.Cycle, error)
+	GetPastCycles(start, count int) ([]*models.Cycle, error)
 
 	// Get all the movies that belong to the given Cycle
-	GetMoviesFromCycle(id int) ([]*mpm.Movie, error)
+	GetMoviesFromCycle(id int) ([]*models.Movie, error)
 
 	// #######################
 	// ##### READ (find) #####
@@ -81,10 +83,10 @@ type DataConnector interface {
 	// ##### UPDATE #####
 	// ##################
 
-	UpdateUser(user *mpm.User) error
-	UpdateMovie(movie *mpm.Movie) error
-	UpdateCycle(cycle *mpm.Cycle) error
-	UpdateAuthMethod(authMethod *mpm.AuthMethod) error
+	UpdateUser(user *models.User) error
+	UpdateMovie(movie *models.Movie) error
+	UpdateCycle(cycle *models.Cycle) error
+	UpdateAuthMethod(authMethod *models.AuthMethod) error
 
 	// ##################
 	// ##### DELETE #####
@@ -105,14 +107,14 @@ type DataConnector interface {
 	// ##### MISC #####
 	// ################
 
-	UserLocalLogin(name, hashedPw string) (*mpm.User, error)
-	UserDiscordLogin(extid string) (*mpm.User, error)
-	UserTwitchLogin(extid string) (*mpm.User, error)
-	UserPatreonLogin(extid string) (*mpm.User, error)
+	UserLocalLogin(name, hashedPw string) (*models.User, error)
+	UserDiscordLogin(extid string) (*models.User, error)
+	UserTwitchLogin(extid string) (*models.User, error)
+	UserPatreonLogin(extid string) (*models.User, error)
 
-	CheckOauthUsage(id string, authtype mpm.AuthType) bool
+	CheckOauthUsage(id string, authtype models.AuthType) bool
 
-	SearchMovieTitles(query string) ([]*mpm.Movie, error)
+	SearchMovieTitles(query string) ([]*models.Movie, error)
 
 	CheckMovieExists(title string) (bool, error)
 	CheckUserExists(name string) (bool, error)
@@ -133,12 +135,12 @@ type DataConnector interface {
 	DeleteCfgKey(key string) error
 }
 
-type TestableDataConnector interface {
-	DataConnector
+type TestableDatabase interface {
+	Database
 
 	DeleteUser(userId int) error
 	DeleteMovie(movieId int) error
 	DeleteCycle(cycleId int) error
 
-	Test_GetUserVotes(userId int) ([]*mpm.Vote, error)
+	Test_GetUserVotes(userId int) ([]*models.Vote, error)
 }

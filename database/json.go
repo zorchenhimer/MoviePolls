@@ -1,4 +1,4 @@
-package data
+package database
 
 import (
 	"encoding/json"
@@ -1330,8 +1330,7 @@ func (j *jsonConnector) GetCfgString(key, value string) (string, error) {
 
 	val, ok := j.Settings[key]
 	if !ok {
-		return value, nil
-		//return "", fmt.Errorf("Setting with key %q does not exist", key)
+		return value, ErrNoValue
 	}
 
 	switch val.Type {
@@ -1352,8 +1351,7 @@ func (j *jsonConnector) GetCfgInt(key string, value int) (int, error) {
 
 	val, ok := j.Settings[key]
 	if !ok {
-		return value, nil
-		//return 0, fmt.Errorf("Setting with key %q does not exist", key)
+		return value, ErrNoValue
 	}
 
 	switch val.Type {
@@ -1380,8 +1378,7 @@ func (j *jsonConnector) GetCfgBool(key string, value bool) (bool, error) {
 
 	val, ok := j.Settings[key]
 	if !ok {
-		return value, nil
-		//return false, fmt.Errorf("Setting with key %q does not exist", key)
+		return value, ErrNoValue
 	}
 
 	switch val.Type {
