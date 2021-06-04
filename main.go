@@ -1,40 +1,60 @@
 package main
 
 import (
-	"flag"
 	"fmt"
+	"net/http"
 	"os"
 
-	mpm "github.com/zorchenhimer/MoviePolls/models"
-	mps "github.com/zorchenhimer/MoviePolls/server"
+	"github.com/zorchenhimer/MoviePolls/common"
+	"github.com/zorchenhimer/MoviePolls/logic"
 )
 
+var ReleaseVersion string
+
 func main() {
-	var logFile string
-	var logLevel string
-	var debug bool
-	var version bool
-
-	flag.StringVar(&logFile, "logfile", "", "File to write logs")
-	flag.StringVar(&logLevel, "loglevel", "debug", "Log verbosity")
-	flag.BoolVar(&debug, "debug", false, "Enable debug code")
-	flag.BoolVar(&version, "version", false, "Show the version of the binary file")
-	flag.Parse()
-
-	if version {
-		fmt.Println("Version", mps.ReleaseVersion)
-		os.Exit(0)
-	}
-
-	s, err := mps.NewServer(mps.Options{Debug: debug, LogLevel: mpm.LogLevel(logLevel), LogFile: logFile})
+	log, err := common.NewLogger(common.LLInfo, "server.log")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Unable to load logger: %v\n", err)
 		os.Exit(1)
 	}
 
-	err = s.Run()
+	log.Info("Running version: %s", ReleaseVersion)
+	if options.Debug {
+		l.Info("Debug mode turned on")
+	}
+
+	// init database
+	data, err := database.GetDataConnector("json", "db/data.json", log)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Unable to load json data: %v\n", err)
 		os.Exit(1)
 	}
+
+	// init logic
+	backend, err := logic.New(data, log)
+	if err != nil {
+		fmt.Printf("Unable to load backend: %v\n", err)
+		os.Exit(1)
+	}
+
+	config := web.Options{
+		Debug:  true,
+		Listen: ":8080",
+	}
+
+	// init frontend
+	frontend, err := web.New(config, backend, log)
+	if err != nil {
+		fmt.Printf("Unable to load frontend: %v\n", err)
+		os.Exit(1)
+	}
+
+	// run frontend
+	err = frontend.ListenAndServe()
+	if err != http.ErrServerClosed {
+		fmt.Printf("Error serving: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("goodbye")
 }
