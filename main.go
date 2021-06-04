@@ -5,14 +5,15 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/zorchenhimer/MoviePolls/common"
 	"github.com/zorchenhimer/MoviePolls/logic"
+	"github.com/zorchenhimer/MoviePolls/models"
+	"github.com/zorchenhimer/MoviePolls/web"
 )
 
 var ReleaseVersion string
 
 func main() {
-	log, err := common.NewLogger(common.LLInfo, "server.log")
+	log, err := models.NewLogger(models.LLInfo, "server.log")
 	if err != nil {
 		fmt.Printf("Unable to load logger: %v\n", err)
 		os.Exit(1)
