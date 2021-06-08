@@ -2,8 +2,10 @@ package logic
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/zorchenhimer/MoviePolls/database"
+	"github.com/zorchenhimer/MoviePolls/models"
 )
 
 // defaults
@@ -86,6 +88,44 @@ func (b *backend) CheckMovieExists(title string) (bool, error) {
 	return b.data.CheckMovieExists(title)
 }
 
+func (b *backend) GetJikanEnabled() (bool, error) {
+	val, err := b.data.GetCfgBool(ConfigJikanEnabled, DefaultJikanEnabled)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgBool(ConfigJikanEnabled, DefaultJikanEnabled)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigJikanEnabled, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
+func (b *backend) GetTmdbEnabled() (bool, error) {
+	val, err := b.data.GetCfgBool(ConfigTmdbEnabled, DefaultTmdbEnabled)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgBool(ConfigTmdbEnabled, DefaultTmdbEnabled)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigTmdbEnabled, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
+func (b *backend) GetTmdbToken() (string, error) {
+	val, err := b.data.GetCfgString(ConfigTmdbToken, DefaultTmdbToken)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgString(ConfigTmdbToken, DefaultTmdbToken)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigTmdbToken, err)
+		}
+		return val, nil
+	}
+	return val, nil
+}
+
 func (b *backend) GetFormFillEnabled() (bool, error) {
 	val, err := b.data.GetCfgBool(ConfigFormfillEnabled, DefaultFormfillEnabled)
 	if errors.Is(err, database.ErrNoValue) {
@@ -99,6 +139,19 @@ func (b *backend) GetFormFillEnabled() (bool, error) {
 	return val, err
 }
 
+func (b *backend) GetJikanBannedTypes() ([]string, error) {
+	val, err := b.data.GetCfgString(ConfigJikanBannedTypes, DefaultJikanBannedTypes)
+	ret := strings.Split(val, ",")
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgString(ConfigJikanBannedTypes, DefaultJikanBannedTypes)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigJikanBannedTypes, err)
+		}
+		return strings.Split(DefaultJikanBannedTypes, ","), nil
+	}
+	return ret, nil
+}
+
 func (b *backend) GetMaxRemarksLength() (int, error) {
 	val, err := b.data.GetCfgInt(ConfigMaxRemarksLength, DefaultMaxRemarksLength)
 	if errors.Is(err, database.ErrNoValue) {
@@ -109,6 +162,30 @@ func (b *backend) GetMaxRemarksLength() (int, error) {
 		return val, nil
 	}
 
+	return val, err
+}
+
+func (b *backend) GetJikanMaxEpisodes() (int, error) {
+	val, err := b.data.GetCfgInt(ConfigJikanMaxEpisodes, DefaultJikanMaxEpisodes)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgInt(ConfigJikanMaxEpisodes, DefaultJikanMaxEpisodes)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigJikanMaxEpisodes, err)
+		}
+		return val, nil
+	}
+	return val, err
+}
+
+func (b *backend) GetMaxDuration() (int, error) {
+	val, err := b.data.GetCfgInt(ConfigMaxMultEpLength, DefaultMaxMultEpLength)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgInt(ConfigMaxMultEpLength, DefaultMaxMultEpLength)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigMaxMultEpLength, err)
+		}
+		return val, nil
+	}
 	return val, err
 }
 
@@ -149,4 +226,8 @@ func (b *backend) GetMaxDescriptionLength() (int, error) {
 	}
 
 	return val, err
+}
+
+func (b *backend) AddMovieToDB(movie *models.Movie) (int, error) {
+	return b.data.AddMovie(movie)
 }

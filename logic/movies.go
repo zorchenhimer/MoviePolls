@@ -2,7 +2,6 @@ package logic
 
 import (
 	"fmt"
-	"net/http"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -187,166 +186,243 @@ func (b *backend) AddMovie(fields map[string]*InputField, user *models.User) (in
 		}
 	}
 
+	remarks := validatedForm["Remarks"].Value
+
 	id := -1
+	err := fmt.Errorf("")
 	if autofill {
-		id = b.doAutofill(links, user)
-	} else {
-		id = b.doFormfill(validatedForm, user)
-	}
-
-	///////////////////////////////////////////////////
-
-	if autofill {
-		b.l.Debug("autofill")
-		results, links, err := b.handleAutofill(input)
-
-		if results == nil || links == nil {
-			fields["Autofill"] = InputField{Error: fmt.Errorf("Could not autofill all fields")}
-		} else {
-			// Fill all the fields in the movie struct
-			movie.Name = results[0]
-			movie.Description = results[1]
-			movie.Poster = filepath.Base(results[2])
-			movie.Duration = results[3]
-
-			rating, err := strconv.ParseFloat(results[4], 32)
-			if err != nil {
-				b.l.Error("[AddMovie] Error converting string to float")
-				movie.Rating = 0.0
-			} else {
-				movie.Rating = float32(rating)
-			}
-
-			movie.Remarks = results[6]
-
-			for _, link := range links {
-				id, err := b.data.AddLink(link)
-				if err != nil {
-					b.l.Debug("[AddMovie] link error: %v", err)
-				}
-				link.Id = id
-			}
-
-			movie.Links = links
-			movie.AddedBy = user
-
-			tags := []*models.Tag{}
-			for _, tagStr := range strings.Split(results[5], ",") {
-				tag := &models.Tag{
-					Name: tagStr,
-				}
-
-				id, err := b.data.AddTag(tag)
-				if err != nil {
-					b.l.Debug("[AddMovie] duplicate tag: %v", tagStr)
-				}
-				tag.Id = id
-
-				tags = append(tags, tag)
-			}
-
-			movie.Tags = tags
-			// Prepare a int for the id
-			var movieId int
+		id, err = b.doAutofill(links, user, remarks)
+		if err != nil {
+			//handle
 		}
-
 	} else {
+		// id = b.doFormfill(validatedForm, user)
 	}
 
-	return 0, fields, fmt.Errorf("// TODO")
+	return id, validatedForm
+
 }
 
-func (b *backend) doAutofill(links []*models.Link) (int, error) {
+func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks string) (int, error) {
 
 	sourcelink := links[0]
+
+	results := []string{}
 
 	if sourcelink.Type == "MyAnimeList" {
 		b.l.Debug("MAL link")
 
-		results, err = b.handleJikan(data, sourcelink.Url)
+		results, err := b.autofillJikan(sourcelink.Url)
 
 		if err != nil {
-			s.l.Error(err.Error())
-			return nil, err
+			b.l.Error(err.Error())
+			return -1, err
 		}
 
 		var title string
 
 		if len(results) != 6 {
-			s.l.Error("Jikan API results have an unexpected length, expected 6 got %v", len(results))
-			data.ErrorMessage = append(data.ErrorMessage, "API autofill did not return enough data, contact the server administrator")
-			return nil, nil
+			b.l.Error("Jikan API results have an unexpected length, expected 6 got %v", len(results))
+			return -1, fmt.Errorf("API autofill did not return enough data, contact the server administrator")
 		} else {
 			title = results[0]
 		}
 
-		exists, err := s.data.CheckMovieExists(title)
+		exists, err := b.CheckMovieExists(title)
 		if err != nil {
-			s.l.Error(err.Error())
-			s.doError(
-				http.StatusInternalServerError,
-				"something went wrong :C",
-				w, r)
-			return nil, nil
+			b.l.Error(err.Error())
+			return -1, fmt.Errorf("Something went wrong :C")
 		}
 
 		if exists {
-			s.l.Debug("Movie already exists")
-			data.ErrorMessage = append(data.ErrorMessage, "Movie already exists in database")
-			data.ErrAutofill = true
-			return nil, nil
+			b.l.Debug("Movie already exists")
+			return -1, fmt.Errorf("Movie already exists in database")
 		}
 
-		results = append(results, remarkstext)
-		return results, links
+		results = append(results)
+	} else if sourcelink.Type == "IMDb" {
+		b.l.Debug("IMDB link")
 
-	}
-	if sourcelink.Type == "IMDb" {
-		s.l.Debug("IMDB link")
-
-		results, err = s.handleTmdb(data, w, r, sourcelink.Url)
+		results, err := b.autofillTmdb(sourcelink.Url)
 
 		if err != nil {
-			s.l.Error(err.Error())
-			return nil, nil
+			b.l.Error(err.Error())
+			return -1, err
 		}
 
 		var title string
 
 		if len(results) != 6 {
-			s.l.Error("Tmdb API results have an unexpected length, expected 6 got %v", len(results))
-			data.ErrorMessage = append(data.ErrorMessage, "API autofill did not return enough data, did you input a link to a series?")
-			return nil, nil
+			b.l.Error("Tmdb API results have an unexpected length, expected 6 got %v", len(results))
+			return -1, fmt.Errorf("API autofill did not return enough data, did you input a link to a series?")
 		} else {
 			title = results[0]
 		}
 
-		exists, err := s.data.CheckMovieExists(title)
+		exists, err := b.CheckMovieExists(title)
 		if err != nil {
-			s.l.Error(err.Error())
-			s.doError(
-				http.StatusInternalServerError,
-				"something went wrong :C",
-				w, r)
-			return nil, nil
-
+			b.l.Error(err.Error())
+			return -1, fmt.Errorf("Something went wrong :C")
 		}
 
 		if exists {
-			s.l.Debug("Movie already exists")
-			data.ErrorMessage = append(data.ErrorMessage, "Movie already exists in database")
-			data.ErrAutofill = true
-			return nil, nil
+			b.l.Debug("Movie already exists")
+			return -1, fmt.Errorf("Movie already exists in database")
 		}
 
-		results = append(results, remarkstext)
-		return results, links
-
+		results = append(results)
+	} else {
+		b.l.Debug("no link")
+		return -1, fmt.Errorf("To use autofill an imdb or myanimelist link as first link is required")
 	}
 
-	s.l.Debug("no link")
-	data.ErrorMessage = append(data.ErrorMessage, "To use autofill an imdb or myanimelist link as first link is required")
-	data.ErrLinks = true
-	return nil, nil
+	movie := models.Movie{}
 
+	// Fill all the fields in the movie struct
+	movie.Name = results[0]
+	movie.Description = results[1]
+	movie.Poster = filepath.Base(results[2])
+	movie.Duration = results[3]
+
+	rating, err := strconv.ParseFloat(results[4], 32)
+	if err != nil {
+		b.l.Error("[AddMovie] Error converting string to float")
+		movie.Rating = 0.0
+	} else {
+		movie.Rating = float32(rating)
+	}
+
+	movie.Remarks = results[6]
+
+	for _, link := range links {
+		id, err := b.data.AddLink(link)
+		if err != nil {
+			b.l.Debug("[AddMovie] link error: %v", err)
+		}
+		link.Id = id
+	}
+
+	movie.Links = links
+	movie.AddedBy = user
+
+	tags := []*models.Tag{}
+	for _, tagStr := range strings.Split(results[5], ",") {
+		tag := &models.Tag{
+			Name: tagStr,
+		}
+
+		id, err := b.data.AddTag(tag)
+		if err != nil {
+			b.l.Debug("[AddMovie] duplicate tag: %v", tagStr)
+		}
+		tag.Id = id
+
+		tags = append(tags, tag)
+	}
+
+	movie.Tags = tags
+
+	return b.AddMovieToDB(&movie)
+
+}
+
+var re_jikanToken = regexp.MustCompile(`[^\/]*\/anime\/([0-9]+)`)
+
+func (b *backend) autofillJikan(sourcelink string) ([]string, error) {
+
+	jikanEnabled, err := b.GetJikanEnabled()
+	if err != nil {
+		b.l.Debug(err.Error())
+		return nil, fmt.Errorf("Something went wrong :C")
+	}
+
+	if !jikanEnabled {
+		return nil, fmt.Errorf("Jikan API usage was not enabled by the site administrator")
+	}
+
+	// Get Data from MAL (jikan api)
+	match := re_jikanToken.FindStringSubmatch(sourcelink)
+	var id string
+	if len(match) < 2 {
+		b.l.Debug("Regex match didn't find the anime id in %v", sourcelink)
+		return nil, fmt.Errorf("Could not retrive anime id from provided link, did you input a manga link?")
+	}
+	id = match[1]
+
+	bannedTypes, err := b.GetJikanBannedTypes()
+
+	if err != nil {
+		b.l.Debug("Error while retriving config value 'JikanBannedTypes':\n %v", err)
+		return nil, fmt.Errorf("Something went wrong :C")
+	}
+
+	maxEpisodes, err := b.GetJikanMaxEpisodes()
+
+	if err != nil {
+		b.l.Debug("Error while retriving config value 'JikanMaxEpisodes':\n %v", err)
+		return nil, fmt.Errorf("Something went wrong :C")
+	}
+
+	maxDuration, err := b.GetMaxDuration()
+
+	if err != nil {
+		b.l.Debug("Error while retriving config value 'MaxMultEpLength':\n %v", err)
+		return nil, fmt.Errorf("Something went wrong :C")
+	}
+
+	sourceAPI := jikan{id: id, l: b.l, excludedTypes: bannedTypes, maxEpisodes: maxEpisodes, maxDuration: maxDuration}
+
+	// Request data from API
+	results, err := getMovieData(&sourceAPI)
+
+	if err != nil {
+		b.l.Debug("Error while accessing Jikan API: %v", err)
+		return nil, fmt.Errorf("Could not complete autofill, contact your site administrator")
+	}
+
+	return results, nil
+}
+
+var re_tmdbToken = regexp.MustCompile(`[^\/]*\/title\/(tt[0-9]*)`)
+
+func (b *backend) autofillTmdb(sourcelink string) ([]string, error) {
+
+	tmdbEnabled, err := b.GetTmdbEnabled()
+	if err != nil {
+		b.l.Error(err.Error())
+		return nil, fmt.Errorf("Something went wrong :C")
+	}
+
+	if !tmdbEnabled {
+		b.l.Debug("Aborting Tmdb autofill since it is not enabled")
+		return nil, fmt.Errorf("Tmdb API usage was not enabled by the site administrator")
+	}
+
+	// Retrieve token from database
+	token, err := b.GetTmdbToken()
+	if err != nil || token == "" {
+		b.l.Debug("Aborting Tmdb autofill since no token was found, its either empty or was never set")
+		return nil, fmt.Errorf("The Tmdb integration is not configured correctly, contact the site administrator")
+	}
+	// get the movie id
+	match := re_tmdbToken.FindStringSubmatch(sourcelink)
+	var id string
+	if len(match) < 2 {
+		b.l.Debug("Regex match didn't find the movie id in %v", sourcelink)
+		return nil, fmt.Errorf("Could not retrive movie information from the first provided link")
+	}
+
+	id = match[1]
+
+	sourceAPI := tmdb{id: id, token: token, l: b.l}
+
+	// Request data from API
+	results, err := getMovieData(&sourceAPI)
+
+	if err != nil {
+		b.l.Debug("Error while accessing Tmdb API: %v", err)
+		return nil, fmt.Errorf("Could not complete autofill, contact your site administrator")
+	}
+
+	return results, nil
 }
