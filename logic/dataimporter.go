@@ -1,7 +1,5 @@
 package logic
 
-// Comment to test nightly build
-
 import (
 	"encoding/json"
 	"errors"
@@ -15,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/nfnt/resize"
-	"github.com/zorchenhimer/MoviePolls/common"
+	"github.com/zorchenhimer/MoviePolls/models"
 )
 
 type dataapi interface {
@@ -29,14 +27,14 @@ type dataapi interface {
 }
 
 type tmdb struct {
-	l     *common.Logger
+	l     *models.Logger
 	id    string
 	token string
 	resp  *map[string]interface{}
 }
 
 type jikan struct {
-	l             *common.Logger
+	l             *models.Logger
 	id            string
 	excludedTypes []string
 	resp          *map[string]interface{}
