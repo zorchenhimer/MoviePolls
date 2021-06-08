@@ -30,6 +30,7 @@ type Logic interface {
 	GetVotingEnabled() bool
 
 	GetCurrentCycle() (*models.Cycle, error)
+	GetMaxRemarksLength() (int, error)
 	GetPastCycles(start, count int) ([]*models.Cycle, error)
 	GetPreviousCycle() *models.Cycle
 }
