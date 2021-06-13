@@ -33,6 +33,17 @@ type Logic interface {
 	GetMaxRemarksLength() (int, error)
 	GetPastCycles(start, count int) ([]*models.Cycle, error)
 	GetPreviousCycle() *models.Cycle
+
+	GetTwitchOauthEnabled() (bool, error)
+	GetDiscordOauthEnabled() (bool, error)
+	GetPatreonOauthEnabled() (bool, error)
+	GetHostAddress() (string, error)
+	GetTwitchOauthClientID() (string, error)
+	GetTwitchOauthClientSecret() (string, error)
+	GetDiscordOauthClientID() (string, error)
+	GetDiscordOauthClientSecret() (string, error)
+	GetPatreonOauthClientID() (string, error)
+	GetPatreonOauthClientSecret() (string, error)
 }
 
 type InputField struct {

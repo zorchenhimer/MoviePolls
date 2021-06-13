@@ -30,6 +30,7 @@ const (
 
 	DefaultMaxMultEpLength int = 120 // length of multiple episode entries in minutes
 
+	DefaultHostAddress               string = ""
 	DefaultLocalSignupEnabled        bool   = true
 	DefaultTwitchOauthEnabled        bool   = false
 	DefaultTwitchOauthSignupEnabled  bool   = false
@@ -230,4 +231,128 @@ func (b *backend) GetMaxDescriptionLength() (int, error) {
 
 func (b *backend) AddMovieToDB(movie *models.Movie) (int, error) {
 	return b.data.AddMovie(movie)
+}
+
+// Oauth
+func (b *backend) GetTwitchOauthEnabled() (bool, error) {
+	val, err := b.data.GetCfgBool(ConfigTwitchOauthEnabled, DefaultTwitchOauthEnabled)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgBool(ConfigTwitchOauthEnabled, DefaultTwitchOauthEnabled)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigTwitchOauthEnabled, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
+func (b *backend) GetDiscordOauthEnabled() (bool, error) {
+	val, err := b.data.GetCfgBool(ConfigDiscordOauthEnabled, DefaultDiscordOauthEnabled)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgBool(ConfigDiscordOauthEnabled, DefaultDiscordOauthEnabled)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigDiscordOauthEnabled, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
+func (b *backend) GetPatreonOauthEnabled() (bool, error) {
+	val, err := b.data.GetCfgBool(ConfigPatreonOauthEnabled, DefaultPatreonOauthEnabled)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgBool(ConfigPatreonOauthEnabled, DefaultPatreonOauthEnabled)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigPatreonOauthEnabled, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
+func (b *backend) GetHostAddress() (string, error) {
+	val, err := b.data.GetCfgString(ConfigHostAddress, DefaultHostAddress)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgString(ConfigHostAddress, DefaultHostAddress)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigHostAddress, err)
+		}
+		return val, nil
+	}
+	return val, nil
+}
+
+func (b *backend) GetTwitchOauthClientID() (string, error) {
+	val, err := b.data.GetCfgString(ConfigTwitchOauthClientID, DefaultTwitchOauthClientID)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgString(ConfigTwitchOauthClientID, DefaultTwitchOauthClientID)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigTwitchOauthClientID, err)
+		}
+		return val, nil
+	}
+	return val, nil
+}
+
+func (b *backend) GetTwitchOauthClientSecret() (string, error) {
+	val, err := b.data.GetCfgString(ConfigTwitchOauthClientSecret, DefaultTwitchOauthClientSecret)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgString(ConfigTwitchOauthClientSecret, DefaultTwitchOauthClientSecret)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigTwitchOauthClientSecret, err)
+		}
+		return val, nil
+	}
+	return val, nil
+}
+
+func (b *backend) GetDiscordOauthClientID() (string, error) {
+	val, err := b.data.GetCfgString(ConfigDiscordOauthClientID, DefaultDiscordOauthClientID)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgString(ConfigDiscordOauthClientID, DefaultDiscordOauthClientID)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigDiscordOauthClientID, err)
+		}
+		return val, nil
+	}
+	return val, nil
+}
+
+func (b *backend) GetDiscordOauthClientSecret() (string, error) {
+	val, err := b.data.GetCfgString(ConfigDiscordOauthClientSecret, DefaultDiscordOauthClientSecret)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgString(ConfigDiscordOauthClientSecret, DefaultDiscordOauthClientSecret)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigDiscordOauthClientSecret, err)
+		}
+		return val, nil
+	}
+	return val, nil
+}
+
+func (b *backend) GetPatreonOauthClientID() (string, error) {
+	val, err := b.data.GetCfgString(ConfigPatreonOauthClientID, DefaultPatreonOauthClientID)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgString(ConfigPatreonOauthClientID, DefaultPatreonOauthClientID)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigPatreonOauthClientID, err)
+		}
+		return val, nil
+	}
+	return val, nil
+}
+
+func (b *backend) GetPatreonOauthClientSecret() (string, error) {
+	val, err := b.data.GetCfgString(ConfigPatreonOauthClientSecret, DefaultPatreonOauthClientSecret)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgString(ConfigPatreonOauthClientSecret, DefaultPatreonOauthClientSecret)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigPatreonOauthClientSecret, err)
+		}
+		return val, nil
+	}
+	return val, nil
 }
