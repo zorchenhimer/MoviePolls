@@ -5,20 +5,13 @@ import (
 	"fmt"
 	"html/template"
 
-	//"io/ioutil"
 	"net/http"
 	"os"
-
-	//"path/filepath"
-	//"regexp"
-	//"strconv"
-	//"strings"
 
 	"github.com/gorilla/sessions"
 
 	"github.com/zorchenhimer/MoviePolls/logic"
 	"github.com/zorchenhimer/MoviePolls/models"
-	//"github.com/zorchenhimer/MoviePolls/data"
 )
 
 const SessionName string = "moviepoll-session"
@@ -45,7 +38,7 @@ type webServer struct {
 	l *models.Logger
 }
 
-func New(options Options, backend logic.Logic, log *models.Logger) (Server, error) {
+func New(options Options, backend logic.Logic, log *models.Logger) (*webServer, error) {
 	if options.Listen == "" {
 		options.Listen = ":8090"
 	}
@@ -78,43 +71,55 @@ func New(options Options, backend logic.Logic, log *models.Logger) (Server, erro
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/movie/", server.pageMovie)
-	mux.HandleFunc("/static/", server.handlerStatic)
-	mux.HandleFunc("/posters/", server.handlerStatic)
-	mux.HandleFunc("/add", server.pageAddMovie)
 
-	// list of past cycles
-	mux.HandleFunc("/history", server.handlerHistory)
+	handlers := map[string]func(http.ResponseWriter, *http.Request){
+		// Static stuff
+		"/static/":     server.handlerStatic,
+		"/posters":     server.handlerPosters,
+		"/favicon.ico": server.handlerFavicon,
 
-	mux.HandleFunc("/oauth/twitch", server.handlerTwitchOAuth)
-	mux.HandleFunc("/oauth/twitch/callback", server.handlerTwitchOAuthCallback)
+		// Main Page handlers
+		"/":        server.handlerPageMain,
+		"/add":     server.handlerPageAddMovie,
+		"/movie/":  server.handlerPageMovie,
+		"/history": server.handlerPageHistory,
+		"/user":    server.handlerPageUser,
 
-	mux.HandleFunc("/oauth/discord", server.handlerDiscordOAuth)
-	mux.HandleFunc("/oauth/discord/callback", server.handlerDiscordOAuthCallback)
+		// User management
+		"/user/login":        server.handlerUserLogin,
+		"/user/logout":       server.handlerUserLogout,
+		"/user/new":          server.handlerUserNew,
+		"/user/remove/local": server.handlerLocalAuthRemove,
 
-	mux.HandleFunc("/oauth/patreon", server.handlerPatreonOAuth)
-	mux.HandleFunc("/oauth/patreon/callback", server.handlerPatreonOAuthCallback)
+		// Functional endpoints (used for page functionality) - not having a page itself
+		"/vote/": server.handlerVote,
 
-	mux.HandleFunc("/user", server.handlerUser)
-	mux.HandleFunc("/user/login", server.handlerUserLogin)
-	mux.HandleFunc("/user/logout", server.handlerUserLogout)
-	mux.HandleFunc("/user/new", server.handlerUserNew)
-	mux.HandleFunc("/user/remove/local", server.handlerLocalAuthRemove)
+		"/oauth/twitch":          server.handlerTwitchOAuth,
+		"/oauth/twitch/callback": server.handlerTwitchOAuthCallback,
 
-	mux.HandleFunc("/vote/", server.handlerVote)
-	mux.HandleFunc("/", server.pageMain)
-	mux.HandleFunc("/favicon.ico", server.handlerFavicon)
+		"/oauth/discord":          server.handlerDiscordOAuth,
+		"/oauth/discord/callback": server.handlerDiscordOAuthCallback,
 
-	mux.HandleFunc("/auth/", server.handlerAuth)
-	mux.HandleFunc("/admin/", server.handlerAdmin)
-	mux.HandleFunc("/admin/config", server.handlerAdminConfig)
-	mux.HandleFunc("/admin/cycles", server.handlerAdminCycles)
-	mux.HandleFunc("/admin/cyclepost", server.handlerAdminCycles_Post)
-	// mux.HandleFunc("/admin/nextcycle", server.handlerAdminNextCycle)
-	mux.HandleFunc("/admin/user/", server.handlerAdminUserEdit)
-	mux.HandleFunc("/admin/users", server.handlerAdminUsers)
-	mux.HandleFunc("/admin/movies", server.handlerAdminMovies)
-	mux.HandleFunc("/admin/movie/", server.handlerAdminMovieEdit)
+		"/oauth/patreon":          server.handlerPatreonOAuth,
+		"/oauth/patreon/callback": server.handlerPatreonOAuthCallback,
+
+		// Admin pages
+		"/auth/":           server.handlerAuth,
+		"/admin/":          server.handlerAdminHome,
+		"/admin/config":    server.handlerAdminConfig,
+		"/admin/cycles":    server.handlerAdminCycles,
+		"/admin/cyclepost": server.handlerAdminCycles_Post,
+		"/admin/user/":     server.handlerAdminUserEdit,
+		"/admin/users":     server.handlerAdminUsers,
+		"/admin/movies":    server.handlerAdminMovies,
+		"/admin/movie/":    server.handlerAdminMovieEdit,
+
+		// "/admin/nextcycle", server.handlerAdminNextCycle)
+	}
+
+	for path, handler := range handlers {
+		mux.HandleFunc(path, handler)
+	}
 
 	hs.Handler = mux
 	server.s = hs
