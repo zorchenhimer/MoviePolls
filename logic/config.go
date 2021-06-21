@@ -356,3 +356,27 @@ func (b *backend) GetPatreonOauthClientSecret() (string, error) {
 	}
 	return val, nil
 }
+
+func (b *backend) AddUser(user *models.User) (int, error) {
+	return b.data.AddUser(user)
+}
+
+func (b *backend) UpdateUser(user *models.User) error {
+	return b.data.UpdateUser(user)
+}
+
+func (b *backend) CheckOauthUsage(id string, authType models.AuthType) bool {
+	return b.data.CheckOauthUsage(id, authType)
+}
+
+func (b *backend) UserDiscordLogin(extid string) (*models.User, error) {
+	return b.data.UserDiscordLogin(extid)
+}
+
+func (b *backend) UserPatreonLogin(extid string) (*models.User, error) {
+	return b.data.UserPatreonLogin(extid)
+}
+
+func (b *backend) UserTwitchLogin(extid string) (*models.User, error) {
+	return b.data.UserTwitchLogin(extid)
+}

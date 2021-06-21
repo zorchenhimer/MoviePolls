@@ -1,9 +1,7 @@
 package logic
 
 import (
-	"crypto/rand"
 	"fmt"
-	"math/big"
 	"mime/multipart"
 	"strings"
 
@@ -12,16 +10,30 @@ import (
 )
 
 type Logic interface {
+	// security
+	GetKeys() (string, string, string, error)
+	GetCryptRandKey(size int) string
+	HashPassword(password string) string
+
+	// Movie stuff
+	AddMovie(fields map[string]*InputField, user *models.User) (int, map[string]*InputField)
+	GetMovie(id int) *models.Movie
 	GetActiveMovies() ([]*models.Movie, error)
 	SearchMovieTitles(query string) ([]*models.Movie, error)
-	GetMovie(id int) *models.Movie
-	AddMovie(fields map[string]*InputField, user *models.User) (int, map[string]*InputField)
 
-	AddAuthMethodToUser(auth *models.AuthMethod, user *models.User) (*models.User, error)
+	// User stuff
+	AddUser(user *models.User) (int, error)
+	UpdateUser(user *models.User) error
 	GetUserVotes(user *models.User) ([]*models.Movie, []*models.Movie, error)
+	GetUserMovies(userId int) ([]*models.Movie, error)
+	AddAuthMethodToUser(auth *models.AuthMethod, user *models.User) (*models.User, error)
+	UpdateAuthMethod(auth *models.AuthMethod) error
 	RemoveAuthMethodFromUser(auth *models.AuthMethod, user *models.User) (*models.User, error)
+	UserTwitchLogin(extId string) (*models.User, error)
+	UserDiscordLogin(extId string) (*models.User, error)
+	UserPatreonLogin(extId string) (*models.User, error)
 
-	GetKeys() (string, string, string, error)
+	// Settings
 	GetFormFillEnabled() (bool, error)
 
 	GetAvailableVotes(user *models.User) (int, error)
@@ -34,6 +46,7 @@ type Logic interface {
 	GetPastCycles(start, count int) ([]*models.Cycle, error)
 	GetPreviousCycle() *models.Cycle
 
+	CheckOauthUsage(id string, authtype models.AuthType) bool
 	GetTwitchOauthEnabled() (bool, error)
 	GetDiscordOauthEnabled() (bool, error)
 	GetPatreonOauthEnabled() (bool, error)
@@ -52,9 +65,12 @@ type InputField struct {
 }
 
 type backend struct {
-	data    database.Database
-	urlKeys map[string]*models.UrlKey
-	l       *models.Logger
+	data         database.Database
+	urlKeys      map[string]*models.UrlKey
+	authKey      string
+	encryptKey   string
+	passwordSalt string
+	l            *models.Logger
 }
 
 func New(db database.Database, log *models.Logger) (Logic, error) {
@@ -117,58 +133,15 @@ func New(db database.Database, log *models.Logger) (Logic, error) {
 		// Print directly to the console, not through the logger.
 		fmt.Printf("Claim admin: %s/auth/%s Password: %s\n", host, urlKey.Url, urlKey.Key)
 	}
+	authKey, encryptKey, passwordSalt, err := back.GetKeys()
+	if err != nil {
+		return nil, err
+	}
+	back.authKey = authKey
+	back.encryptKey = encryptKey
+	back.passwordSalt = passwordSalt
 
 	return back, nil
-}
-
-// AuthKey, EncryptKey, Salt
-func (b *backend) GetKeys() (string, string, string, error) {
-	authKey, err := b.data.GetCfgString("SessionAuth", "")
-	if err != nil || authKey == "" {
-		authKey = getCryptRandKey(64)
-		err = b.data.SetCfgString("SessionAuth", authKey)
-		if err != nil {
-			return "", "", "", fmt.Errorf("Unable to set SessionAuth: %v", err)
-		}
-	}
-
-	encryptKey, err := b.data.GetCfgString("SessionEncrypt", "")
-	if err != nil || encryptKey == "" {
-		encryptKey = getCryptRandKey(32)
-		err = b.data.SetCfgString("SessionEncrypt", encryptKey)
-		if err != nil {
-			return "", "", "", fmt.Errorf("Unable to set SessionEncrypt: %v", err)
-		}
-	}
-
-	passwordSalt, err := b.data.GetCfgString("PassSalt", "")
-	if err != nil || passwordSalt == "" {
-		passwordSalt = getCryptRandKey(32)
-		err = b.data.SetCfgString("PassSalt", passwordSalt)
-		if err != nil {
-			return "", "", "", fmt.Errorf("Unable to set PassSalt: %v", err)
-		}
-	}
-
-	return authKey, encryptKey, passwordSalt, nil
-}
-
-func getCryptRandKey(size int) string {
-	out := ""
-	large := big.NewInt(int64(1 << 60))
-	large = large.Add(large, large)
-	for len(out) < size {
-		num, err := rand.Int(rand.Reader, large)
-		if err != nil {
-			panic("Error generating session key: " + err.Error())
-		}
-		out = fmt.Sprintf("%s%X", out, num)
-	}
-
-	if len(out) > size {
-		out = out[:size]
-	}
-	return out
 }
 
 type inputForm struct {

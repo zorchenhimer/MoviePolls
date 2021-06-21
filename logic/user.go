@@ -81,3 +81,11 @@ func (b *backend) RemoveAuthMethodFromUser(auth *models.AuthMethod, user *models
 
 	return user, err
 }
+
+func (b *backend) GetUserMovies(userId int) ([]*models.Movie, error) {
+	return b.data.GetUserMovies(userId)
+}
+
+func (b *backend) UpdateAuthMethod(auth *models.AuthMethod) error {
+	return b.data.UpdateAuthMethod(auth)
+}
