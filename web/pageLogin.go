@@ -223,7 +223,7 @@ func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 	switch action {
 	case "login":
 		// Generate a new state string for each login attempt and store it in the state list
-		oauthStateString := "login_" + getCryptRandKey(32)
+		oauthStateString := "login_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
 
 		// Handle the Oauth redirect
@@ -234,7 +234,7 @@ func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 
 	case "signup":
 		// Generate a new state string for each login attempt and store it in the state list
-		oauthStateString := "signup_" + getCryptRandKey(32)
+		oauthStateString := "signup_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
 
 		// Handle the Oauth redirect
@@ -245,7 +245,7 @@ func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 
 	case "add":
 		// Generate a new state string for each login attempt and store it in the state list
-		oauthStateString := "add_" + getCryptRandKey(32)
+		oauthStateString := "add_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
 
 		// Handle the Oauth redirect
@@ -423,7 +423,7 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 			}
 
 			// update the user in the DB with the user having the AuthMethod associated
-			err = s.data.UpdateUser(newUser)
+			err = s.backend.UpdateUser(newUser)
 
 			if err != nil {
 				s.l.Info(err.Error())
@@ -506,7 +506,7 @@ func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) 
 	switch action {
 	case "login":
 		// Generate a new state string for each login attempt and store it in the state list
-		oauthStateString := "login_" + getCryptRandKey(32)
+		oauthStateString := "login_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
 
 		// Handle the Oauth redirect
@@ -517,7 +517,7 @@ func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) 
 
 	case "signup":
 		// Generate a new state string for each login attempt and store it in the state list
-		oauthStateString := "signup_" + getCryptRandKey(32)
+		oauthStateString := "signup_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
 
 		// Handle the Oauth redirect
@@ -528,7 +528,7 @@ func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) 
 
 	case "add":
 		// Generate a new state string for each login attempt and store it in the state list
-		oauthStateString := "add_" + getCryptRandKey(32)
+		oauthStateString := "add_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
 
 		// Handle the Oauth redirect
@@ -775,7 +775,7 @@ func (s *webServer) handlerPatreonOAuth(w http.ResponseWriter, r *http.Request) 
 	switch action {
 	case "login":
 		// Generate a new state string for each login attempt and store it in the state list
-		oauthStateString := "login_" + getCryptRandKey(32)
+		oauthStateString := "login_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
 
 		// Handle the Oauth redirect
@@ -786,7 +786,7 @@ func (s *webServer) handlerPatreonOAuth(w http.ResponseWriter, r *http.Request) 
 
 	case "signup":
 		// Generate a new state string for each login attempt and store it in the state list
-		oauthStateString := "signup_" + getCryptRandKey(32)
+		oauthStateString := "signup_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
 
 		// Handle the Oauth redirect
@@ -797,7 +797,7 @@ func (s *webServer) handlerPatreonOAuth(w http.ResponseWriter, r *http.Request) 
 
 	case "add":
 		// Generate a new state string for each login attempt and store it in the state list
-		oauthStateString := "add_" + getCryptRandKey(32)
+		oauthStateString := "add_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
 
 		// Handle the Oauth redirect

@@ -12,7 +12,7 @@ type dataMovieError struct {
 	ErrorMessage string
 }
 
-func (s *webServer) pageMovie(w http.ResponseWriter, r *http.Request) {
+func (s *webServer) handlerPageMovie(w http.ResponseWriter, r *http.Request) {
 	var movieId int
 	var command string
 	n, err := fmt.Sscanf(r.URL.String(), "/movie/%d/%s", &movieId, &command)

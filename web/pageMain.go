@@ -9,7 +9,7 @@ import (
 	"github.com/zorchenhimer/MoviePolls/models"
 )
 
-func (s *webServer) pageMain(w http.ResponseWriter, r *http.Request) {
+func (s *webServer) handlerPageMain(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		s.doError(http.StatusNotFound, fmt.Sprintf("%q not found", r.URL.Path), w, r)
 		return

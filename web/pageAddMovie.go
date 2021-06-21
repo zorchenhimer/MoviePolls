@@ -7,7 +7,7 @@ import (
 	"github.com/zorchenhimer/MoviePolls/logic"
 )
 
-func (s *webServer) pageAddMovie(w http.ResponseWriter, r *http.Request) {
+func (s *webServer) handlerPageAddMovie(w http.ResponseWriter, r *http.Request) {
 
 	// Get the user which adds a movie
 	user := s.getSessionUser(w, r)
