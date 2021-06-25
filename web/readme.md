@@ -1,6 +1,6 @@
 This directory contains everything related to the web frontend.
-
-web                  // this folder
+``` markdown
+web                    // this folder
 ├── handlerStatic.go // contains the handlers for serving static files (contained inside the `static` folder)
 ├── handlersAuth.go  // contains the handlers used for (O)auth
 ├── pageAddMovie.go  // contains the handlers for the `/add/` route
@@ -15,4 +15,4 @@ web                  // this folder
 ├── templates        // contains all the html template files
 │   └── ...
 └── templates.go     // contains code used for templating, also contains dataStructs used in templates
-
+```
