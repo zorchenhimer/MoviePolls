@@ -216,6 +216,32 @@ func (b *backend) GetMaxTitleLength() (int, error) {
 	return val, err
 }
 
+func (b *backend) GetMaxNameLength() (int, error) {
+	val, err := b.data.GetCfgInt(ConfigMaxNameLength, DefaultMaxNameLength)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgInt(ConfigMaxNameLength, DefaultMaxNameLength)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigMaxNameLength, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
+func (b *backend) GetMinNameLength() (int, error) {
+	val, err := b.data.GetCfgInt(ConfigMinNameLength, DefaultMinNameLength)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgInt(ConfigMinNameLength, DefaultMinNameLength)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigMinNameLength, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
 func (b *backend) GetMaxDescriptionLength() (int, error) {
 	val, err := b.data.GetCfgInt(ConfigMaxDescriptionLength, DefaultMaxDescriptionLength)
 	if errors.Is(err, database.ErrNoValue) {
@@ -234,6 +260,32 @@ func (b *backend) AddMovieToDB(movie *models.Movie) (int, error) {
 }
 
 // Oauth
+func (b *backend) GetLocalSignupEnabled() (bool, error) {
+	val, err := b.data.GetCfgBool(ConfigLocalSignupEnabled, DefaultLocalSignupEnabled)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgBool(ConfigLocalSignupEnabled, DefaultLocalSignupEnabled)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigLocalSignupEnabled, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
+func (b *backend) GetTwitchOauthSignupEnabled() (bool, error) {
+	val, err := b.data.GetCfgBool(ConfigTwitchOauthSignupEnabled, DefaultTwitchOauthSignupEnabled)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgBool(ConfigTwitchOauthSignupEnabled, DefaultTwitchOauthSignupEnabled)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigTwitchOauthSignupEnabled, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
 func (b *backend) GetTwitchOauthEnabled() (bool, error) {
 	val, err := b.data.GetCfgBool(ConfigTwitchOauthEnabled, DefaultTwitchOauthEnabled)
 	if errors.Is(err, database.ErrNoValue) {
@@ -247,12 +299,38 @@ func (b *backend) GetTwitchOauthEnabled() (bool, error) {
 	return val, err
 }
 
+func (b *backend) GetDiscordOauthSignupEnabled() (bool, error) {
+	val, err := b.data.GetCfgBool(ConfigDiscordOauthSignupEnabled, DefaultDiscordOauthSignupEnabled)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgBool(ConfigDiscordOauthSignupEnabled, DefaultDiscordOauthSignupEnabled)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigDiscordOauthSignupEnabled, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
 func (b *backend) GetDiscordOauthEnabled() (bool, error) {
 	val, err := b.data.GetCfgBool(ConfigDiscordOauthEnabled, DefaultDiscordOauthEnabled)
 	if errors.Is(err, database.ErrNoValue) {
 		err = b.data.SetCfgBool(ConfigDiscordOauthEnabled, DefaultDiscordOauthEnabled)
 		if err != nil {
 			b.l.Error("Unable to set default value for %s: %v", ConfigDiscordOauthEnabled, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
+func (b *backend) GetPatreonOauthSignupEnabled() (bool, error) {
+	val, err := b.data.GetCfgBool(ConfigPatreonOauthSignupEnabled, DefaultPatreonOauthSignupEnabled)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgBool(ConfigPatreonOauthSignupEnabled, DefaultPatreonOauthSignupEnabled)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigPatreonOauthSignupEnabled, err)
 		}
 		return val, nil
 	}
@@ -367,6 +445,10 @@ func (b *backend) UpdateUser(user *models.User) error {
 
 func (b *backend) CheckOauthUsage(id string, authType models.AuthType) bool {
 	return b.data.CheckOauthUsage(id, authType)
+}
+
+func (b *backend) UserLocalLogin(name string, passwd string) (*models.User, error) {
+	return b.data.UserLocalLogin(name, passwd)
 }
 
 func (b *backend) UserDiscordLogin(extid string) (*models.User, error) {

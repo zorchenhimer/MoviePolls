@@ -32,6 +32,7 @@ type Logic interface {
 	UserTwitchLogin(extId string) (*models.User, error)
 	UserDiscordLogin(extId string) (*models.User, error)
 	UserPatreonLogin(extId string) (*models.User, error)
+	UserLocalLogin(name string, passwd string) (*models.User, error)
 
 	// Settings
 	GetFormFillEnabled() (bool, error)
@@ -43,13 +44,19 @@ type Logic interface {
 
 	GetCurrentCycle() (*models.Cycle, error)
 	GetMaxRemarksLength() (int, error)
+	GetMinNameLength() (int, error)
+	GetMaxNameLength() (int, error)
 	GetPastCycles(start, count int) ([]*models.Cycle, error)
 	GetPreviousCycle() *models.Cycle
 
 	CheckOauthUsage(id string, authtype models.AuthType) bool
 	GetTwitchOauthEnabled() (bool, error)
+	GetTwitchOauthSignupEnabled() (bool, error)
 	GetDiscordOauthEnabled() (bool, error)
+	GetDiscordOauthSignupEnabled() (bool, error)
 	GetPatreonOauthEnabled() (bool, error)
+	GetPatreonOauthSignupEnabled() (bool, error)
+	GetLocalSignupEnabled() (bool, error)
 	GetHostAddress() (string, error)
 	GetTwitchOauthClientID() (string, error)
 	GetTwitchOauthClientSecret() (string, error)
