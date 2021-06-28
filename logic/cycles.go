@@ -1,6 +1,9 @@
 package logic
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/zorchenhimer/MoviePolls/models"
 )
 
@@ -22,4 +25,16 @@ func (b *backend) GetPreviousCycle() *models.Cycle {
 
 func (b *backend) GetCurrentCycle() (*models.Cycle, error) {
 	return b.data.GetCurrentCycle()
+}
+
+func (b *backend) AddCycle(plannedEnd *time.Time) (int, error) {
+	return b.data.AddCycle(plannedEnd)
+}
+
+func (b *backend) UpdateCycle(cycle *models.Cycle) error {
+	return b.data.UpdateCycle(cycle)
+}
+
+func (b *backend) EndCycle(cid int) error {
+	return b.SetCfgString("CycleEnding", fmt.Sprintf("%v", cid))
 }
