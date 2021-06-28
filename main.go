@@ -22,7 +22,7 @@ func main() {
 
 	config := web.Options{
 		Debug:  true,
-		Listen: ":8080",
+		Listen: ":8090",
 	}
 
 	log.Info("Running version: %s", ReleaseVersion)
