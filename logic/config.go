@@ -476,3 +476,27 @@ func (b *backend) GetConfigBanner() (string, error) {
 
 	return val, err
 }
+
+func (b *backend) SetCfgInt(key string, value int) error {
+	return b.data.SetCfgInt(key, value)
+}
+
+func (b *backend) SetCfgBool(key string, value bool) error {
+	return b.data.SetCfgBool(key, value)
+}
+
+func (b *backend) SetCfgString(key string, value string) error {
+	return b.data.SetCfgString(key, value)
+}
+
+func (b *backend) GetCfgInt(key string, defVal int) (int, error) {
+	return b.data.GetCfgInt(key, defVal)
+}
+
+func (b *backend) GetCfgBool(key string, defVal bool) (bool, error) {
+	return b.data.GetCfgBool(key, defVal)
+}
+
+func (b *backend) GetCfgString(key string, defVal string) (string, error) {
+	return b.data.GetCfgString(key, defVal)
+}

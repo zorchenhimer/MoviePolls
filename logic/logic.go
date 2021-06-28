@@ -25,6 +25,8 @@ type Logic interface {
 	AddUser(user *models.User) (int, error)
 	UpdateUser(user *models.User) error
 	GetUser(id int) (*models.User, error)
+	GetUsers(low int, high int) ([]*models.User, error)
+	GetUsersWithAuth(auth models.AuthType, exclusive bool) ([]*models.User, error)
 	GetUserVotes(user *models.User) ([]*models.Movie, []*models.Movie, error)
 	GetUserMovies(userId int) ([]*models.Movie, error)
 	AddAuthMethodToUser(auth *models.AuthMethod, user *models.User) (*models.User, error)
@@ -39,6 +41,12 @@ type Logic interface {
 	AddVote(userid int, movieid int) error
 	DeleteVote(userid int, movieid int) error
 	UserVotedForMovie(userid int, movieid int) (bool, error)
+
+	// Admin stuff
+	CheckAdminRights(user *models.User) bool
+	AdminDeleteUser(user *models.User) error
+	AdminBanUser(user *models.User) error
+	AdminPurgeUser(user *models.User) error
 
 	// Settings
 	GetConfigBanner() (string, error)
@@ -72,6 +80,13 @@ type Logic interface {
 	GetDiscordOauthClientSecret() (string, error)
 	GetPatreonOauthClientID() (string, error)
 	GetPatreonOauthClientSecret() (string, error)
+
+	SetCfgInt(key string, value int) error
+	SetCfgBool(key string, value bool) error
+	SetCfgString(key string, value string) error
+	GetCfgInt(key string, defVal int) (int, error)
+	GetCfgBool(key string, defVal bool) (bool, error)
+	GetCfgString(key string, defVal string) (string, error)
 }
 
 type InputField struct {

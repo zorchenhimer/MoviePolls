@@ -10,6 +10,14 @@ func (b *backend) GetUser(id int) (*models.User, error) {
 	return b.data.GetUser(id)
 }
 
+func (b *backend) GetUsers(start int, count int) ([]*models.User, error) {
+	return b.data.GetUsers(start, count)
+}
+
+func (b *backend) GetUsersWithAuth(auth models.AuthType, exclusive bool) ([]*models.User, error) {
+	return b.data.GetUsersWithAuth(auth, exclusive)
+}
+
 func (b *backend) GetUserVotes(user *models.User) ([]*models.Movie, []*models.Movie, error) {
 	voted, err := b.data.GetUserVotes(user.Id)
 	if err != nil {
