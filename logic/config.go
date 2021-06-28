@@ -30,7 +30,8 @@ const (
 
 	DefaultMaxMultEpLength int = 120 // length of multiple episode entries in minutes
 
-	DefaultHostAddress               string = ""
+	DefaultHostAddress               string = "localhost"
+	DefaultNoticeBanner              string = ""
 	DefaultLocalSignupEnabled        bool   = true
 	DefaultTwitchOauthEnabled        bool   = false
 	DefaultTwitchOauthSignupEnabled  bool   = false
@@ -461,4 +462,17 @@ func (b *backend) UserPatreonLogin(extid string) (*models.User, error) {
 
 func (b *backend) UserTwitchLogin(extid string) (*models.User, error) {
 	return b.data.UserTwitchLogin(extid)
+}
+
+func (b *backend) GetConfigBanner() (string, error) {
+	val, err := b.data.GetCfgString(ConfigNoticeBanner, DefaultNoticeBanner)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgString(ConfigNoticeBanner, DefaultNoticeBanner)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigTmdbEnabled, err)
+		}
+		return val, nil
+	}
+
+	return val, err
 }
