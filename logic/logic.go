@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mime/multipart"
 	"strings"
+	"time"
 
 	"github.com/zorchenhimer/MoviePolls/database"
 	"github.com/zorchenhimer/MoviePolls/models"
@@ -20,6 +21,16 @@ type Logic interface {
 	GetMovie(id int) *models.Movie
 	GetActiveMovies() ([]*models.Movie, error)
 	SearchMovieTitles(query string) ([]*models.Movie, error)
+	UpdateMovie(movie *models.Movie) error
+	DeleteMovie(mid int) error
+
+	// Link stuff
+	AddLink(*models.Link) (int, error)
+
+	// Cycle stuff
+	AddCycle(*time.Time) (int, error)
+	UpdateCycle(*models.Cycle) error
+	EndCycle(cid int) error
 
 	// User stuff
 	AddUser(user *models.User) (int, error)
@@ -41,6 +52,8 @@ type Logic interface {
 	AddVote(userid int, movieid int) error
 	DeleteVote(userid int, movieid int) error
 	UserVotedForMovie(userid int, movieid int) (bool, error)
+	EnableVoting() error
+	DisableVoting() error
 
 	// Admin stuff
 	CheckAdminRights(user *models.User) bool
@@ -52,6 +65,7 @@ type Logic interface {
 	GetConfigBanner() (string, error)
 
 	GetFormFillEnabled() (bool, error)
+	GetEntriesRequireApproval() (bool, error)
 
 	GetAvailableVotes(user *models.User) (int, error)
 	GetMaxUserVotes() int
