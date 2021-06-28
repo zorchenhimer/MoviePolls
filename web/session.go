@@ -74,7 +74,7 @@ func (s *webServer) getSessionUser(w http.ResponseWriter, r *http.Request) *mode
 		return nil
 	}
 
-	user, err := s.data.GetUser(userId)
+	user, err := s.backend.GetUser(userId)
 	if err != nil {
 		s.l.Error("Unable to get user with ID %d: %v", userId, err)
 		err = delSession(session, w, r)
