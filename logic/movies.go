@@ -426,3 +426,11 @@ func (b *backend) autofillTmdb(sourcelink string) ([]string, error) {
 
 	return results, nil
 }
+
+func (b *backend) UpdateMovie(movie *models.Movie) error {
+	return b.data.UpdateMovie(movie)
+}
+
+func (b *backend) DeleteMovie(mid int) error {
+	return b.data.RemoveMovie(mid)
+}
