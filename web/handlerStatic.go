@@ -10,6 +10,7 @@ import (
 
 func (s *webServer) handlerStatic(w http.ResponseWriter, r *http.Request) {
 	file := strings.TrimLeft(filepath.Clean("/"+r.URL.Path), "/\\")
+	file = "web/" + file
 	if s.debug {
 		s.l.Info("Attempting to serve file %q", file)
 	}
