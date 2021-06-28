@@ -75,3 +75,11 @@ func (b *backend) GetAvailableVotes(user *models.User) (int, error) {
 	}
 	return maxVotes - len(active), nil
 }
+
+func (b *backend) EnableVoting() error {
+	return b.SetCfgBool(ConfigVotingEnabled, true)
+}
+
+func (b *backend) DisableVoting() error {
+	return b.SetCfgBool(ConfigVotingEnabled, false)
+}
