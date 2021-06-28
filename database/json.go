@@ -198,7 +198,7 @@ func init() {
 func newJsonConnector(filename string, l *mpm.Logger) (*jsonConnector, error) {
 
 	if !mpm.FileExists(filepath.Dir("db/")) {
-		err := os.Mkdir(filepath.Dir("db/"), 0744)
+		err := os.Mkdir(filepath.Dir("db/"), 0644)
 		if err != nil {
 			fmt.Errorf("Could not create directory 'db': %v", err)
 			os.Exit(1)
