@@ -29,7 +29,7 @@ const (
 	ConfigKey
 )
 
-func (s *webServer) handlerAdmin(w http.ResponseWriter, r *http.Request) {
+func (s *webServer) handlerAdminHome(w http.ResponseWriter, r *http.Request) {
 	user := s.getSessionUser(w, r)
 	if !s.backend.CheckAdminRights(user) {
 		if s.debug {
@@ -129,7 +129,7 @@ func (s *webServer) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request)
 		if confirm == "yes" {
 
 			origName := user.Name
-			s.backend.adminDeleteUser(user)
+			s.backend.AdminDeleteUser(user)
 			if err != nil {
 				s.doError(
 					http.StatusBadRequest,
@@ -571,7 +571,7 @@ func (s *webServer) handlerAdminMovieEdit(w http.ResponseWriter, r *http.Request
 	switch action {
 	case "remove":
 		// TODO: Confirmation before removing
-		err = s.backend.RemoveMovie(mid)
+		err = s.backend.DeleteMovie(mid)
 		if err != nil {
 			s.l.Error("Unable to remove movie with ID %d: %v", mid, err)
 			s.doError(
@@ -651,14 +651,7 @@ func (s *webServer) handlerAdminMovieEdit(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	movie, err := s.backend.GetMovie(mid)
-	if err != nil {
-		s.doError(
-			http.StatusBadRequest,
-			fmt.Sprintf("Cannot get movie: %v", err),
-			w, r)
-		return
-	}
+	movie := s.backend.GetMovie(mid)
 
 	linktext := ""
 	for _, link := range movie.Links {
@@ -840,7 +833,7 @@ func (s *webServer) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 	switch action {
 	case "end":
 		//adminEndCycle(w, r)
-		s.cycleStage0(w, r)
+		s.cycleStage1(w, r)
 		return
 
 	case "cancel":
@@ -877,7 +870,7 @@ func (s *webServer) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 		Past:  []*models.Cycle{},
 	}
 
-	pastCycles, err := s.backend.GetPastCycles(-1, 5)
+	pastCycles, err := s.backend.GetPastCycles(0, 5)
 	if err != nil {
 		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to get past cycles: %v", err), w, r)
 		return
@@ -919,7 +912,7 @@ func (s *webServer) cycleStage1(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.backend.EndCycle(currentCycle.Id) //SetCfgString("CycleEnding", fmt.Sprint(currentCycle.Id))
+	err = s.backend.EndCycle(currentCycle.Id)
 	if err != nil {
 		s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to set ending cycle ID: %v", err), w, r)
 		return
