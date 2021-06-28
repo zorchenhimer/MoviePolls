@@ -7,11 +7,6 @@ import (
 	"github.com/zorchenhimer/MoviePolls/models"
 )
 
-type dataMovieError struct {
-	dataPageBase
-	ErrorMessage string
-}
-
 func (s *webServer) handlerPageMovie(w http.ResponseWriter, r *http.Request) {
 	var movieId int
 	var command string
