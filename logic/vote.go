@@ -1,8 +1,18 @@
 package logic
 
-import (
-	"github.com/zorchenhimer/MoviePolls/models"
-)
+import "github.com/zorchenhimer/MoviePolls/models"
+
+func (b *backend) AddVote(userid int, movieid int) error {
+	return b.data.AddVote(userid, movieid)
+}
+
+func (b *backend) DeleteVote(userid int, movieid int) error {
+	return b.data.DeleteVote(userid, movieid)
+}
+
+func (b *backend) UserVotedForMovie(userid int, movieid int) (bool, error) {
+	return b.data.UserVotedForMovie(userid, movieid)
+}
 
 func (b *backend) GetMaxUserVotes() int {
 	val, err := b.data.GetCfgInt(ConfigMaxUserVotes, DefaultMaxUserVotes)
