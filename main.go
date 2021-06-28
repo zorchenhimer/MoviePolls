@@ -14,7 +14,7 @@ import (
 var ReleaseVersion string
 
 func main() {
-	log, err := models.NewLogger(models.LLInfo, "server.log")
+	log, err := models.NewLogger(models.LLInfo, "logs/server.log")
 	if err != nil {
 		fmt.Printf("Unable to load logger: %v\n", err)
 		os.Exit(1)
