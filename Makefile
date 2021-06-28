@@ -55,7 +55,7 @@ clean:
 	rm -f $(CMD_SERVER) $(CMD_DATA) bin/MoviePolls
 
 fmt:
-	gofmt -w $(SOURCES) 
+	@echo "gofmt -w {SOURCES}" && gofmt -w $(SOURCES) 
 
 $(CMD_SERVER): main.go $(SOURCES)
 	go$(GO_VERSION) build -ldflags "-X main.ReleaseVersion=${RELEASEVERSION}" -o $@ $<
