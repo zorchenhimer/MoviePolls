@@ -500,3 +500,16 @@ func (b *backend) GetCfgBool(key string, defVal bool) (bool, error) {
 func (b *backend) GetCfgString(key string, defVal string) (string, error) {
 	return b.data.GetCfgString(key, defVal)
 }
+
+func (b *backend) GetEntriesRequireApproval() (bool, error) {
+	val, err := b.data.GetCfgBool(ConfigEntriesRequireApproval, DefaultEntriesRequireApproval)
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgBool(ConfigEntriesRequireApproval, DefaultEntriesRequireApproval)
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", ConfigEntriesRequireApproval, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
