@@ -49,7 +49,7 @@ all: fmt $(CMD_SERVER)
 data: fmt $(CMD_DATA)
 
 server: main.go fmt $(SOURCES)
-	GOOS=linux GOARCH=386 go$(GO_VERSION) build -ldflags "-X github.com/zorchenhimer/MoviePolls.main.ReleaseVersion=${RELEASEVERSION}" -o bin/MoviePolls $<
+	GOOS=linux GOARCH=386 go$(GO_VERSION) build -ldflags "-X main.ReleaseVersion=${RELEASEVERSION}" -o bin/MoviePolls $<
 
 clean:
 	rm -f $(CMD_SERVER) $(CMD_DATA) bin/MoviePolls
@@ -58,10 +58,10 @@ fmt:
 	gofmt -w $(SOURCES) 
 
 $(CMD_SERVER): main.go $(SOURCES)
-	go$(GO_VERSION) build -ldflags "-X github.com/zorchenhimer/MoviePolls.main.ReleaseVersion=${RELEASEVERSION}" -o $@ $<
+	go$(GO_VERSION) build -ldflags "-X main.ReleaseVersion=${RELEASEVERSION}" -o $@ $<
 
 $(CMD_DATA): scripts/mkdata.go $(SOURCES)
-	go$(GO_VERSION) build -ldflags "-X github.com/zorchenhimer/MoviePolls.main.ReleaseVersion=${RELEASEVERSION}" -o $@ $<
+	go$(GO_VERSION) build -ldflags "-X main.ReleaseVersion=${RELEASEVERSION}" -o $@ $<
 
 run: all
 	cmd/server

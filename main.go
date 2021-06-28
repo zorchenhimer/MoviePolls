@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,18 +15,31 @@ import (
 var ReleaseVersion string
 
 func main() {
-	log, err := models.NewLogger(models.LLInfo, "logs/server.log")
+	var logFile string
+	var logLevel string
+	var debug bool
+	var version bool
+
+	flag.StringVar(&logFile, "logfile", "logs/server.log", "File to write logs")
+	flag.StringVar(&logLevel, "loglevel", "debug", "Log verbosity")
+	flag.BoolVar(&debug, "debug", false, "Enable debug code")
+	flag.BoolVar(&version, "version", true, "Show the version of the binary file")
+	flag.Parse()
+
+	log, err := models.NewLogger(models.LogLevel(logLevel), logFile)
 	if err != nil {
 		fmt.Printf("Unable to load logger: %v\n", err)
 		os.Exit(1)
 	}
 
 	config := web.Options{
-		Debug:  true,
+		Debug:  debug,
 		Listen: ":8090",
 	}
 
-	log.Info("Running version: %s", ReleaseVersion)
+	if version {
+		log.Info("Running version: %s", ReleaseVersion)
+	}
 	if config.Debug {
 		log.Info("Debug mode turned on")
 	}
