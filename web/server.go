@@ -106,15 +106,15 @@ func New(options Options, backend logic.Logic, log *models.Logger) (*webServer, 
 		"/oauth/patreon/callback": server.handlerPatreonOAuthCallback,
 
 		// Admin pages
-		"/auth/": server.handlerAuth,
-		// "/admin/":          server.handlerAdminHome,
-		// "/admin/config":    server.handlerAdminConfig,
-		// "/admin/cycles":    server.handlerAdminCycles,
-		// "/admin/cyclepost": server.handlerAdminCycles_Post,
-		// "/admin/user/":     server.handlerAdminUserEdit,
-		// "/admin/users":     server.handlerAdminUsers,
-		// "/admin/movies":    server.handlerAdminMovies,
-		// "/admin/movie/":    server.handlerAdminMovieEdit,
+		"/auth/":           server.handlerAuth,
+		"/admin/":          server.handlerAdminHome,
+		"/admin/config":    server.handlerAdminConfig,
+		"/admin/cycles":    server.handlerAdminCycles,
+		"/admin/cyclepost": server.handlerAdminCycles_Post,
+		"/admin/user/":     server.handlerAdminUserEdit,
+		"/admin/users":     server.handlerAdminUsers,
+		"/admin/movies":    server.handlerAdminMovies,
+		"/admin/movie/":    server.handlerAdminMovieEdit,
 
 		// "/admin/nextcycle", server.handlerAdminNextCycle)
 	}
