@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-
-	"github.com/zorchenhimer/MoviePolls/models"
 )
 
-const TEMPLATE_DIR = "templates/"
+const TEMPLATE_DIR = "web/templates/"
 const TEMPLATE_BASE = TEMPLATE_DIR + "base.html"
 
 // templateDefs is static throughout the life of the server process
@@ -78,12 +76,12 @@ func (s *webServer) executeTemplate(w http.ResponseWriter, key string, data inte
 }
 
 func (s *webServer) newPageBase(title string, w http.ResponseWriter, r *http.Request) dataPageBase {
-	cycle, err := s.data.GetCurrentCycle()
+	cycle, err := s.backend.GetCurrentCycle()
 	if err != nil {
 		s.l.Error("[newPageBase] Unable to get current cycle: %v\n", err)
 	}
 
-	notice, err := s.data.GetCfgString(ConfigNoticeBanner, "")
+	notice, err := s.backend.GetConfigBanner()
 	if err != nil {
 		s.l.Error("Unable to get notice message from database: %v", err)
 	}
@@ -95,12 +93,4 @@ func (s *webServer) newPageBase(title string, w http.ResponseWriter, r *http.Req
 		User:         s.getSessionUser(w, r),
 		CurrentCycle: cycle,
 	}
-}
-
-type dataPageBase struct {
-	PageTitle string
-	Notice    string
-
-	User         *models.User
-	CurrentCycle *models.Cycle
 }
