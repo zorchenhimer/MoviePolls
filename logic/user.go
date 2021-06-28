@@ -6,6 +6,10 @@ import (
 	"github.com/zorchenhimer/MoviePolls/models"
 )
 
+func (b *backend) GetUser(id int) (*models.User, error) {
+	return b.data.GetUser(id)
+}
+
 func (b *backend) GetUserVotes(user *models.User) ([]*models.Movie, []*models.Movie, error) {
 	voted, err := b.data.GetUserVotes(user.Id)
 	if err != nil {
