@@ -62,3 +62,9 @@ type dataError struct {
 	Message string
 	Code    int
 }
+
+type dataAdminHome struct {
+	dataPageBase
+
+	Cycle *models.Cycle
+}
