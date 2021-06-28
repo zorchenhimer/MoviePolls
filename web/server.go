@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 
 	"net/http"
 	"os"
@@ -155,4 +156,41 @@ func (s *webServer) doError(code int, message string, w http.ResponseWriter, r *
 	if err := s.executeTemplate(w, "error", dataErr); err != nil {
 		s.l.Error("Error rendering template: %v", err)
 	}
+}
+
+func (s *webServer) uploadFile(r *http.Request, name string) (string, error) {
+	s.l.Debug("[uploadFile] Start")
+	var err error
+	// 10 MB upload limit
+	r.ParseMultipartForm(10 << 20)
+
+	file, handler, err := r.FormFile("PosterFile")
+
+	if err != nil {
+		s.l.Error(err.Error())
+		return "", fmt.Errorf("Unable to retrive the file")
+	}
+
+	defer file.Close()
+
+	s.l.Info("Uploaded File: %v - Size %v", handler.Filename, handler.Size)
+
+	tempFile, err := ioutil.TempFile("posters", name+"-*.png")
+
+	if err != nil {
+		return "", fmt.Errorf("Error while saving file to disk: %v", err)
+	}
+	defer tempFile.Close()
+
+	fileBytes, err := ioutil.ReadAll(file)
+
+	if err != nil {
+		return "", err
+	}
+
+	tempFile.Write(fileBytes)
+
+	s.l.Debug("[uploadFile] Filename: %v", tempFile.Name())
+
+	return tempFile.Name(), nil
 }
