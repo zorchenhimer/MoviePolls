@@ -24,6 +24,7 @@ type Logic interface {
 	// User stuff
 	AddUser(user *models.User) (int, error)
 	UpdateUser(user *models.User) error
+	GetUser(id int) (*models.User, error)
 	GetUserVotes(user *models.User) ([]*models.Movie, []*models.Movie, error)
 	GetUserMovies(userId int) ([]*models.Movie, error)
 	AddAuthMethodToUser(auth *models.AuthMethod, user *models.User) (*models.User, error)
@@ -34,7 +35,14 @@ type Logic interface {
 	UserPatreonLogin(extId string) (*models.User, error)
 	UserLocalLogin(name string, passwd string) (*models.User, error)
 
+	// Vote stuff
+	AddVote(userid int, movieid int) error
+	DeleteVote(userid int, movieid int) error
+	UserVotedForMovie(userid int, movieid int) (bool, error)
+
 	// Settings
+	GetConfigBanner() (string, error)
+
 	GetFormFillEnabled() (bool, error)
 
 	GetAvailableVotes(user *models.User) (int, error)
@@ -123,7 +131,7 @@ func New(db database.Database, log *models.Logger) (Logic, error) {
 
 		back.urlKeys[urlKey.Url] = urlKey
 
-		host, err := db.GetCfgString(ConfigHostAddress, "")
+		host, err := back.GetHostAddress()
 		if err != nil {
 			return nil, fmt.Errorf("Unable to get host: %v", err)
 		}
