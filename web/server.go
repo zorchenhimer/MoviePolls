@@ -35,7 +35,8 @@ type webServer struct {
 	cookies      *sessions.CookieStore
 	passwordSalt string
 
-	l *models.Logger
+	l       *models.Logger
+	urlKeys map[string]*models.UrlKey
 }
 
 func New(options Options, backend logic.Logic, log *models.Logger) (*webServer, error) {
@@ -63,6 +64,7 @@ func New(options Options, backend logic.Logic, log *models.Logger) (*webServer, 
 
 		cookies: sessions.NewCookieStore([]byte(authKey), []byte(encryptKey)),
 		l:       log,
+		backend: backend,
 	}
 
 	err = server.initOauth()
@@ -104,15 +106,15 @@ func New(options Options, backend logic.Logic, log *models.Logger) (*webServer, 
 		"/oauth/patreon/callback": server.handlerPatreonOAuthCallback,
 
 		// Admin pages
-		"/auth/":           server.handlerAuth,
-		"/admin/":          server.handlerAdminHome,
-		"/admin/config":    server.handlerAdminConfig,
-		"/admin/cycles":    server.handlerAdminCycles,
-		"/admin/cyclepost": server.handlerAdminCycles_Post,
-		"/admin/user/":     server.handlerAdminUserEdit,
-		"/admin/users":     server.handlerAdminUsers,
-		"/admin/movies":    server.handlerAdminMovies,
-		"/admin/movie/":    server.handlerAdminMovieEdit,
+		"/auth/": server.handlerAuth,
+		// "/admin/":          server.handlerAdminHome,
+		// "/admin/config":    server.handlerAdminConfig,
+		// "/admin/cycles":    server.handlerAdminCycles,
+		// "/admin/cyclepost": server.handlerAdminCycles_Post,
+		// "/admin/user/":     server.handlerAdminUserEdit,
+		// "/admin/users":     server.handlerAdminUsers,
+		// "/admin/movies":    server.handlerAdminMovies,
+		// "/admin/movie/":    server.handlerAdminMovieEdit,
 
 		// "/admin/nextcycle", server.handlerAdminNextCycle)
 	}
@@ -130,7 +132,6 @@ func New(options Options, backend logic.Logic, log *models.Logger) (*webServer, 
 	}
 
 	return server, nil
-	return nil, fmt.Errorf("not implemented")
 }
 
 func (s *webServer) ListenAndServe() error {
