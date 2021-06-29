@@ -36,8 +36,7 @@ type webServer struct {
 	cookies      *sessions.CookieStore
 	passwordSalt string
 
-	l       *models.Logger
-	urlKeys map[string]*models.UrlKey
+	l *models.Logger
 }
 
 func New(options Options, backend logic.Logic, log *models.Logger) (*webServer, error) {
