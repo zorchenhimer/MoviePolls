@@ -8,6 +8,7 @@ SOURCES = \
 		  database/json.go\
 		  logic/config.go\
 		  logic/cycles.go\
+		  logic/logic.go\
 		  logic/movies.go\
 		  logic/security.go\
 		  logic/user.go\
