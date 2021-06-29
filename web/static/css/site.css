@@ -150,6 +150,16 @@ a:hover {
     padding: 5px;
 }
 
+.configSection {
+    display: flex;
+    justify-content: space-between;
+    width: 60%;
+    margin: 0 auto;
+    margin-top: 1em;
+    margin-bottom: .5em;
+    padding: 5px;
+}
+
 .rowAlt {
     background-color: #363637;
 }

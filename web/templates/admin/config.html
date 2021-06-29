@@ -15,9 +15,6 @@
 
     {{ range $section := $sections }}
     <h3 class="configSection">{{$section}}</h3>
-    <div class="configItem">
-        <hr style="width:100%" />
-    </div>
         {{ range $key, $value := $values }}
             {{ if eq $value.Section $section }}
                 <div class="configItem{{if $alt}} rowAlt{{end}}">
@@ -34,9 +31,6 @@
                 </div>
             {{ end }}
         {{ end }}
-    <div class="configItem">
-        <hr style="width:100%" />
-    </div>
     {{ end }}
 
     <div class="configItem">
