@@ -55,6 +55,9 @@ server: main.go fmt $(SOURCES)
 clean:
 	rm -f $(CMD_SERVER) $(CMD_DATA) bin/MoviePolls
 
+CLEAN: clean
+	rm -rf bin/ db/ logs/
+
 fmt:
 	@echo "gofmt -w {SOURCES}" && gofmt -w $(SOURCES) 
 
