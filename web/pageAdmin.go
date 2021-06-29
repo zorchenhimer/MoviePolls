@@ -12,23 +12,6 @@ import (
 	"github.com/zorchenhimer/MoviePolls/models"
 )
 
-type configValue struct {
-	Key     string
-	Default interface{}
-	Value   interface{}
-	Type    ConfigValueType
-	Error   bool
-}
-
-type ConfigValueType int
-
-const (
-	ConfigInt ConfigValueType = iota
-	ConfigString
-	ConfigBool
-	ConfigKey
-)
-
 func (s *webServer) handlerAdminHome(w http.ResponseWriter, r *http.Request) {
 	user := s.getSessionUser(w, r)
 	if !s.backend.CheckAdminRights(user) {
@@ -250,10 +233,13 @@ func (s *webServer) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request)
 		}
 
 		s.l.Debug("Saving new urlKey with URL %s", urlKey.Url)
-		s.urlKeys[urlKey.Url] = urlKey
+		s.backend.SetUrlKey(urlKey.Url, urlKey)
 	}
 
-	totalVotes := s.backend.GetMaxUserVotes()
+	totalVotes, err := s.backend.GetMaxUserVotes()
+	if err != nil {
+		s.l.Error("Unable to get max user votes: %v", err)
+	}
 
 	activeVotes, _, err := s.backend.GetUserVotes(user)
 	if err != nil {
@@ -315,60 +301,22 @@ func (s *webServer) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		dataPageBase
 
 		ErrorMessage []string
-		Values       []configValue
+		Values       map[string]logic.ConfigValue
+		Sections     []string
 
-		TypeString ConfigValueType
-		TypeBool   ConfigValueType
-		TypeInt    ConfigValueType
-		TypeKey    ConfigValueType
+		TypeString     logic.ConfigValueType
+		TypeStringPriv logic.ConfigValueType
+		TypeBool       logic.ConfigValueType
+		TypeInt        logic.ConfigValueType
 	}{
 		ErrorMessage: []string{},
-		Values: []configValue{
-			configValue{Key: logic.ConfigHostAddress, Default: logic.DefaultHostAddress, Type: ConfigString},
-			configValue{Key: logic.ConfigNoticeBanner, Default: logic.DefaultNoticeBanner, Type: ConfigString},
+		Values:       logic.ConfigValues,
+		Sections:     logic.ConfigSections,
 
-			configValue{Key: logic.ConfigVotingEnabled, Default: logic.DefaultVotingEnabled, Type: ConfigBool},
-			configValue{Key: logic.ConfigMaxUserVotes, Default: logic.DefaultMaxUserVotes, Type: ConfigInt},
-			configValue{Key: logic.ConfigEntriesRequireApproval, Default: logic.DefaultEntriesRequireApproval, Type: ConfigBool},
-
-			configValue{Key: logic.ConfigJikanEnabled, Default: logic.DefaultJikanEnabled, Type: ConfigBool},
-			configValue{Key: logic.ConfigJikanBannedTypes, Default: logic.DefaultJikanBannedTypes, Type: ConfigString},
-			configValue{Key: logic.ConfigJikanMaxEpisodes, Default: logic.DefaultJikanMaxEpisodes, Type: ConfigInt},
-			configValue{Key: logic.ConfigTmdbEnabled, Default: logic.DefaultTmdbEnabled, Type: ConfigBool},
-			configValue{Key: logic.ConfigTmdbToken, Default: logic.DefaultTmdbToken, Type: ConfigKey},
-
-			configValue{Key: logic.ConfigFormfillEnabled, Default: logic.DefaultFormfillEnabled, Type: ConfigBool},
-
-			configValue{Key: logic.ConfigMaxNameLength, Default: logic.DefaultMaxNameLength, Type: ConfigInt},
-			configValue{Key: logic.ConfigMinNameLength, Default: logic.DefaultMinNameLength, Type: ConfigInt},
-
-			configValue{Key: logic.ConfigMaxTitleLength, Default: logic.DefaultMaxTitleLength, Type: ConfigInt},
-			configValue{Key: logic.ConfigMaxDescriptionLength, Default: logic.DefaultMaxDescriptionLength, Type: ConfigInt},
-			configValue{Key: logic.ConfigMaxLinkLength, Default: logic.DefaultMaxLinkLength, Type: ConfigInt},
-			configValue{Key: logic.ConfigMaxRemarksLength, Default: logic.DefaultMaxRemarksLength, Type: ConfigInt},
-			configValue{Key: logic.ConfigMaxMultEpLength, Default: logic.DefaultMaxMultEpLength, Type: ConfigInt},
-
-			configValue{Key: logic.ConfigUnlimitedVotes, Default: logic.DefaultUnlimitedVotes, Type: ConfigBool},
-
-			configValue{Key: logic.ConfigLocalSignupEnabled, Default: logic.DefaultLocalSignupEnabled, Type: ConfigBool},
-			configValue{Key: logic.ConfigTwitchOauthEnabled, Default: logic.DefaultTwitchOauthEnabled, Type: ConfigBool},
-			configValue{Key: logic.ConfigTwitchOauthSignupEnabled, Default: logic.DefaultTwitchOauthSignupEnabled, Type: ConfigBool},
-			configValue{Key: logic.ConfigTwitchOauthClientID, Default: logic.DefaultTwitchOauthClientID, Type: ConfigString},
-			configValue{Key: logic.ConfigTwitchOauthClientSecret, Default: logic.DefaultTwitchOauthClientSecret, Type: ConfigString},
-			configValue{Key: logic.ConfigDiscordOauthEnabled, Default: logic.DefaultDiscordOauthEnabled, Type: ConfigBool},
-			configValue{Key: logic.ConfigDiscordOauthSignupEnabled, Default: logic.DefaultDiscordOauthSignupEnabled, Type: ConfigBool},
-			configValue{Key: logic.ConfigDiscordOauthClientID, Default: logic.DefaultDiscordOauthClientID, Type: ConfigString},
-			configValue{Key: logic.ConfigDiscordOauthClientSecret, Default: logic.DefaultDiscordOauthClientSecret, Type: ConfigString},
-			configValue{Key: logic.ConfigPatreonOauthEnabled, Default: logic.DefaultPatreonOauthEnabled, Type: ConfigBool},
-			configValue{Key: logic.ConfigPatreonOauthSignupEnabled, Default: logic.DefaultPatreonOauthSignupEnabled, Type: ConfigBool},
-			configValue{Key: logic.ConfigPatreonOauthClientID, Default: logic.DefaultPatreonOauthClientID, Type: ConfigString},
-			configValue{Key: logic.ConfigPatreonOauthClientSecret, Default: logic.DefaultPatreonOauthClientSecret, Type: ConfigString},
-		},
-
-		TypeString: ConfigString,
-		TypeBool:   ConfigBool,
-		TypeInt:    ConfigInt,
-		TypeKey:    ConfigKey,
+		TypeString:     logic.ConfigString,
+		TypeStringPriv: logic.ConfigStringPriv,
+		TypeBool:       logic.ConfigBool,
+		TypeInt:        logic.ConfigInt,
 	}
 
 	var err error
@@ -383,48 +331,48 @@ func (s *webServer) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		for _, val := range data.Values {
-			str := r.PostFormValue(val.Key)
+		for key, val := range data.Values {
+			str := r.PostFormValue(key)
 			switch val.Type {
-			case ConfigString, ConfigKey:
-				err = s.backend.SetCfgString(val.Key, str)
+			case logic.ConfigString, logic.ConfigStringPriv:
+				err = s.backend.SetCfgString(key, str)
 				if err != nil {
 					data.ErrorMessage = append(
 						data.ErrorMessage,
-						fmt.Sprintf("Unable to save string value for %s: %v", val.Key, err))
+						fmt.Sprintf("Unable to save string value for %s: %v", key, err))
 				}
 
-			case ConfigInt:
-				intVal, err := strconv.ParseInt(str, 9, 32)
+			case logic.ConfigInt:
+				intVal, err := strconv.ParseInt(str, 10, 32)
 				if err != nil {
 					data.ErrorMessage = append(
 						data.ErrorMessage,
-						fmt.Sprintf("Value for %q is invalid: %v", val.Key, err))
+						fmt.Sprintf("Value for %q is invalid: %v", key, err))
 				} else {
-					err = s.backend.SetCfgInt(val.Key, int(intVal))
+					err = s.backend.SetCfgInt(key, int(intVal))
 					if err != nil {
 						data.ErrorMessage = append(
 							data.ErrorMessage,
-							fmt.Sprintf("Unable to save int value for %s: %v", val.Key, err))
+							fmt.Sprintf("Unable to save int value for %s: %v", key, err))
 					}
 				}
 
-			case ConfigBool:
+			case logic.ConfigBool:
 				boolVal := false
 				if str != "" {
 					boolVal = true
 				}
-				err = s.backend.SetCfgBool(val.Key, boolVal)
+				err = s.backend.SetCfgBool(key, boolVal)
 				if err != nil {
 					data.ErrorMessage = append(
 						data.ErrorMessage,
-						fmt.Sprintf("Unable to save bool value for %s: %v", val.Key, err))
+						fmt.Sprintf("Unable to save bool value for %s: %v", key, err))
 				}
 
 			default:
 				data.ErrorMessage = append(
 					data.ErrorMessage,
-					fmt.Sprintf("Unknown config value type for %s: %v", val.Key, val.Type))
+					fmt.Sprintf("Unknown config value type for %s: %v", key, val.Type))
 			}
 		}
 
@@ -439,28 +387,28 @@ func (s *webServer) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 		//}
 	}
 
-	newValues := []configValue{}
-	for _, val := range data.Values {
+	newValues := map[string]logic.ConfigValue{}
+	for key, val := range data.Values {
 		var v interface{}
 
 		switch val.Type {
-		case ConfigString, ConfigKey:
-			v, err = s.backend.GetCfgString(val.Key, val.Default.(string))
-		case ConfigBool:
-			v, err = s.backend.GetCfgBool(val.Key, val.Default.(bool))
-		case ConfigInt:
-			v, err = s.backend.GetCfgInt(val.Key, val.Default.(int))
+		case logic.ConfigString, logic.ConfigStringPriv:
+			v, err = s.backend.GetCfgString(key, val.Default.(string))
+		case logic.ConfigBool:
+			v, err = s.backend.GetCfgBool(key, val.Default.(bool))
+		case logic.ConfigInt:
+			v, err = s.backend.GetCfgInt(key, val.Default.(int))
 		}
 
 		if err != nil {
 			data.ErrorMessage = append(
 				data.ErrorMessage,
-				fmt.Sprintf("Unable to get config value for %s: %v", val.Key, err))
+				fmt.Sprintf("Unable to get config value for %s: %v", key, err))
 		} else {
 			val.Value = v
 		}
 
-		newValues = append(newValues, val)
+		newValues[key] = val
 	}
 	data.Values = newValues
 
@@ -477,13 +425,13 @@ func (s *webServer) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 	// getting ALL the booleans
 	var localSignup, twitchSignup, patreonSignup, discordSignup, twitchOauth, patreonOauth, discordOauth bool
 
-	for _, val := range data.Values {
+	for key, val := range data.Values {
 		bval, ok := val.Value.(bool)
-		if !ok && val.Type == ConfigBool {
-			data.ErrorMessage = append(data.ErrorMessage, "Could not parse field %s as boolean", val.Key)
+		if !ok && val.Type == logic.ConfigBool {
+			data.ErrorMessage = append(data.ErrorMessage, "Could not parse field %s as boolean", key)
 			break
 		}
-		switch val.Key {
+		switch key {
 		case logic.ConfigLocalSignupEnabled:
 			localSignup = bval
 		case logic.ConfigTwitchOauthSignupEnabled:

@@ -8,25 +8,24 @@
     {{$tString := .TypeString}}
     {{$tBool := .TypeBool}}
     {{$tInt := .TypeInt}}
-    {{$tKey := .TypeKey}}
+    {{$tPriv := .TypeStringPriv}}
+    {{$values := .Values}}
     {{$alt := 0}}
 
-    {{range .Values}}
-    <div class="configItem{{if $alt}} rowAlt{{end}}">
-        <label for="{{.Key}}">{{.Key}}</label>
-        {{if eq .Type $tString}}
-        <input type="text" id="{{.Key}}" name="{{.Key}}" value="{{.Value}}" />
-        {{else if eq .Type $tKey}}
-        <input type="password" id="{{.Key}}" name="{{.Key}}" value="{{.Value}}" />
-        {{else if eq .Type $tInt}}
-        <input type="number" id="{{.Key}}" name="{{.Key}}" value="{{.Value}}" />
-        {{else if eq .Type $tBool}}
-        <input type="checkbox" id="{{.Key}}" name="{{.Key}}"{{if .Value}} checked="checked"{{end}} />
-        {{end}}
-    </div>
-
-    {{$alt = not $alt}}
-    {{end}}
+    {{ range $key, $value := $values }}
+            <div class="configItem{{if $alt}} rowAlt{{end}}">
+                <label for="{{$key}}">{{$key}}</label>
+                {{if eq .Type $tString}}
+                <input type="text" id="{{$key}}" name="{{$key}}" value="{{$value.Value}}" />
+                {{else if eq .Type $tPriv}}
+                <input type="password" id="{{$key}}" name="{{$key}}" value="{{$value.Value}}" />
+                {{else if eq .Type $tInt}}
+                <input type="number" id="{{$key}}" name="{{$key}}" value="{{$value.Value}}" />
+                {{else if eq .Type $tBool}}
+                <input type="checkbox" id="{{$key}}" name="{{$key}}"{{if $value.Value}} checked="checked"{{end}} />
+                {{end}}
+            </div>
+    {{ end }}
 
     <div class="configItem">
         <hr style="width:100%" />
