@@ -18,7 +18,10 @@ func (s *webServer) handlerPageUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	totalVotes := s.backend.GetMaxUserVotes()
+	totalVotes, err := s.backend.GetMaxUserVotes()
+	if err != nil {
+		s.l.Error("Unable to get max votes: %v", err)
+	}
 
 	activeVotes, watchedVotes, err := s.backend.GetUserVotes(user)
 	if err != nil {
@@ -30,7 +33,11 @@ func (s *webServer) handlerPageUser(w http.ResponseWriter, r *http.Request) {
 		s.l.Error("Unable to get movies added by user %d: %v", user.Id, err)
 	}
 
-	unlimited := s.backend.GetUnlimitedVotes()
+	unlimited, err := s.backend.GetUnlimitedVotes()
+
+	if err != nil {
+		s.l.Error("Unable to get UnlimitedVotes: %v", err)
+	}
 
 	data := struct {
 		dataPageBase

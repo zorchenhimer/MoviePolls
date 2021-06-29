@@ -1057,10 +1057,10 @@ func (s *webServer) handlerAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if urlKey, ok = s.urlKeys[matches[1]]; !ok {
+	if urlKey, ok = s.backend.GetUrlKeys()[matches[1]]; !ok {
 		s.l.Debug("[auth] map !ok; matches: %v", matches)
 		mkeys := []string{}
-		for key, _ := range s.urlKeys {
+		for key, _ := range s.backend.GetUrlKeys() {
 			mkeys = append(mkeys, key)
 		}
 		s.l.Debug("[auth] map keys: %v", mkeys)
@@ -1109,7 +1109,7 @@ func (s *webServer) handlerAuth(w http.ResponseWriter, r *http.Request) {
 			}
 
 			s.l.Info("%s has claimed Admin", user.Name)
-			delete(s.urlKeys, key)
+			s.backend.DeleteUrlKey(key)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -1173,7 +1173,7 @@ func (s *webServer) handlerAuth(w http.ResponseWriter, r *http.Request) {
 					}
 
 					s.l.Info("User %q has reset their password", user.Name)
-					delete(s.urlKeys, key)
+					s.backend.DeleteUrlKey(key)
 					http.Redirect(w, r, "/", http.StatusSeeOther)
 					return
 				}

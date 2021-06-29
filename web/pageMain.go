@@ -67,7 +67,11 @@ func (s *webServer) handlerPageMain(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.Movies = models.SortMoviesByVotes(movieList)
-	data.VotingEnabled = s.backend.GetVotingEnabled()
+	votingEnabled, err := s.backend.GetVotingEnabled()
+	if err != nil {
+		s.l.Error("Error getting VotingEnabled: %v", err)
+	}
+	data.VotingEnabled = votingEnabled
 	data.LastCycle = s.backend.GetPreviousCycle()
 
 	cycle, err := s.backend.GetCurrentCycle()
@@ -91,10 +95,9 @@ func (s *webServer) handlerVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	enabled := s.backend.GetVotingEnabled()
+	enabled, err := s.backend.GetVotingEnabled()
 
-	// this should be false if an error was returned
-	if !enabled {
+	if !enabled || err != nil {
 		s.doError(
 			http.StatusBadRequest,
 			"Voting is not enabled",
@@ -133,7 +136,15 @@ func (s *webServer) handlerVote(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 
-		unlimited := s.backend.GetUnlimitedVotes()
+		unlimited, err := s.backend.GetUnlimitedVotes()
+
+		if err != nil {
+			s.doError(
+				http.StatusBadRequest,
+				fmt.Sprintf("Cannot get UnlimitedVotes: %v", err),
+				w, r)
+			return
+		}
 
 		if !unlimited {
 			// TODO: implement this on the data layer
@@ -154,7 +165,14 @@ func (s *webServer) handlerVote(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			maxVotes := s.backend.GetMaxUserVotes()
+			maxVotes, err := s.backend.GetMaxUserVotes()
+
+			if err != nil {
+				s.doError(http.StatusBadRequest,
+					fmt.Sprintf("Cannot get Max user votes %v", err),
+					w, r)
+				return
+			}
 
 			if count >= maxVotes {
 				s.doError(http.StatusBadRequest,

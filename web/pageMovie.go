@@ -48,7 +48,15 @@ func (s *webServer) handlerPageMovie(w http.ResponseWriter, r *http.Request) {
 		Movie:        movie,
 	}
 
-	data.VotingEnabled = s.backend.GetVotingEnabled()
+	enabled, err := s.backend.GetVotingEnabled()
+	if err != nil {
+		s.doError(
+			http.StatusBadRequest,
+			fmt.Sprintf("Cannot get VotingEnabled"),
+			w, r)
+		s.l.Error("Unable to get VotingEnabled: %v", err)
+	}
+	data.VotingEnabled = enabled
 	if data.User != nil {
 		val, err := s.backend.GetAvailableVotes(data.User)
 		if err != nil {
