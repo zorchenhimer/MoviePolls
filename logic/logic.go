@@ -13,6 +13,9 @@ import (
 type Logic interface {
 	// security
 	GetKeys() (string, string, string, error)
+	GetUrlKeys() map[string]*models.UrlKey
+	SetUrlKey(key string, val *models.UrlKey)
+	DeleteUrlKey(key string)
 	GetCryptRandKey(size int) string
 	HashPassword(password string) string
 
@@ -68,9 +71,9 @@ type Logic interface {
 	GetEntriesRequireApproval() (bool, error)
 
 	GetAvailableVotes(user *models.User) (int, error)
-	GetMaxUserVotes() int
-	GetUnlimitedVotes() bool
-	GetVotingEnabled() bool
+	GetMaxUserVotes() (int, error)
+	GetUnlimitedVotes() (bool, error)
+	GetVotingEnabled() (bool, error)
 
 	GetCurrentCycle() (*models.Cycle, error)
 	GetMaxRemarksLength() (int, error)
@@ -110,7 +113,7 @@ type InputField struct {
 
 type backend struct {
 	data         database.Database
-	urlKeys      map[string]*models.UrlKey
+	UrlKeys      map[string]*models.UrlKey
 	authKey      string
 	encryptKey   string
 	passwordSalt string
@@ -120,8 +123,14 @@ type backend struct {
 func New(db database.Database, log *models.Logger) (Logic, error) {
 	back := &backend{
 		data:    db,
-		urlKeys: make(map[string]*models.UrlKey),
+		UrlKeys: make(map[string]*models.UrlKey),
 		l:       log,
+	}
+
+	back.setupConfig()
+	err := back.LoadDefaultsIfNotSet()
+	if err != nil {
+		return nil, err
 	}
 
 	// check admin exists
@@ -158,7 +167,7 @@ func New(db database.Database, log *models.Logger) (Logic, error) {
 			return nil, fmt.Errorf("Unable to get Url/Key pair for admin auth: %v", err)
 		}
 
-		back.urlKeys[urlKey.Url] = urlKey
+		back.UrlKeys[urlKey.Url] = urlKey
 
 		host, err := back.GetHostAddress()
 		if err != nil {
@@ -203,4 +212,14 @@ func (f *inputForm) GetValue(key string) (string, error) {
 	}
 
 	return val[0], nil
+}
+
+func (b *backend) GetUrlKeys() map[string]*models.UrlKey {
+	return b.UrlKeys
+}
+func (b *backend) SetUrlKey(key string, val *models.UrlKey) {
+	b.UrlKeys[key] = val
+}
+func (b *backend) DeleteUrlKey(key string) {
+	delete(b.UrlKeys, key)
 }
