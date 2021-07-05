@@ -4,29 +4,40 @@ EXE=.exe
 endif
 
 SOURCES = \
-		  admin.go \
-		  api.go \
-		  auth.go \
-		  common/authmethod.go \
-		  common/cycle.go \
-		  common/logger.go \
-		  common/movie.go \
-		  common/user.go \
-		  common/util.go \
-		  common/vote.go \
-		  common/link.go \
-		  data/connector.go \
-		  data/json.go \
-		  data/mysql.go \
-		  dataimporter.go \
-		  server.go \
-		  session.go \
-		  templates.go \
-		  user.go \
-		  util.go \
-		  oauth.go \
-		  votes.go
-
+		  database/database.go\
+		  database/json.go\
+		  logic/config.go\
+		  logic/cycles.go\
+		  logic/logic.go\
+		  logic/movies.go\
+		  logic/security.go\
+		  logic/user.go\
+		  logic/vote.go\
+		  logic/vote.go\
+		  main.go\
+		  models/authmethod.go\
+		  models/cycle.go\
+		  models/error.go\
+		  models/link.go\
+		  models/logger.go\
+		  models/movie.go\
+		  models/tag.go\
+		  models/urlkey.go\
+		  models/user.go\
+		  models/util.go\
+		  models/vote.go\
+		  web/handlersAuth.go\
+		  web/handlerStatic.go\
+		  web/pageAddMovie.go\
+		  web/pageHistory.go\
+		  web/pageMain.go\
+		  web/pageMovie.go\
+		  web/pageUser.go\
+		  web/server.go\
+		  web/session.go\
+		  web/templates.go\
+		  web/template_structs.go
+		  
 .PHONY: all data fmt server
 
 CMD_SERVER=bin/server$(EXE)
@@ -38,20 +49,23 @@ RELEASEVERSION ?=$(shell git describe --tags --dirty --broken)
 all: fmt $(CMD_SERVER)
 data: fmt $(CMD_DATA)
 
-server: cmd/server.go fmt $(SOURCES)
-	GOOS=linux GOARCH=386 go$(GO_VERSION) build -ldflags "-X github.com/zorchenhimer/MoviePolls.ReleaseVersion=${RELEASEVERSION}" -o bin/MoviePolls $<
+server: main.go fmt $(SOURCES)
+	GOOS=linux GOARCH=386 go$(GO_VERSION) build -ldflags "-X main.ReleaseVersion=${RELEASEVERSION}" -o bin/MoviePolls $<
 
 clean:
 	rm -f $(CMD_SERVER) $(CMD_DATA) bin/MoviePolls
 
+CLEAN: clean
+	rm -rf bin/ db/ logs/
+
 fmt:
-	gofmt -w .
+	@echo "gofmt -w {SOURCES}" && gofmt -w $(SOURCES) 
 
-$(CMD_SERVER): cmd/server.go $(SOURCES)
-	go$(GO_VERSION) build -ldflags "-X github.com/zorchenhimer/MoviePolls.ReleaseVersion=${RELEASEVERSION}" -o $@ $<
+$(CMD_SERVER): main.go $(SOURCES)
+	go$(GO_VERSION) build -ldflags "-X main.ReleaseVersion=${RELEASEVERSION}" -o $@ $<
 
-$(CMD_DATA): cmd/mkdata.go $(SOURCES)
-	go$(GO_VERSION) build -ldflags "-X github.com/zorchenhimer/MoviePolls.ReleaseVersion=${RELEASEVERSION}" -o $@ $<
+$(CMD_DATA): scripts/mkdata.go $(SOURCES)
+	go$(GO_VERSION) build -ldflags "-X main.ReleaseVersion=${RELEASEVERSION}" -o $@ $<
 
 run: all
 	cmd/server

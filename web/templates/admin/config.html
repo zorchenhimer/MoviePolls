@@ -1,0 +1,59 @@
+{{define "adminbody"}}
+<h2>Configuration</h2>
+<div class="configlist">
+<form method="POST" action="/admin/config">
+
+    {{if .ErrorMessage}}<div class="errorMessage"><ul>{{range .ErrorMessage}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+
+    {{$tString := .TypeString}}
+    {{$tBool := .TypeBool}}
+    {{$tInt := .TypeInt}}
+    {{$tPriv := .TypeStringPriv}}
+    {{$values := .Values}}
+    {{$sections := .Sections}}
+    {{$alt := 0}}
+
+    {{ range $section := $sections }}
+    <h3 class="configSection">{{$section}}</h3>
+        {{ range $key, $value := $values }}
+            {{ if eq $value.Section $section }}
+                <div class="configItem{{if $alt}} rowAlt{{end}}">
+                    <label for="{{$key}}">{{$key}}</label>
+                    {{if eq .Type $tString}}
+                    <input type="text" id="{{$key}}" name="{{$key}}" value="{{$value.Value}}" />
+                    {{else if eq .Type $tPriv}}
+                    <input type="password" id="{{$key}}" name="{{$key}}" value="{{$value.Value}}" />
+                    {{else if eq .Type $tInt}}
+                    <input type="number" id="{{$key}}" name="{{$key}}" value="{{$value.Value}}" />
+                    {{else if eq .Type $tBool}}
+                    <input type="checkbox" id="{{$key}}" name="{{$key}}"{{if $value.Value}} checked="checked"{{end}} />
+                    {{end}}
+                </div>
+            {{ end }}
+        {{ end }}
+    {{ end }}
+
+    <div class="configItem">
+        <hr style="width:100%" />
+    </div>
+
+    {{/* TODO: confirmation for stuff below */}}
+    {{/*
+    <div class="configItem rowAlt">
+        <label for="ClearPassSalt">Clear Password Salt</label>
+        <input type="checkbox" id="ClearPassSalt" name="ClearPassSalt" />
+    </div>
+
+    <div class="configItem">
+        <label for="ClearCookies">Clear Cookie Hashes</label>
+        <input type="checkbox" id="ClearCookies" name="ClearCookies" />
+    </div>
+    */}}
+
+    <div class="configItem">
+        <input type="submit" value="Save" />
+    </div>
+
+</form>
+</div>
+{{end}}
