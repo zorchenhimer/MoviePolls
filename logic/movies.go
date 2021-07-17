@@ -2,6 +2,8 @@ package logic
 
 import (
 	"fmt"
+	"io/ioutil"
+	"mime/multipart"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -175,14 +177,14 @@ func (b *backend) parseLinks(linkField *InputField) (*InputField, []*models.Link
 }
 
 // `fields` contains the key: {value,error} pairs from the input form on the 'addMovie' page. (i think?)
-func (b *backend) AddMovie(fields map[string]*InputField, user *models.User) (int, map[string]*InputField) {
+func (b *backend) AddMovie(fields map[string]*InputField, user *models.User, file multipart.File, fileHeader *multipart.FileHeader) (int, map[string]*InputField) {
 
 	validatedForm, autofill, links := b.validateForm(fields)
 
 	// Exit early if any errors got reported
 	for _, input := range validatedForm {
 		if input.Error != nil {
-			return 0, validatedForm
+			return -1, validatedForm
 		}
 	}
 
@@ -193,14 +195,15 @@ func (b *backend) AddMovie(fields map[string]*InputField, user *models.User) (in
 	if autofill {
 		id, err = b.doAutofill(links, user, remarks)
 		if err != nil {
-			//handle
+			return id, validatedForm
 		}
 	} else {
-		// id = b.doFormfill(validatedForm, user)
+		id, err = b.doFormfill(validatedForm, user, links, file, fileHeader)
+		if err != nil {
+			return id, validatedForm
+		}
 	}
-
 	return id, validatedForm
-
 }
 
 func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks string) (int, error) {
@@ -425,6 +428,59 @@ func (b *backend) autofillTmdb(sourcelink string) ([]string, error) {
 	}
 
 	return results, nil
+}
+
+func (b *backend) doFormfill(validatedForm map[string]*InputField, user *models.User, links []*models.Link, file multipart.File, fileHeader *multipart.FileHeader) (int, error) {
+	movie := models.Movie{}
+
+	movie.Name = validatedForm["Title"].Value
+	movie.Description = validatedForm["Description"].Value
+	movie.Remarks = validatedForm["Remarks"].Value
+	movie.Links = links
+
+	if file != nil && fileHeader != nil {
+		path, err := b.UploadFile(file, fileHeader, validatedForm["Title"].Value)
+		if err != nil {
+			b.l.Debug("Upload failed: %v", err)
+			return -1, err
+		}
+		movie.Poster = path
+	} else {
+		movie.Poster = "posters/unknown.jpg"
+	}
+
+	return b.AddMovieToDB(&movie)
+}
+
+func (b *backend) UploadFile(file multipart.File, fileHeader *multipart.FileHeader, name string) (string, error) {
+	b.l.Debug("[uploadFile] Start")
+
+	if fileHeader.Size > 10000000 {
+		return "", fmt.Errorf("File too large for uploading")
+	}
+
+	b.l.Info("Uploaded File: %v - Size %v", fileHeader.Filename, fileHeader.Size)
+
+	defer file.Close()
+
+	tempFile, err := ioutil.TempFile("posters", name+"-*.png")
+
+	if err != nil {
+		return "", fmt.Errorf("Error while saving file to disk: %v", err)
+	}
+	defer tempFile.Close()
+
+	fileBytes, err := ioutil.ReadAll(file)
+
+	if err != nil {
+		return "", err
+	}
+
+	tempFile.Write(fileBytes)
+
+	b.l.Debug("[uploadFile] Filename: %v", tempFile.Name())
+
+	return tempFile.Name(), nil
 }
 
 func (b *backend) UpdateMovie(movie *models.Movie) error {
