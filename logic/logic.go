@@ -113,7 +113,7 @@ type InputField struct {
 
 type backend struct {
 	data         database.Database
-	UrlKeys      map[string]*models.UrlKey
+	urlKeys      map[string]*models.UrlKey
 	authKey      string
 	encryptKey   string
 	passwordSalt string
@@ -123,7 +123,7 @@ type backend struct {
 func New(db database.Database, log *models.Logger) (Logic, error) {
 	back := &backend{
 		data:    db,
-		UrlKeys: make(map[string]*models.UrlKey),
+		urlKeys: make(map[string]*models.UrlKey),
 		l:       log,
 	}
 
@@ -167,7 +167,7 @@ func New(db database.Database, log *models.Logger) (Logic, error) {
 			return nil, fmt.Errorf("Unable to get Url/Key pair for admin auth: %v", err)
 		}
 
-		back.UrlKeys[urlKey.Url] = urlKey
+		back.urlKeys[urlKey.Url] = urlKey
 
 		host, err := back.GetHostAddress()
 		if err != nil {
@@ -215,11 +215,11 @@ func (f *inputForm) GetValue(key string) (string, error) {
 }
 
 func (b *backend) GetUrlKeys() map[string]*models.UrlKey {
-	return b.UrlKeys
+	return b.urlKeys
 }
 func (b *backend) SetUrlKey(key string, val *models.UrlKey) {
-	b.UrlKeys[key] = val
+	b.urlKeys[key] = val
 }
 func (b *backend) DeleteUrlKey(key string) {
-	delete(b.UrlKeys, key)
+	delete(b.urlKeys, key)
 }
