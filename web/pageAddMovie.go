@@ -47,6 +47,50 @@ func (s *webServer) handlerPageAddMovie(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	autofillEnabled, err := s.backend.GetAutofillEnabled()
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			"Something went wrong :C",
+			w, r)
+
+		s.l.Error("Unable to determine if autofill is enabled")
+		return
+	}
+
+	maxTitleLen, err := s.backend.GetMaxTitleLength()
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			"Something went wrong :C",
+			w, r)
+
+		s.l.Error("Unable to get config value %s: %v", logic.ConfigMaxTitleLength, err)
+		return
+	}
+
+	maxDescriptionLen, err := s.backend.GetMaxDescriptionLength()
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			"Something went wrong :C",
+			w, r)
+
+		s.l.Error("Unable to get config value %s: %v", logic.ConfigMaxDescriptionLength, err)
+		return
+	}
+
+	maxLinkLen, err := s.backend.GetMaxLinkLength()
+	if err != nil {
+		s.doError(
+			http.StatusInternalServerError,
+			"Something went wrong :C",
+			w, r)
+
+		s.l.Error("Unable to get config value %s: %v", logic.ConfigMaxLinkLength, err)
+		return
+	}
+
 	maxRemLen, err := s.backend.GetMaxRemarksLength()
 	if err != nil {
 		s.doError(
@@ -67,13 +111,23 @@ func (s *webServer) handlerPageAddMovie(w http.ResponseWriter, r *http.Request) 
 		AutofillEnabled bool
 		FormfillEnabled bool
 
-		MaxRemarksLength int
+		MaxTitleLength       int
+		MaxDescriptionLength int
+		MaxLinkLength        int
+		MaxRemarksLength     int
 
-		HasErrors bool
+		HasError  bool
+		FileError error
 	}{
-		dataPageBase:     s.newPageBase("Add Movie", w, r),
-		FormfillEnabled:  formfillEnabled,
-		MaxRemarksLength: maxRemLen,
+		dataPageBase: s.newPageBase("Add Movie", w, r),
+
+		AutofillEnabled: autofillEnabled,
+		FormfillEnabled: formfillEnabled,
+
+		MaxTitleLength:       maxTitleLen,
+		MaxDescriptionLength: maxDescriptionLen,
+		MaxLinkLength:        maxLinkLen,
+		MaxRemarksLength:     maxRemLen,
 	}
 
 	if r.Method == "POST" {
@@ -90,8 +144,13 @@ func (s *webServer) handlerPageAddMovie(w http.ResponseWriter, r *http.Request) 
 			input[key] = &logic.InputField{Value: slice[0]}
 		}
 
+		file, fileHeader, _ := r.FormFile("PosterFile")
+
+		s.l.Debug("File: %+v", file)
+		s.l.Debug("FileHeader: %+v", fileHeader)
+
 		// if err is not nil, fields is not nil
-		movieId, fields := s.backend.AddMovie(input, user)
+		movieId, fields := s.backend.AddMovie(input, user, file, fileHeader)
 		hasError := false
 		for _, field := range fields {
 			if field.Error != nil {
@@ -103,6 +162,7 @@ func (s *webServer) handlerPageAddMovie(w http.ResponseWriter, r *http.Request) 
 			return
 		} else {
 			data.Fields = fields
+			data.HasError = hasError
 		}
 	}
 	if err := s.executeTemplate(w, "addmovie", data); err != nil {
