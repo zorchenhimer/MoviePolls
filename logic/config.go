@@ -748,3 +748,15 @@ func (b *backend) GetEntriesRequireApproval() (bool, error) {
 
 	return val, err
 }
+
+func (b *backend) GetAutofillEnabled() (bool, error) {
+	jikan, err := b.GetJikanEnabled()
+	if err != nil {
+		return false, err
+	}
+	tmdb, err := b.GetTmdbEnabled()
+	if err != nil {
+		return false, err
+	}
+	return jikan || tmdb, nil
+}
