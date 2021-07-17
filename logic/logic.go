@@ -139,7 +139,7 @@ func New(db database.Database, log *models.Logger) (Logic, error) {
 	count := 20
 
 	for !found {
-		users, err := db.GetUsers(start, 20)
+		users, err := db.GetUsers(start, count)
 		if err != nil {
 			return nil, err
 		}
