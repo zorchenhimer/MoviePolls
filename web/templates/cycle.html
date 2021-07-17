@@ -75,7 +75,7 @@ var x = setInterval(function() {
                 <a href="/movie/{{.Id}}">{{.Name}}</a>
             </div>
             <div class="votePosterList">
-                <div class="votePoster"><a href="/movie/{{.Id}}"><img src="/posters/{{.Poster}}" /></a></div>
+                <div class="votePoster"><a href="/movie/{{.Id}}"><img src="{{.Poster}}" /></a></div>
                 <div class="voteRight">
                     {{if .CycleWatched}}
                     <div style="padding-bottom: 0.5em">Watched:<br />{{.CycleWatched.EndedString}}</div>
