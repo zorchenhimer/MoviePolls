@@ -703,6 +703,10 @@ func (b *backend) GetConfigBanner() (string, error) {
 	return val, err
 }
 
+func (b *backend) SetHostAddress(host string) error {
+	return b.data.SetCfgString(ConfigHostAddress, host)
+}
+
 func (b *backend) SetCfgInt(key string, value int) error {
 	return b.data.SetCfgInt(key, value)
 }

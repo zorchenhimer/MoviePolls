@@ -91,6 +91,7 @@ type Logic interface {
 	GetPatreonOauthSignupEnabled() (bool, error)
 	GetLocalSignupEnabled() (bool, error)
 	GetHostAddress() (string, error)
+	SetHostAddress(string) error
 	GetTwitchOauthClientID() (string, error)
 	GetTwitchOauthClientSecret() (string, error)
 	GetDiscordOauthClientID() (string, error)
@@ -180,8 +181,9 @@ func New(db database.Database, log *models.Logger) (Logic, error) {
 		host = strings.ToLower(host)
 
 		if !strings.HasPrefix(host, "http") {
-			host = "http://" + host
+			host = "http://" + host + ":8090" // maybe we should make that configurable
 		}
+		back.SetHostAddress(host)
 
 		// Print directly to the console, not through the logger.
 		fmt.Printf("Claim admin: %s/auth/%s Password: %s\n", host, urlKey.Url, urlKey.Key)
