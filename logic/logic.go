@@ -21,12 +21,13 @@ type Logic interface {
 	NewPasswordResetKey(userId int) (*models.UrlKey, error)
 
 	// Movie stuff
-	AddMovie(fields map[string]*InputField, user *models.User) (int, map[string]*InputField)
+	AddMovie(fields map[string]*InputField, user *models.User, file multipart.File, fileHeader *multipart.FileHeader) (int, map[string]*InputField)
 	GetMovie(id int) *models.Movie
 	GetActiveMovies() ([]*models.Movie, error)
 	SearchMovieTitles(query string) ([]*models.Movie, error)
 	UpdateMovie(movie *models.Movie) error
 	DeleteMovie(mid int) error
+	UploadFile(file multipart.File, header *multipart.FileHeader, name string) (string, error)
 
 	// Link stuff
 	AddLink(*models.Link) (int, error)
@@ -78,8 +79,12 @@ type Logic interface {
 
 	GetCurrentCycle() (*models.Cycle, error)
 	GetMaxRemarksLength() (int, error)
+	GetMaxTitleLength() (int, error)
+	GetMaxDescriptionLength() (int, error)
 	GetMinNameLength() (int, error)
+	GetMaxLinkLength() (int, error)
 	GetMaxNameLength() (int, error)
+	GetAutofillEnabled() (bool, error)
 	GetPastCycles(start, count int) ([]*models.Cycle, error)
 	GetPreviousCycle() *models.Cycle
 
