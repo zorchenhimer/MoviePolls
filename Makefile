@@ -26,8 +26,8 @@ SOURCES = \
 		  models/user.go\
 		  models/util.go\
 		  models/vote.go\
-		  web/handlersAuth.go\
 		  web/handlerStatic.go\
+		  web/handlersAuth.go\
 		  web/pageAddMovie.go\
 		  web/pageHistory.go\
 		  web/pageMain.go\
@@ -35,8 +35,8 @@ SOURCES = \
 		  web/pageUser.go\
 		  web/server.go\
 		  web/session.go\
-		  web/templates.go\
-		  web/template_structs.go
+		  web/template_structs.go\
+		  web/templates.go
 		  
 .PHONY: all data fmt server
 
