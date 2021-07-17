@@ -18,6 +18,7 @@ type Logic interface {
 	DeleteUrlKey(key string)
 	GetCryptRandKey(size int) string
 	HashPassword(password string) string
+	NewPasswordResetKey(userId int) (*models.UrlKey, error)
 
 	// Movie stuff
 	AddMovie(fields map[string]*InputField, user *models.User) (int, map[string]*InputField)
@@ -163,7 +164,7 @@ func New(db database.Database, log *models.Logger) (Logic, error) {
 	}
 
 	if !found {
-		urlKey, err := models.NewAdminAuth()
+		urlKey, err := NewAdminAuth()
 		if err != nil {
 			return nil, fmt.Errorf("Unable to get Url/Key pair for admin auth: %v", err)
 		}

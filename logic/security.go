@@ -5,6 +5,8 @@ import (
 	"crypto/sha512"
 	"fmt"
 	"math/big"
+
+	"github.com/zorchenhimer/MoviePolls/models"
 )
 
 func (b *backend) GetCryptRandKey(size int) string {
@@ -62,6 +64,57 @@ func (b *backend) HashPassword(pass string) string {
 }
 
 func (b *backend) generatePass() (string, error) {
+	out := ""
+	for len(out) < 20 {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(15)))
+		if err != nil {
+			return "", err
+		}
+
+		out = fmt.Sprintf("%s%X", out, num)
+	}
+	return out, nil
+}
+
+func NewAdminAuth() (*models.UrlKey, error) {
+	url, err := generatePass()
+	if err != nil {
+		return nil, fmt.Errorf("Error generating UrlKey token URL: %v", err)
+	}
+
+	key, err := generatePass()
+	if err != nil {
+		return nil, fmt.Errorf("Error generating UrlKey token key: %v", err)
+	}
+
+	return &models.UrlKey{
+		Url:  url,
+		Key:  key,
+		Type: models.UKT_AdminAuth,
+	}, nil
+}
+
+func (b *backend) NewPasswordResetKey(userId int) (*models.UrlKey, error) {
+	url, err := generatePass()
+	if err != nil {
+		return nil, fmt.Errorf("Error generating UrlKey token URL: %v", err)
+	}
+
+	key, err := generatePass()
+	if err != nil {
+		return nil, fmt.Errorf("Error generating UrlKey token key: %v", err)
+	}
+
+	return &models.UrlKey{
+		Url:    url,
+		Key:    key,
+		Type:   models.UKT_PasswordReset,
+		UserId: userId,
+	}, nil
+}
+
+// TODO: do something better with this
+func generatePass() (string, error) {
 	out := ""
 	for len(out) < 20 {
 		num, err := rand.Int(rand.Reader, big.NewInt(int64(15)))

@@ -222,7 +222,7 @@ func (s *webServer) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request)
 
 		return
 	case "password":
-		urlKey, err = models.NewPasswordResetKey(user.Id)
+		urlKey, err = s.backend.NewPasswordResetKey(user.Id)
 		if err != nil {
 			s.l.Error("Unable to generate UrlKey pair for user password reset: %v", err)
 			s.doError(
