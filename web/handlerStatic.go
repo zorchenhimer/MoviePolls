@@ -24,7 +24,7 @@ func (s *webServer) handlerPosters(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Dirty but might work out fine
-	if file != "/poster" {
+	if file != "/posters" {
 		http.ServeFile(w, r, file)
 	} else {
 		http.Error(w, "Nothing to see here. Go away!", http.StatusForbidden)
