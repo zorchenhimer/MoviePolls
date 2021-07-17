@@ -579,10 +579,10 @@ func (s *webServer) handlerAdminMovieEdit(w http.ResponseWriter, r *http.Request
 		movie.Links = linkstructs
 
 		posterFileName := strings.TrimSpace(r.FormValue("MovieName"))
-		posterFile, _, _ := r.FormFile("PosterFile")
+		file, header, _ := r.FormFile("PosterFile")
 
-		if posterFile != nil {
-			file, err := s.uploadFile(r, posterFileName)
+		if header != nil && file != nil {
+			file, err := s.backend.UploadFile(file, header, posterFileName)
 
 			if err != nil {
 				//data.ErrPoster = true
