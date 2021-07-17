@@ -53,10 +53,11 @@ server: main.go fmt $(SOURCES)
 	GOOS=linux GOARCH=386 go$(GO_VERSION) build -ldflags "-X main.ReleaseVersion=${RELEASEVERSION}" -o bin/MoviePolls $<
 
 clean:
-	rm -f $(CMD_SERVER) $(CMD_DATA) bin/MoviePolls
+	@echo "Cleaning up binaries"
+	@rm -f $(CMD_SERVER) $(CMD_DATA) bin/MoviePolls
 
-CLEAN: clean
-	rm -rf bin/ db/ logs/
+cleanall: clean
+	@./make/confirm.sh
 
 fmt:
 	@echo "gofmt -w {SOURCES}" && gofmt -w $(SOURCES) 
