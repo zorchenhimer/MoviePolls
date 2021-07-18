@@ -29,6 +29,7 @@ SOURCES = \
 		  models/vote.go\
 		  web/handlerStatic.go\
 		  web/handlersAuth.go\
+		  web/handlerVote.go\
 		  web/pageAddMovie.go\
 		  web/pageHistory.go\
 		  web/pageMain.go\
