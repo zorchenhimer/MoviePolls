@@ -76,7 +76,7 @@ func New(options Options, backend logic.Logic, log *models.Logger) (*webServer, 
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
 		// Static stuff
 		"/static/":     server.handlerStatic,
-		"/posters":     server.handlerPosters,
+		"/posters/":    server.handlerPosters,
 		"/favicon.ico": server.handlerFavicon,
 
 		// Main Page handlers
