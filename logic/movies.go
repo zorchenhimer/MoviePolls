@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"mime/multipart"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -215,7 +214,7 @@ func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks st
 	if sourcelink.Type == "MyAnimeList" {
 		b.l.Debug("MAL link")
 
-		results, err := b.autofillJikan(sourcelink.Url)
+		apiResults, err := b.autofillJikan(sourcelink.Url)
 
 		if err != nil {
 			b.l.Error(err.Error())
@@ -224,11 +223,11 @@ func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks st
 
 		var title string
 
-		if len(results) != 6 {
-			b.l.Error("Jikan API results have an unexpected length, expected 6 got %v", len(results))
+		if len(apiResults) != 6 {
+			b.l.Error("Jikan API results have an unexpected length, expected 6 got %v", len(apiResults))
 			return -1, fmt.Errorf("API autofill did not return enough data, contact the server administrator")
 		} else {
-			title = results[0]
+			title = apiResults[0]
 		}
 
 		exists, err := b.CheckMovieExists(title)
@@ -242,11 +241,11 @@ func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks st
 			return -1, fmt.Errorf("Movie already exists in database")
 		}
 
-		results = append(results)
+		results = apiResults
 	} else if sourcelink.Type == "IMDb" {
 		b.l.Debug("IMDB link")
 
-		results, err := b.autofillTmdb(sourcelink.Url)
+		apiResults, err := b.autofillTmdb(sourcelink.Url)
 
 		if err != nil {
 			b.l.Error(err.Error())
@@ -255,11 +254,11 @@ func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks st
 
 		var title string
 
-		if len(results) != 6 {
-			b.l.Error("Tmdb API results have an unexpected length, expected 6 got %v", len(results))
+		if len(apiResults) != 6 {
+			b.l.Error("Tmdb API results have an unexpected length, expected 6 got %v", len(apiResults))
 			return -1, fmt.Errorf("API autofill did not return enough data, did you input a link to a series?")
 		} else {
-			title = results[0]
+			title = apiResults[0]
 		}
 
 		exists, err := b.CheckMovieExists(title)
@@ -273,7 +272,7 @@ func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks st
 			return -1, fmt.Errorf("Movie already exists in database")
 		}
 
-		results = append(results)
+		results = apiResults
 	} else {
 		b.l.Debug("no link")
 		return -1, fmt.Errorf("To use autofill an imdb or myanimelist link as first link is required")
@@ -284,18 +283,18 @@ func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks st
 	// Fill all the fields in the movie struct
 	movie.Name = results[0]
 	movie.Description = results[1]
-	movie.Poster = filepath.Base(results[2])
+	movie.Poster = results[2]
 	movie.Duration = results[3]
 
 	rating, err := strconv.ParseFloat(results[4], 32)
 	if err != nil {
-		b.l.Error("[AddMovie] Error converting string to float")
+		b.l.Error("[AddMovie] Error converting string to float, defaulting to a rating of 0")
 		movie.Rating = 0.0
 	} else {
 		movie.Rating = float32(rating)
 	}
 
-	movie.Remarks = results[6]
+	movie.Remarks = remarks
 
 	for _, link := range links {
 		id, err := b.data.AddLink(link)

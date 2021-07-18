@@ -328,15 +328,16 @@ func (j *jikan) getPoster() (string, error) {
 	if (*dat)["image_url"] != nil {
 		fileurl = (*dat)["image_url"].(string)
 	} else {
-		return "", nil
+		return "posters/unknown.jpg", nil
 	}
 
 	path := "posters/" + j.id + ".jpg"
 	err := DownloadFile(path, fileurl)
 
 	if !(err == nil) {
-		return "unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
+		return "posters/unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
 	}
+	j.l.Debug("poster path: %s", path)
 	return path, nil
 }
 
