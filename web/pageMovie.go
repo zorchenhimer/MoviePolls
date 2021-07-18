@@ -11,7 +11,7 @@ func (s *webServer) handlerPageMovie(w http.ResponseWriter, r *http.Request) {
 	var movieId int
 	var command string
 	n, err := fmt.Sscanf(r.URL.String(), "/movie/%d/%s", &movieId, &command)
-	if err != nil && n == 0 {
+	if err != nil || n == 0 {
 		dataError := dataMovieError{
 			dataPageBase: s.newPageBase("Error", w, r),
 			ErrorMessage: "Missing movie ID",
@@ -55,6 +55,7 @@ func (s *webServer) handlerPageMovie(w http.ResponseWriter, r *http.Request) {
 			fmt.Sprintf("Cannot get VotingEnabled"),
 			w, r)
 		s.l.Error("Unable to get VotingEnabled: %v", err)
+		return
 	}
 	data.VotingEnabled = enabled
 	if data.User != nil {
