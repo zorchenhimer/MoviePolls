@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/nfnt/resize"
-	"github.com/zorchenhimer/MoviePolls/models"
+	"github.com/zorchenhimer/MoviePolls/logger"
 )
 
 type dataapi interface {
@@ -27,14 +27,14 @@ type dataapi interface {
 }
 
 type tmdb struct {
-	l     *models.Logger
+	l     *logger.Logger
 	id    string
 	token string
 	resp  *map[string]interface{}
 }
 
 type jikan struct {
-	l             *models.Logger
+	l             *logger.Logger
 	id            string
 	excludedTypes []string
 	resp          *map[string]interface{}

@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/zorchenhimer/MoviePolls/logger"
 	"github.com/zorchenhimer/MoviePolls/models"
 )
 
-type constructor func(string, *models.Logger) (Database, error)
+type constructor func(string, *logger.Logger) (Database, error)
 
 var registeredDatabases map[string]constructor
 var ErrNoValue = errors.New("No value for key")
 
-func GetDatabase(backend, connectionString string, l *models.Logger) (Database, error) {
+func GetDatabase(backend, connectionString string, l *logger.Logger) (Database, error) {
 	dc, ok := registeredDatabases[backend]
 	if !ok {
 		return nil, fmt.Errorf("Backend %s is not available", backend)

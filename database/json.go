@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zorchenhimer/MoviePolls/logger"
 	mpm "github.com/zorchenhimer/MoviePolls/models"
 )
 
@@ -185,17 +186,17 @@ type jsonConnector struct {
 	//Settings Configurator
 	Settings map[string]configValue
 
-	l *mpm.Logger
+	l *logger.Logger
 }
 
 func init() {
-	register("json", func(connStr string, l *mpm.Logger) (Database, error) {
+	register("json", func(connStr string, l *logger.Logger) (Database, error) {
 		db, err := newJsonConnector(connStr, l)
 		return Database(db), err
 	})
 }
 
-func newJsonConnector(filename string, l *mpm.Logger) (*jsonConnector, error) {
+func newJsonConnector(filename string, l *logger.Logger) (*jsonConnector, error) {
 
 	if !mpm.FileExists(filepath.Dir("db/")) {
 		err := os.Mkdir(filepath.Dir("db/"), 0644)
@@ -226,7 +227,7 @@ func newJsonConnector(filename string, l *mpm.Logger) (*jsonConnector, error) {
 	return j, j.save()
 }
 
-func loadJson(filename string, l *mpm.Logger) (*jsonConnector, error) {
+func loadJson(filename string, l *logger.Logger) (*jsonConnector, error) {
 	raw, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err

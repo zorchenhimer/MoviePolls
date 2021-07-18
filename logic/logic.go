@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/zorchenhimer/MoviePolls/database"
+	"github.com/zorchenhimer/MoviePolls/logger"
 	"github.com/zorchenhimer/MoviePolls/models"
 )
 
@@ -124,10 +125,10 @@ type backend struct {
 	authKey      string
 	encryptKey   string
 	passwordSalt string
-	l            *models.Logger
+	l            *logger.Logger
 }
 
-func New(db database.Database, log *models.Logger) (Logic, error) {
+func New(db database.Database, log *logger.Logger) (Logic, error) {
 	back := &backend{
 		data:    db,
 		urlKeys: make(map[string]*models.UrlKey),

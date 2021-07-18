@@ -10,8 +10,8 @@ import (
 
 	"github.com/gorilla/sessions"
 
+	"github.com/zorchenhimer/MoviePolls/logger"
 	"github.com/zorchenhimer/MoviePolls/logic"
-	"github.com/zorchenhimer/MoviePolls/models"
 )
 
 const SessionName string = "moviepoll-session"
@@ -35,10 +35,10 @@ type webServer struct {
 	cookies      *sessions.CookieStore
 	passwordSalt string
 
-	l *models.Logger
+	l *logger.Logger
 }
 
-func New(options Options, backend logic.Logic, log *models.Logger) (*webServer, error) {
+func New(options Options, backend logic.Logic, log *logger.Logger) (*webServer, error) {
 	if options.Listen == "" {
 		options.Listen = ":8090"
 	}

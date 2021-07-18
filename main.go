@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/zorchenhimer/MoviePolls/database"
+	"github.com/zorchenhimer/MoviePolls/logger"
 	"github.com/zorchenhimer/MoviePolls/logic"
-	"github.com/zorchenhimer/MoviePolls/models"
 	"github.com/zorchenhimer/MoviePolls/web"
 )
 
@@ -26,7 +26,7 @@ func main() {
 	flag.BoolVar(&version, "version", true, "Show the version of the binary file")
 	flag.Parse()
 
-	log, err := models.NewLogger(models.LogLevel(logLevel), logFile)
+	log, err := logger.NewLogger(logger.LogLevel(logLevel), logFile)
 	if err != nil {
 		fmt.Printf("Unable to load logger: %v\n", err)
 		os.Exit(1)

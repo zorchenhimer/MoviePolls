@@ -15,12 +15,12 @@ SOURCES = \
 		  logic/user.go\
 		  logic/vote.go\
 		  logic/vote.go\
+		  logger/logger.go\
 		  main.go\
 		  models/authmethod.go\
 		  models/cycle.go\
 		  models/error.go\
 		  models/link.go\
-		  models/logger.go\
 		  models/movie.go\
 		  models/tag.go\
 		  models/urlkey.go\
