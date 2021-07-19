@@ -53,10 +53,6 @@ func (b *backend) validateForm(fields map[string]*InputField) (map[string]*Input
 
 	ret, links := b.parseLinks(fields["Links"])
 
-	if ret.Error != nil {
-		return fields, false, nil
-	}
-
 	fields["Links"] = ret
 
 	// Check Remarks max length
@@ -71,7 +67,6 @@ func (b *backend) validateForm(fields map[string]*InputField) (map[string]*Input
 	if length > maxRemarksLength {
 		b.l.Debug("Remarks too long: %d", length)
 		fields["Remarks"].Error = fmt.Errorf("Remarks too long! Max Length: %d characters", maxRemarksLength)
-		return fields, false, nil
 	}
 
 	autofill := false
@@ -430,6 +425,7 @@ func (b *backend) autofillTmdb(sourcelink string) ([]string, error) {
 }
 
 func (b *backend) doFormfill(validatedForm map[string]*InputField, user *models.User, links []*models.Link, file multipart.File, fileHeader *multipart.FileHeader) (int, error) {
+
 	movie := models.Movie{}
 
 	movie.Name = validatedForm["Title"].Value
