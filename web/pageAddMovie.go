@@ -146,9 +146,6 @@ func (s *webServer) handlerPageAddMovie(w http.ResponseWriter, r *http.Request) 
 
 		file, fileHeader, _ := r.FormFile("PosterFile")
 
-		s.l.Debug("File: %+v", file)
-		s.l.Debug("FileHeader: %+v", fileHeader)
-
 		// if err is not nil, fields is not nil
 		movieId, fields := s.backend.AddMovie(input, user, file, fileHeader)
 		hasError := false
