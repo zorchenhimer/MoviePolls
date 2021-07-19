@@ -9,8 +9,7 @@ import (
 
 func (s *webServer) handlerPageMovie(w http.ResponseWriter, r *http.Request) {
 	var movieId int
-	var command string
-	n, err := fmt.Sscanf(r.URL.String(), "/movie/%d/%s", &movieId, &command)
+	n, err := fmt.Sscanf(r.URL.String(), "/movie/%d", &movieId)
 	if err != nil || n == 0 {
 		dataError := dataMovieError{
 			dataPageBase: s.newPageBase("Error", w, r),

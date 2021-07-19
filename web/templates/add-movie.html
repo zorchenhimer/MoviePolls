@@ -50,7 +50,7 @@
                         <label for="AutofillBox">Autofill Data with the provided Link</label>
                     </div>
                     <div>
-                        <input type="checkbox" name="AutofillBox" id="AutofillBox" {{if eq ((index .Fields "AutofillBox").Value "on")}}value="on"{{end}}/>
+                        <input type="checkbox" name="AutofillBox" id="AutofillBox" {{if (index .Fields "AutofillBox")}}{{if eq ((index .Fields "AutofillBox").Value) "on"}}value="on"{{end}}{{end}}/>
                     </div>
                 </div>
             {{end}}

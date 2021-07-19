@@ -80,7 +80,7 @@ func (b *backend) validateForm(fields map[string]*InputField) (map[string]*Input
 		if err != nil {
 			b.l.Debug("%v", err.Error)
 			fields["Title"].Error = fmt.Errorf("Something went wrong :C")
-			return fields, autofill, nil
+			return fields, autofill, links
 		}
 
 		title, ok := fields["Title"]
@@ -99,7 +99,7 @@ func (b *backend) validateForm(fields map[string]*InputField) (map[string]*Input
 		if err != nil {
 			b.l.Debug("%v", err.Error)
 			fields["Title"].Error = fmt.Errorf("Something went wrong :C")
-			return fields, autofill, nil
+			return fields, autofill, links
 		}
 
 		if movieExists {
@@ -111,7 +111,7 @@ func (b *backend) validateForm(fields map[string]*InputField) (map[string]*Input
 		if err != nil {
 			b.l.Debug("%v", err.Error)
 			fields["Description"].Error = fmt.Errorf("Something went wrong :C")
-			return fields, autofill, nil
+			return fields, autofill, links
 		}
 
 		description, ok := fields["Description"]
@@ -187,8 +187,13 @@ func (b *backend) AddMovie(fields map[string]*InputField, user *models.User, fil
 	id := -1
 	err := fmt.Errorf("")
 	if autofill {
-		id, err = b.doAutofill(links, user, remarks)
-		if err != nil {
+		id, autofillErr, movieExistsErr := b.doAutofill(links, user, remarks)
+		if autofillErr != nil {
+			validatedForm["AutofillBox"] = &InputField{Value: validatedForm["AutofillBox"].Value, Error: autofillErr}
+			return id, validatedForm
+		}
+		if movieExistsErr != nil {
+			validatedForm["Links"] = &InputField{Value: validatedForm["Links"].Value, Error: movieExistsErr}
 			return id, validatedForm
 		}
 	} else {
@@ -200,7 +205,7 @@ func (b *backend) AddMovie(fields map[string]*InputField, user *models.User, fil
 	return id, validatedForm
 }
 
-func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks string) (int, error) {
+func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks string) (int, error, error) {
 
 	sourcelink := links[0]
 
@@ -213,14 +218,14 @@ func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks st
 
 		if err != nil {
 			b.l.Error(err.Error())
-			return -1, err
+			return -1, err, nil
 		}
 
 		var title string
 
 		if len(apiResults) != 6 {
 			b.l.Error("Jikan API results have an unexpected length, expected 6 got %v", len(apiResults))
-			return -1, fmt.Errorf("API autofill did not return enough data, contact the server administrator")
+			return -1, fmt.Errorf("API autofill did not return enough data, contact the server administrator"), nil
 		} else {
 			title = apiResults[0]
 		}
@@ -228,12 +233,12 @@ func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks st
 		exists, err := b.CheckMovieExists(title)
 		if err != nil {
 			b.l.Error(err.Error())
-			return -1, fmt.Errorf("Something went wrong :C")
+			return -1, fmt.Errorf("Something went wrong :C"), nil
 		}
 
 		if exists {
 			b.l.Debug("Movie already exists")
-			return -1, fmt.Errorf("Movie already exists in database")
+			return -1, nil, fmt.Errorf("Movie already exists in database")
 		}
 
 		results = apiResults
@@ -244,14 +249,14 @@ func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks st
 
 		if err != nil {
 			b.l.Error(err.Error())
-			return -1, err
+			return -1, err, nil
 		}
 
 		var title string
 
 		if len(apiResults) != 6 {
 			b.l.Error("Tmdb API results have an unexpected length, expected 6 got %v", len(apiResults))
-			return -1, fmt.Errorf("API autofill did not return enough data, did you input a link to a series?")
+			return -1, fmt.Errorf("API autofill did not return enough data, did you input a link to a series?"), nil
 		} else {
 			title = apiResults[0]
 		}
@@ -259,18 +264,18 @@ func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks st
 		exists, err := b.CheckMovieExists(title)
 		if err != nil {
 			b.l.Error(err.Error())
-			return -1, fmt.Errorf("Something went wrong :C")
+			return -1, fmt.Errorf("Something went wrong :C"), nil
 		}
 
 		if exists {
 			b.l.Debug("Movie already exists")
-			return -1, fmt.Errorf("Movie already exists in database")
+			return -1, nil, fmt.Errorf("Movie already exists in database")
 		}
 
 		results = apiResults
 	} else {
 		b.l.Debug("no link")
-		return -1, fmt.Errorf("To use autofill an imdb or myanimelist link as first link is required")
+		return -1, fmt.Errorf("To use autofill an imdb or myanimelist link as first link is required"), nil
 	}
 
 	movie := models.Movie{}
@@ -319,8 +324,9 @@ func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks st
 
 	movie.Tags = tags
 
-	return b.AddMovieToDB(&movie)
+	id, err := b.AddMovieToDB(&movie)
 
+	return id, err, nil
 }
 
 var re_jikanToken = regexp.MustCompile(`[^\/]*\/anime\/([0-9]+)`)
@@ -443,6 +449,8 @@ func (b *backend) doFormfill(validatedForm map[string]*InputField, user *models.
 	} else {
 		movie.Poster = "posters/unknown.jpg"
 	}
+
+	movie.AddedBy = user
 
 	return b.AddMovieToDB(&movie)
 }
