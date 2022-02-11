@@ -1,0 +1,119 @@
+{{/* Stuff for the current cycle */}}
+
+{{define "header"}}{{end}}
+
+{{define "body"}}
+{{ $voteListSize := 10 }}
+{{ $user := .User }}
+{{ $votingEnabled := .VotingEnabled }}
+{{ $votesAvailable := .AvailableVotes }}
+
+
+{{if .Cycle}}
+{{if .Cycle.PlannedEnd}}
+<script>
+var countDownDate = new Date({{.Cycle.PlannedEnd}}).getTime();
+
+var x = setInterval(function() {
+
+	var now = new Date().getTime();
+	var distance = countDownDate - now;
+
+	var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+	var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+	document.getElementById("countdown-clock").innerHTML = days + "d " + hours + "h ";
+
+	if (distance < 0) {
+		clearInterval(x);
+		document.getElementById("countdown-clock").innerHTML = "TODAY!";
+	}
+}, 1000);
+</script>
+
+<div class="countdown">
+	<p>
+	The next Movienight will be in: <strong id="countdown-clock"></strong>
+	</p>
+</div>
+{{end}}
+{{end}}
+
+
+{{if .LastCycle}}
+{{if .LastCycle.Watched}}
+<div class="cycleHistory">
+	In the last Movienight on {{.LastCycle.EndedString}} we watched:
+	<ul>
+	{{range .LastCycle.Watched}}
+	<li><a href="/movie/{{.Id}}">{{.Name}}</a></li>
+	{{end}}
+	</ul>
+</div>
+{{end}}
+{{end}}
+
+<div class="searchbar">
+	<form action="/" method="post">
+		<input type="text" placeholder="Search..." name="search">
+		<button type="submit">Submit</button>
+	</form>
+</div>
+
+<div class="cycleCard">
+    {{if not $votingEnabled}}
+    <div class="votingNotification">
+        Voting currently disabled.
+    </div>
+    {{end}}
+
+    <div class="cycleVotes">
+        {{if .Movies}}
+        {{range .Movies}}
+        <div class="voteRoot">
+            <div class="voteName">
+                <a href="/movie/{{.Id}}">{{.Name}}</a>
+            </div>
+            <div class="votePosterList">
+                <div class="votePoster"><a href="/movie/{{.Id}}"><img src="{{.Poster}}" /></a></div>
+                <div class="voteRight">
+                    {{if .CycleWatched}}
+                    <div style="padding-bottom: 0.5em">Watched:<br />{{.CycleWatched.EndedString}}</div>
+                    {{end}}
+                    <div class="voteList">
+                        <b>Votes: {{len .Votes}}</b>
+                        <ul>{{ $votes := .Votes }}{{ $vl := len $votes}}
+                            {{if gt $vl $voteListSize}}{{$votes = slice $votes 0 $voteListSize}}{{end}}
+                            {{range $votes}}<li>{{.User.Name}}</li>{{else}}<li>No Votes</li>{{end}}
+                            {{if gt $vl $voteListSize}}<li><a href="#">[...]</a></li>{{end}}
+                        </ul>
+                    </div>
+                    {{if $user}}
+                    <div class="voteButton">
+                        {{if .UserVoted $user.Id }}
+                        Voted! {{if and $votingEnabled (not .CycleWatched)}}(<a href="/vote/{{.Id}}">Remove</a>){{end}}
+                        {{else}}
+                        {{if not .CycleWatched}}
+                            {{if lt $votesAvailable 1}}No votes<br />available
+                            {{else if and (gt $votesAvailable 0) $votingEnabled }}<a href="/vote/{{.Id}}">Vote</a>{{end}}
+                            {{end}}
+                        {{end}}
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+        {{end}}
+        {{else}}
+        <div>No movies :C</div>
+        {{end}}
+
+    </div>
+</div>
+<script>
+    const voteEntries = Array.from(document.querySelectorAll('.voteRoot'))
+    document.querySelector('input').addEventListener('keyup', e => {
+        voteEntries.forEach(item => item.style.display = item.querySelector('.voteName a').innerText.toLowerCase().includes(e.target.value.toLowerCase()) ? 'block' : 'none')
+    })
+</script>
+{{end}}
