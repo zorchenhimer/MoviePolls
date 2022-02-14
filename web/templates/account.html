@@ -17,7 +17,12 @@
             <div><input type="password" name="PasswordCurrent" id="PasswordCurrent" /></div>
             <div><input type="submit" value="Change Password" /></div>
         </form>
-        <a href="/user/remove/local">Remove Password Login</a>
+        </br>
+        {{ if .SuccessMessage }}
+            <div> {{.SuccessMessage}} </div>
+            </br>
+        {{ end }}
+       <a href="/user/remove/local">Remove Password Login</a>
         {{ else }}
         <form method="POST" action="/user">
             <input type="hidden" name="Form" value="SetPassword" />
