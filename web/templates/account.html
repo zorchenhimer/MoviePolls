@@ -1,0 +1,153 @@
+{{define "header"}}{{end}}
+
+{{define "body"}}
+<div>
+    <div>
+        {{ if .HasLocal }}
+        <form method="POST" action="/user">
+            <input type="hidden" name="Form" value="ChangePassword" />
+            <div>Change password</div>
+            {{if .PassError}}<div class="errorMessage"><ul>{{range .PassError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+            <div><label for="PasswordNew1">New Password</label></div>
+            <div><input type="password" name="PasswordNew1" id="PasswordNew1" /></div>
+            <div><label for="PasswordNew2">New Password</label></div>
+            <div><input type="password" name="PasswordNew2" id="PasswordNew2" /></div>
+
+            <div><label for="PasswordCurrent">Current Password</label></div>
+            <div><input type="password" name="PasswordCurrent" id="PasswordCurrent" /></div>
+            <div><input type="submit" value="Change Password" /></div>
+        </form>
+        </br>
+        {{ if .SuccessMessage }}
+            <div> {{.SuccessMessage}} </div>
+            </br>
+        {{ end }}
+       <a href="/user/remove/local">Remove Password Login</a>
+        {{ else }}
+        <form method="POST" action="/user">
+            <input type="hidden" name="Form" value="SetPassword" />
+            <div>Set password for local Login</div>
+            {{if .PassError}}<div class="errorMessage"><ul>{{range .PassError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+            <div><label for="Password1">Password</label></div>
+            <div><input type="password" name="Password1" id="Password1" /></div>
+            <div><label for="Password2">Confirm Password</label></div>
+            <div><input type="password" name="Password2" id="Password2" /></div>
+            <div><input type="submit" value="Set Password" /></div>
+        </form>
+        {{ end }}  
+    </div>
+
+    {{/*
+    <div>
+        <form method="POST" action="/user">
+            <input type="hidden" name="Form" value="Notifications" />
+            <div>Notifications</div>
+            {{if .NotifyError}}<div class="errorMessage"><ul>{{range .NotifyError}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+            <div><label for="Email">Email Address</label></div>
+            <div><input type="email" name="Email" id="Email" /></div>
+
+            <div>
+                <input type="checkbox" name="NotifyEnd" id="NotifyEnd" />
+                <label for="NotifyEnd">Notify on cycle end</label>
+            </div>
+
+            <div>
+                <input type="checkbox" name="NotifySelected" id="NotifySelected" />
+                <label for="NotifySelected">Notify on vote selected</label>
+            </div>
+
+            <div><input type="submit" value="Update Notifications" /></div>
+        </form>
+    </div>
+    */}}
+
+	</br>
+	<hr width="75%">
+	</br>
+
+	<div>
+		<div> Your activated Login methods: </div>
+		<div>
+			<ul>
+         {{if .User}}
+         {{range .User.AuthMethods}}<li>{{.Type}}</li>{{end}}
+         {{else}}<li>No Auth Methods :c</li>{{end}}
+      </ul>
+		</div>
+	</div>
+  {{if .OAuthEnabled}}
+		<div id="oauth">
+      <!-- Twitch -->
+	    {{if .TwitchOAuthEnabled}}
+        <div id="twitchAuth">
+          {{ if .HasTwitch}}
+            <a href="/oauth/twitch?action=remove">Unlink Account with Twitch</a>
+          {{ else }}
+            <a href="/oauth/twitch?action=add">Link Account with Twitch</a>
+          {{ end }}
+        </div>
+      {{ end }}
+
+      <!-- Discord -->
+	    {{if .DiscordOAuthEnabled}}
+        <div id="discordAuth">
+          {{ if .HasDiscord }}
+            <a href="/oauth/discord?action=remove">Unlink Account with Discord</a>
+          {{ else }}
+            <a href="/oauth/discord?action=add">Link Account with Discord</a>
+          {{ end }}
+        </div>
+      {{end}}
+
+      <!-- Patreon -->
+ 	    {{if .PatreonOAuthEnabled}}
+        <div id="patreonAuth">
+          {{ if .HasPatreon}}
+            <a href="/oauth/patreon?action=remove">Unlink Account with Patreon</a>
+          {{ else }}
+            <a href="/oauth/patreon?action=add">Link Account with Patreon</a>
+          {{ end }}
+        </div>
+      {{end}}
+		</div>
+	{{end}}
+
+	</br>
+	<hr width="75%">
+	</br>
+    
+  <div>
+        <div>Available votes: {{if .UnlimitedVotes}}&#x221e;{{else}}{{.AvailableVotes}}{{end}} (total: {{.TotalVotes}})</div>
+        <div>Your current votes</div>
+        <div>
+            {{/*
+                Should this be a list of <div>'s instead?  To make it look all
+                pretty?  Ideally there would be a little "remove vote" button
+                next to each entry here to easily remove votes.
+            */}}
+            <ul>
+                {{if .ActiveVotes}}{{range .ActiveVotes}}<li><a href="/movie/{{.Id}}">{{.Name}}</a></li>{{end}}
+                {{else}}<li>No votes :c</li>{{end}}
+            </ul>
+        </div>
+
+        <div>Past Votes</div>
+        <div>
+            <ul>
+                {{if .WatchedVotes}}
+                {{range .WatchedVotes}}<li><a href="/movie/{{.Id}}">{{.Name}}</a></li>{{end}}
+                {{else}}<li>No Votes :c</li>{{end}}
+            </ul>
+        </div>
+
+        <div>Your added Movies:</div>
+        <div>
+            <ul>
+                {{if .AddedMovies}}
+                {{range .AddedMovies}}<li><a href="/movie/{{.Id}}">{{.Name}}</a></li>{{end}}
+                {{else}}<li>No Movies added :c</li>{{end}}
+            </ul>
+        </div>
+
+</div>
+{{end}}

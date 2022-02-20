@@ -1,0 +1,43 @@
+{{/*
+	Simple login form for mods and admins
+
+	^ That is BS - This is the basic login template for ALL users
+*/}}
+
+{{define "header"}}{{end}}
+
+{{define "body"}}
+{{if .Authed}}
+    <!-- show logout button -->
+    <div id="login">
+        <a href="/user/logout">Logout</a>
+    <div>
+{{else}}
+<form method="POST" action="/user/login">
+    {{if gt (len .ErrorMessage) 0}}
+    <div class="errorMessage">
+        {{.ErrorMessage}}
+    </div>
+    {{end}}
+    <div id="login">
+        <div><input type="text" name="Username" /></div>
+        <div><input type="password" name="Password" /></div>
+        <div><input type="submit" value="Login" /> <a href="/user/new">Create Account</a></div>
+    </div>
+</form>
+{{if .OAuth}}
+<div id="oauth">
+	{{if .TwitchOAuth}}
+	<a href="/oauth/twitch?action=login">Login with Twitch</a>
+	{{end}}
+	{{if .DiscordOAuth}}
+	<a href="/oauth/discord?action=login">Login with Discord</a>
+	{{end}}
+	{{if .PatreonOAuth}}
+	<a href="/oauth/patreon?action=login">Login with Patreon</a>
+	{{end}}
+</div>
+{{end}}
+
+{{end}}
+{{end}}
