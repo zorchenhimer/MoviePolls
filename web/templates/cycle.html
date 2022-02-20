@@ -64,7 +64,7 @@ var x = setInterval(function() {
     <div class="cycleVotes">
         {{if .Movies}}
         {{range .Movies}}
-        <div class="voteRoot" style="background: url(/posters/{{.Poster}}) no-repeat center center; background-size: 100%;">
+        <div class="voteRoot" style="background: url(/{{.Poster}}) no-repeat center center; background-size: 100%;">
             <div class="voteRootFilter" onclick="window.location.href='/movie/{{.Id}}'">
                 <div class="voteName">
                     <a href="/movie/{{.Id}}">{{.Name}}</a>
@@ -79,13 +79,13 @@ var x = setInterval(function() {
                     <div class="voteButton">
                         {{if .UserVoted $user.Id }}
                         {{if and $votingEnabled (not .CycleWatched)}}<a href="/vote/{{.Id}}"><span class="material-icons">
-                            favorite
+                            Voted
                             </span></a>{{end}}
                         {{else}}
                         {{if not .CycleWatched}}
                             {{if lt $votesAvailable 1}}No votes<br />available
                             {{else if and (gt $votesAvailable 0) $votingEnabled }}<a href="/vote/{{.Id}}"><span class="material-icons">
-                                favorite_border
+                                Vote
                                 </span></a>{{end}}
                             {{end}}
                         {{end}}
