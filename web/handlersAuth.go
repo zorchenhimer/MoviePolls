@@ -492,8 +492,11 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 			}
 		} else {
 			s.l.Info("The provided Oauth login is already used")
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
+
+			s.callbackError = callbackError{
+				user:    user.Id,
+				message: "The provided Oauth login is already used",
+			}
 		}
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
@@ -762,8 +765,11 @@ func (s *webServer) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.R
 			}
 		} else {
 			s.l.Info("The provided Oauth login is already used")
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
+
+			s.callbackError = callbackError{
+				user:    user.Id,
+				message: "The provided Oauth login is already used",
+			}
 		}
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
@@ -1031,8 +1037,11 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 			}
 		} else {
 			s.l.Info("The provided Oauth login is already used")
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
+
+			s.callbackError = callbackError{
+				user:    user.Id,
+				message: "The provided Oauth login is already used",
+			}
 		}
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
