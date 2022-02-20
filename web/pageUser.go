@@ -58,6 +58,8 @@ func (s *webServer) handlerPageUser(w http.ResponseWriter, r *http.Request) {
 		HasDiscord bool
 		HasPatreon bool
 
+		CallbackError string
+
 		ActiveVotes    []*models.Movie
 		WatchedVotes   []*models.Movie
 		AddedMovies    []*models.Movie
@@ -82,6 +84,15 @@ func (s *webServer) handlerPageUser(w http.ResponseWriter, r *http.Request) {
 		ActiveVotes:  activeVotes,
 		WatchedVotes: watchedVotes,
 		AddedMovies:  addedMovies,
+	}
+
+	if s.callbackError.message != "" {
+		if user.Id == s.callbackError.user {
+			data.CallbackError = s.callbackError.message
+
+			s.callbackError.user = 0
+			s.callbackError.message = ""
+		}
 	}
 
 	twitchAuth, err := s.backend.GetTwitchOauthEnabled()
