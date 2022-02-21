@@ -373,18 +373,31 @@ i:hover + .errorPopup {
     width: 40px;
 }
 
+.searchbar {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    width: 10%;
+    margin-bottom: 3%;
+}
+
 .searchBarInput {
     background-color: transparent;
     border: 1px solid rgb(100, 100, 100) !important;
     border-radius: 10px;
     height: 20px;
-    width: 120px !important;
+    width: 220px !important;
     transition: all 0.3s ease-in-out;
     color: white;
 }
 .searchBarInput:focus {
     outline: none;
-    width: 420px !important;
+    width: 320px !important;
+}
+
+.searchbar input[type=text] {
+	border: none;
+    padding: 6px;
 }
 
 .searchBarLabel {
@@ -521,13 +534,7 @@ i:hover + .errorPopup {
     max-width: 200px;
 }
 
-.searchbar {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    width: 10%;
-    margin-left: 15%;
-}
+
 
 .votingNotification {
     padding: 1em;
@@ -536,11 +543,6 @@ i:hover + .errorPopup {
     flex-direction: row;
     justify-content: space-around;
     width: 100%;
-}
-
-.searchbar input[type=text] {
-	border: none;
-    padding: 6px;
 }
 
 #notice {

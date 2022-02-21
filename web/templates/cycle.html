@@ -54,6 +54,13 @@ var x = setInterval(function() {
 {{end}}
 {{end}}
 
+<div class="searchbar">
+    <form action="/" method="post">
+        <label class="searchBarLabel">Search</label>
+        <input class="searchBarInput" type="text" name="search">
+    </form>
+</div>
+
 <div class="cycleCard">
     {{if not $votingEnabled}}
     <div class="votingNotification">
@@ -100,4 +107,10 @@ var x = setInterval(function() {
 
     </div>
 </div>
+<script>
+    const voteEntries = Array.from(document.querySelectorAll('.voteRoot'))
+    document.querySelector('input').addEventListener('keyup', e => {
+        voteEntries.forEach(item => item.style.display = item.querySelector('.voteName a').innerText.toLowerCase().includes(e.target.value.toLowerCase()) ? 'block' : 'none')
+    })
+</script>
 {{end}}
