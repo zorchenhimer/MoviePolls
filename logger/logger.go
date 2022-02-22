@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -56,6 +57,11 @@ func (l *Logger) Debug(s string, v ...interface{}) {
 
 func NewLogger(level LogLevel, file string) (*Logger, error) {
 	l := &Logger{}
+	baseDir := filepath.Dir(file)
+	err := os.MkdirAll(baseDir, 0755)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to create log directory %q: %w", baseDir, err)
+	}
 
 	switch LogLevel(strings.ToLower(string(level))) {
 	case LLSilent:
