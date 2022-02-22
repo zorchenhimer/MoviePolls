@@ -797,7 +797,7 @@ func (s *webServer) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case "select":
-		s.cycleStage1(w, r)
+		s.cycleStage2(w, r)
 		return
 	}
 
