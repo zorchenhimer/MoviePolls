@@ -154,7 +154,8 @@ func (s *webServer) handlerPageAddMovie(w http.ResponseWriter, r *http.Request) 
 				hasError = true
 			}
 		}
-		if !hasError || movieId != -1 {
+
+		if !hasError && movieId != -1 {
 			http.Redirect(w, r, fmt.Sprintf("/movie/%d", movieId), http.StatusFound)
 			return
 		} else {
