@@ -184,21 +184,25 @@ func (b *backend) AddMovie(fields map[string]*InputField, user *models.User, fil
 
 	remarks := validatedForm["Remarks"].Value
 
-	id := -1
-	err := fmt.Errorf("")
+	var id int
+
 	if autofill {
-		id, autofillErr, movieExistsErr := b.doAutofill(links, user, remarks)
+		var autofillErr error
+		var movieExistsErr error
+
+		id, autofillErr, movieExistsErr = b.doAutofill(links, user, remarks)
 		if autofillErr != nil {
 			validatedForm["AutofillBox"] = &InputField{Value: validatedForm["AutofillBox"].Value, Error: autofillErr}
-			return id, validatedForm
 		}
+
 		if movieExistsErr != nil {
 			validatedForm["Links"] = &InputField{Value: validatedForm["Links"].Value, Error: movieExistsErr}
-			return id, validatedForm
 		}
 	} else {
+		var err error
 		id, err = b.doFormfill(validatedForm, user, links, file, fileHeader)
 		if err != nil {
+			// TODO we might want to do something with the error here
 			return id, validatedForm
 		}
 	}
