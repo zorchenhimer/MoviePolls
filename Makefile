@@ -5,17 +5,21 @@ endif
 
 SOURCES = \
 		  database/database.go\
+		  database/database_test.go\
+		  database/helpers_test.go\
 		  database/json.go\
+		  database/mysql.go\
+		  logger/logger.go\
+		  logic/admin.go\
 		  logic/config.go\
 		  logic/cycles.go\
 		  logic/dataimporter.go\
+		  logic/link.go\
 		  logic/logic.go\
 		  logic/movies.go\
 		  logic/security.go\
 		  logic/user.go\
 		  logic/vote.go\
-		  logic/vote.go\
-		  logger/logger.go\
 		  main.go\
 		  models/authmethod.go\
 		  models/cycle.go\
@@ -28,9 +32,10 @@ SOURCES = \
 		  models/util.go\
 		  models/vote.go\
 		  web/handlerStatic.go\
-		  web/handlersAuth.go\
 		  web/handlerVote.go\
+		  web/handlersAuth.go\
 		  web/pageAddMovie.go\
+		  web/pageAdmin.go\
 		  web/pageHistory.go\
 		  web/pageMain.go\
 		  web/pageMovie.go\
@@ -39,7 +44,7 @@ SOURCES = \
 		  web/session.go\
 		  web/template_structs.go\
 		  web/templates.go
-		  
+
 .PHONY: all data fmt server
 
 CMD_SERVER=bin/server$(EXE)
