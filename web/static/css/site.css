@@ -332,6 +332,19 @@ i:hover + .errorPopup {
     flex-direction: column;
 }
 
+#headTitle {
+    display: flex;
+    width: 50%;
+}
+
+#headSubTitle{
+    margin-top: 4%;
+    margin-left: 5%;
+    font-size: 24px;
+    color: white;
+    font-weight: 700;
+}
+
 #header {
     font-size: large;
     padding: 10px;
@@ -343,7 +356,7 @@ i:hover + .errorPopup {
     font-family: Inter;
 }
 
-#MovieName, #Description, #Links {
+#MovieName, #Title, #Remarks, #Description, #Links {
     background-color: transparent;
     border: 1px solid rgb(100, 100, 100) !important;
     border-radius: 10px;
@@ -352,7 +365,7 @@ i:hover + .errorPopup {
     padding-left: 10px;
 }
 
-.MovieNameLabel, .DescriptionLabel, .LinksLabel {
+.MovieNameLabel, .TitleLabel, .RemarksLabel .DescriptionLabel, .LinksLabel {
     position: relative;
     top: 10px;
     left: 6px;
@@ -379,6 +392,7 @@ i:hover + .errorPopup {
     justify-content: center;
     width: 10%;
     margin-bottom: 3%;
+    margin-left: 70%;
 }
 
 .searchBarInput {
