@@ -343,16 +343,16 @@ i:hover + .errorPopup {
     font-family: Inter;
 }
 
-#MovieName, #Description, #Links {
+#MovieName, #Remarks, #Title, #Description, #Links {
     background-color: transparent;
     border: 1px solid rgb(100, 100, 100) !important;
     border-radius: 10px;
-    color: white;
+    color: rgb(255, 255, 255) !important;
     padding-top: 20px;
     padding-left: 10px;
 }
 
-.MovieNameLabel, .DescriptionLabel, .LinksLabel {
+.MovieNameLabel, .RemarksLabel, .TitleLabel, .DescriptionLabel, .LinksLabel {
     position: relative;
     top: 10px;
     left: 6px;
@@ -379,6 +379,7 @@ i:hover + .errorPopup {
     justify-content: center;
     width: 10%;
     margin-bottom: 3%;
+    margin-left: 70%;
 }
 
 .searchBarInput {

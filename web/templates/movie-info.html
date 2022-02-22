@@ -37,7 +37,12 @@
             <p></p>
             {{.Movie.Description}}
         </div>
-
+        <br />
+        <br />
+        <br />
+        <br />
+        <br />
+        <br />
         <div class="movieTagList">
             {{if .Movie.Tags}}
             <ul class="movieTags">{{range .Movie.Tags}}
@@ -45,7 +50,8 @@
             </ul>
             {{end}}
         </div>
-
+        <br />
+        
         <div id="movieStats">
             {{if .Movie.CycleWatched}}
             <p>Watched: {{.Movie.CycleWatched.EndedString}}</p>
