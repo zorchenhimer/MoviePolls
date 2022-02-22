@@ -356,7 +356,7 @@ i:hover + .errorPopup {
     font-family: Inter;
 }
 
-#MovieName, #Description, #Links {
+#MovieName, #Title, #Remarks, #Description, #Links {
     background-color: transparent;
     border: 1px solid rgb(100, 100, 100) !important;
     border-radius: 10px;
@@ -365,7 +365,7 @@ i:hover + .errorPopup {
     padding-left: 10px;
 }
 
-.MovieNameLabel, .DescriptionLabel, .LinksLabel {
+.MovieNameLabel, .TitleLabel, .RemarksLabel .DescriptionLabel, .LinksLabel {
     position: relative;
     top: 10px;
     left: 6px;
