@@ -49,7 +49,8 @@ const ConfigJikanBannedTypes string = "JikanBannedTypes"
 const ConfigJikanMaxEpisodes string = "JikanMaxEpisodes"
 const ConfigTmdbEnabled string = "TmdbEnabled"
 const ConfigTmdbToken string = "TmdbToken"
-const ConfigMaxMultEpLength = "MaxMultEpLength"
+const ConfigMaxMultEpLength string = "MaxMultEpLength"
+const ConfigMaxPosterSize string = "MaxPosterSize"
 
 const Authentication string = "Authentication Settings"
 const ConfigLocalSignupEnabled string = "LocalSignupEnabled"
@@ -96,6 +97,7 @@ func (b *backend) setupConfig() {
 	ConfigValues[ConfigTmdbEnabled] = ConfigValue{Section: MovieInput, Default: false, Type: ConfigBool}
 	ConfigValues[ConfigTmdbToken] = ConfigValue{Section: MovieInput, Default: "", Type: ConfigStringPriv}
 	ConfigValues[ConfigMaxMultEpLength] = ConfigValue{Section: MovieInput, Default: 120, Type: ConfigInt}
+	ConfigValues[ConfigMaxPosterSize] = ConfigValue{Section: MovieInput, Default: 50000, Type: ConfigInt}
 
 	// Authentication
 	ConfigSections = append(ConfigSections, Authentication)
@@ -293,6 +295,24 @@ func (b *backend) GetJikanMaxEpisodes() (int, error) {
 
 func (b *backend) GetMaxDuration() (int, error) {
 	key := ConfigMaxMultEpLength
+	config, ok := ConfigValues[key]
+	if !ok {
+		return 0, fmt.Errorf("Could not find ConfigValue named %s", key)
+	}
+	val, err := b.data.GetCfgInt(key, config.Default.(int))
+	if errors.Is(err, database.ErrNoValue) {
+		err = b.data.SetCfgInt(key, config.Default.(int))
+		if err != nil {
+			b.l.Error("Unable to set default value for %s: %v", key, err)
+		}
+		return val, nil
+	}
+
+	return val, err
+}
+
+func (b *backend) GetMaxUploadlimit() (int, error) {
+	key := ConfigMaxPosterSize
 	config, ok := ConfigValues[key]
 	if !ok {
 		return 0, fmt.Errorf("Could not find ConfigValue named %s", key)
