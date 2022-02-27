@@ -27,10 +27,11 @@ type dataapi interface {
 }
 
 type tmdb struct {
-	l     *logger.Logger
-	id    string
-	token string
-	resp  *map[string]interface{}
+	l           *logger.Logger
+	id          string
+	token       string
+	resp        *map[string]interface{}
+	uploadlimit int
 }
 
 type jikan struct {
@@ -40,6 +41,7 @@ type jikan struct {
 	resp          *map[string]interface{}
 	maxEpisodes   int
 	maxDuration   int
+	uploadlimit   int
 }
 
 func getMovieData(api dataapi) ([]string, error) {
@@ -181,10 +183,10 @@ func (t *tmdb) getPoster() (string, error) {
 
 	path := "posters/" + t.id + ".jpg"
 
-	err := DownloadFile(path, fileurl)
+	err := DownloadFile(path, fileurl, t.uploadlimit)
 
 	if err != nil {
-		return "unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
+		return "unknown.jpg", fmt.Errorf("Error while downloading file, using unknown.jpg. Error: %v", err.Error())
 	}
 
 	return path, nil
@@ -332,7 +334,7 @@ func (j *jikan) getPoster() (string, error) {
 	}
 
 	path := "posters/" + j.id + ".jpg"
-	err := DownloadFile(path, fileurl)
+	err := DownloadFile(path, fileurl, j.uploadlimit)
 
 	if !(err == nil) {
 		return "posters/unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
@@ -383,7 +385,7 @@ func (j *jikan) getTags() (string, error) {
 	return strings.Join(tags, ","), nil
 }
 
-func DownloadFile(filepath string, url string) error {
+func DownloadFile(filepath string, url string, uploadlimit int) error {
 
 	// Download image data
 	resp, err := http.Get(url)
@@ -391,6 +393,10 @@ func DownloadFile(filepath string, url string) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.ContentLength > int64(uploadlimit) {
+		return fmt.Errorf("Poster is too large - Max: %d, Requested: %d", uploadlimit, resp.ContentLength)
+	}
 
 	// Create the file
 	file, err := os.Create(filepath)
@@ -401,6 +407,10 @@ func DownloadFile(filepath string, url string) error {
 
 	// Decode image data
 	image, err := jpeg.Decode(resp.Body)
+	if err != nil {
+		os.Remove(file.Name())
+		return err
+	}
 
 	// Resize the raw image
 	resized := resize.Resize(360, 0, image, resize.NearestNeighbor)
@@ -408,6 +418,7 @@ func DownloadFile(filepath string, url string) error {
 	// Reencode the image data
 	err = jpeg.Encode(file, resized, nil)
 	if err != nil {
+		os.Remove(file.Name())
 		return err
 	}
 

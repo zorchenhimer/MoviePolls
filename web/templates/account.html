@@ -110,6 +110,10 @@
         </div>
       {{end}}
 		</div>
+      {{if .CallbackError}}
+        </br>
+        <div>{{.CallbackError}}</div>
+      {{end}}
 	{{end}}
 
 	</br>

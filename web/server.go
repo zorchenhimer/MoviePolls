@@ -26,6 +26,11 @@ type Options struct {
 	Debug  bool   // debug logging to console
 }
 
+type callbackError struct {
+	user    int
+	message string
+}
+
 type webServer struct {
 	templates map[string]*template.Template
 	s         *http.Server
@@ -35,7 +40,8 @@ type webServer struct {
 	cookies      *sessions.CookieStore
 	passwordSalt string
 
-	l *logger.Logger
+	callbackError callbackError
+	l             *logger.Logger
 }
 
 func New(options Options, backend logic.Logic, log *logger.Logger) (*webServer, error) {
