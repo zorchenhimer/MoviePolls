@@ -199,6 +199,8 @@ func (b *backend) AddMovie(fields map[string]*InputField, user *models.User, fil
 	} else {
 		id, err = b.doFormfill(validatedForm, user, links, file, fileHeader)
 		if err != nil {
+			// Sadly we dont have a inputfield struct for the picture hence i need to put it somewhere else ...
+			validatedForm["Remarks"] = &InputField{Value: validatedForm["Remarks"].Value, Error: err}
 			return id, validatedForm
 		}
 	}
@@ -373,14 +375,21 @@ func (b *backend) autofillJikan(sourcelink string) ([]string, error) {
 		return nil, fmt.Errorf("Something went wrong :C")
 	}
 
-	sourceAPI := jikan{id: id, l: b.l, excludedTypes: bannedTypes, maxEpisodes: maxEpisodes, maxDuration: maxDuration}
+	uploadlimit, err := b.GetMaxUploadlimit()
+
+	if err != nil {
+		b.l.Debug("Error while retriving config value 'MaxUploadLimit':\n %v", err)
+		return nil, fmt.Errorf("Something went wrong :C")
+	}
+
+	sourceAPI := jikan{id: id, l: b.l, excludedTypes: bannedTypes, maxEpisodes: maxEpisodes, maxDuration: maxDuration, uploadlimit: uploadlimit}
 
 	// Request data from API
 	results, err := getMovieData(&sourceAPI)
 
 	if err != nil {
 		b.l.Debug("Error while accessing Jikan API: %v", err)
-		return nil, fmt.Errorf("Could not complete autofill, contact your site administrator")
+		return nil, fmt.Errorf("Could not complete autofill, contact your site administrator\n Error: %s", err.Error())
 	}
 
 	return results, nil
@@ -417,14 +426,21 @@ func (b *backend) autofillTmdb(sourcelink string) ([]string, error) {
 
 	id = match[1]
 
-	sourceAPI := tmdb{id: id, token: token, l: b.l}
+	uploadlimit, err := b.GetMaxUploadlimit()
+
+	if err != nil {
+		b.l.Debug("Error while retriving config value 'MaxUploadLimit':\n %v", err)
+		return nil, fmt.Errorf("Something went wrong :C")
+	}
+
+	sourceAPI := tmdb{id: id, token: token, l: b.l, uploadlimit: uploadlimit}
 
 	// Request data from API
 	results, err := getMovieData(&sourceAPI)
 
 	if err != nil {
 		b.l.Debug("Error while accessing Tmdb API: %v", err)
-		return nil, fmt.Errorf("Could not complete autofill, contact your site administrator")
+		return nil, fmt.Errorf("Could not complete autofill, contact your site administrator\n Error: %s", err.Error())
 	}
 
 	return results, nil
@@ -458,7 +474,13 @@ func (b *backend) doFormfill(validatedForm map[string]*InputField, user *models.
 func (b *backend) UploadFile(file multipart.File, fileHeader *multipart.FileHeader, name string) (string, error) {
 	b.l.Debug("[uploadFile] Start")
 
-	if fileHeader.Size > 10000000 {
+	uploadlimit, err := b.GetMaxUploadlimit()
+	if err != nil {
+		b.l.Debug("Error while retriving config value 'MaxUploadLimit':\n %v", err)
+		return "", fmt.Errorf("Something went wrong :C")
+	}
+
+	if fileHeader.Size > int64(uploadlimit) {
 		return "", fmt.Errorf("File too large for uploading")
 	}
 
