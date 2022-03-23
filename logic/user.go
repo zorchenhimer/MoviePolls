@@ -28,7 +28,7 @@ func (b *backend) GetUserVotes(user *models.User) ([]*models.Movie, []*models.Mo
 	watched := []*models.Movie{}
 
 	for _, movie := range voted {
-		if movie.Removed == true {
+		if movie.Removed {
 			continue
 		}
 

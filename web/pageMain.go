@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	//"strings"
-
 	"github.com/zorchenhimer/MoviePolls/models"
 )
 
@@ -46,7 +44,7 @@ func (s *webServer) handlerPageMain(w http.ResponseWriter, r *http.Request) {
 			s.l.Error(err.Error())
 			s.doError(
 				http.StatusBadRequest,
-				fmt.Sprintf("Cannot get active movies. Please contact the server admin."),
+				"Cannot get active movies. Please contact the server admin.",
 				w, r)
 			return
 		}
@@ -57,7 +55,7 @@ func (s *webServer) handlerPageMain(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			s.doError(
 				http.StatusBadRequest,
-				fmt.Sprintf("Cannot get user votes :C"),
+				"Cannot get user votes :C",
 				w, r)
 			s.l.Error("Unable to get votes for user %d: %v", data.User.Id, err)
 			return

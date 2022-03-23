@@ -78,7 +78,7 @@ func (s *webServer) handlerVote(w http.ResponseWriter, r *http.Request) {
 			count := 0
 			for _, movie := range votedMovies {
 				// Only count active movies
-				if movie.CycleWatched == nil && movie.Removed == false {
+				if movie.CycleWatched == nil && !movie.Removed {
 					count++
 				}
 			}

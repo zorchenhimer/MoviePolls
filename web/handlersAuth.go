@@ -202,7 +202,6 @@ func (s *webServer) handlerLocalAuthRemove(w http.ResponseWriter, r *http.Reques
 	s.saveLoginUser(user, w, r)
 
 	http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-	return
 }
 
 func (s *webServer) saveLoginUser(user *models.User, w http.ResponseWriter, r *http.Request) {
@@ -505,7 +504,6 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
 	}
-	return
 }
 
 func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) {
@@ -769,7 +767,6 @@ func (s *webServer) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.R
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
 	}
-	return
 }
 
 func (s *webServer) handlerPatreonOAuth(w http.ResponseWriter, r *http.Request) {
@@ -1054,7 +1051,6 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
 	}
-	return
 }
 
 var re_auth = regexp.MustCompile(`^/auth/([^/#?]+)$`)
@@ -1077,7 +1073,7 @@ func (s *webServer) handlerAuth(w http.ResponseWriter, r *http.Request) {
 	if urlKey, ok = s.backend.GetUrlKeys()[matches[1]]; !ok {
 		s.l.Debug("[auth] map !ok; matches: %v", matches)
 		mkeys := []string{}
-		for key, _ := range s.backend.GetUrlKeys() {
+		for key := range s.backend.GetUrlKeys() {
 			mkeys = append(mkeys, key)
 		}
 		s.l.Debug("[auth] map keys: %v", mkeys)
