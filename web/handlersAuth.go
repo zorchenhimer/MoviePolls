@@ -351,6 +351,7 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 		return
 
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		s.l.Info("Status Code is not 200, its %v", resp.Status)
@@ -628,7 +629,7 @@ func (s *webServer) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.R
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
 		return
 	}
-
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		s.l.Info("Status Code is not 200, its %v", resp.Status)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
@@ -912,6 +913,7 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 		return
 
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		s.l.Info("Status Code is not 200, its %v", resp.Status)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)

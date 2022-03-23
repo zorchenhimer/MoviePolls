@@ -101,6 +101,8 @@ func (t *tmdb) requestResults() error {
 	if err != nil || resp.StatusCode != 200 {
 		return fmt.Errorf("Tried to access API - Response Code: %v\nMaybe check your tmdb api token", resp.Status)
 	}
+
+	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
@@ -125,6 +127,7 @@ func (t *tmdb) requestResults() error {
 	if err != nil || resp.StatusCode != 200 {
 		return fmt.Errorf("Tried to access API - Response Code: %v\nMaybe check your tmdb api token", resp.Status)
 	}
+	defer resp.Body.Close()
 
 	body, err = ioutil.ReadAll(resp.Body)
 
@@ -239,9 +242,9 @@ var re_duration = regexp.MustCompile(`([0-9]{1,3}) min`)
 func (j *jikan) requestResults() error {
 	resp, err := http.Get("https://api.jikan.moe/v3/anime/" + j.id)
 	if err != nil || resp.StatusCode != 200 {
-
 		return errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n")
 	} else {
+		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return err
