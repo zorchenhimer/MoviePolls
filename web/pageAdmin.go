@@ -288,7 +288,7 @@ func (s *webServer) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request)
 	}
 
 	// FIXME: implement this
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 	}
 
 	if err := s.executeTemplate(w, "adminUserEdit", data); err != nil {
@@ -330,7 +330,7 @@ func (s *webServer) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		if err = r.ParseForm(); err != nil {
 			s.l.Error("Unable to parse form: %v", err)
 			s.doError(
@@ -542,7 +542,7 @@ func (s *webServer) handlerAdminMovieEdit(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		err = r.ParseMultipartForm(4095)
 		if err != nil {
 			s.l.Error("Unable to parse form: %v", err)
@@ -688,7 +688,7 @@ func (s *webServer) handlerAdminCycles_Post(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/admin/cycles", http.StatusSeeOther)
 		return
 	}
@@ -775,7 +775,7 @@ func (s *webServer) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var action string
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		err := r.ParseForm()
 		if err != nil {
 			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to parse request: %v", err), w, r)
@@ -900,7 +900,7 @@ func (s *webServer) cycleStage2(w http.ResponseWriter, r *http.Request) {
 	s.l.Debug("cycleStage2")
 
 	// No data received.  re-display list.
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		s.cycleStage1(w, r)
 		return
 	}

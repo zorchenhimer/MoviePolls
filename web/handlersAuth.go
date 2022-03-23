@@ -15,6 +15,12 @@ import (
 	"golang.org/x/oauth2/twitch"
 )
 
+// Consts
+const loginSwitchString = "login"
+const signupSwitchString = "signup"
+const removeSwitchString = "remove"
+const addSwitchString = "add"
+
 // just some global variables
 var twitchOAuthConfig = &oauth2.Config{}
 var discordOAuthConfig = &oauth2.Config{}
@@ -227,7 +233,7 @@ func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 	action := r.URL.Query().Get("action")
 
 	switch action {
-	case "login":
+	case loginSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "login_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -238,7 +244,7 @@ func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 
 		s.l.Debug("twitch login")
 
-	case "signup":
+	case signupSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "signup_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -249,7 +255,7 @@ func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 
 		s.l.Debug("twitch sign up")
 
-	case "add":
+	case addSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "add_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -260,7 +266,7 @@ func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 
 		s.l.Debug("twitch add")
 
-	case "remove":
+	case removeSwitchString:
 		user := s.getSessionUser(w, r)
 
 		auth, err := user.GetAuthMethod(models.AUTH_TWITCH)
@@ -506,7 +512,7 @@ func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) 
 	action := r.URL.Query().Get("action")
 
 	switch action {
-	case "login":
+	case loginSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "login_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -517,7 +523,7 @@ func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) 
 
 		s.l.Debug("discord login")
 
-	case "signup":
+	case signupSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "signup_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -528,7 +534,7 @@ func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) 
 
 		s.l.Debug("discord signup")
 
-	case "add":
+	case addSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "add_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -539,7 +545,7 @@ func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) 
 
 		s.l.Debug("discord add")
 
-	case "remove":
+	case removeSwitchString:
 		user := s.getSessionUser(w, r)
 
 		auth, err := user.GetAuthMethod(models.AUTH_DISCORD)
@@ -769,7 +775,7 @@ func (s *webServer) handlerPatreonOAuth(w http.ResponseWriter, r *http.Request) 
 	action := r.URL.Query().Get("action")
 
 	switch action {
-	case "login":
+	case loginSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "login_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -780,7 +786,7 @@ func (s *webServer) handlerPatreonOAuth(w http.ResponseWriter, r *http.Request) 
 
 		s.l.Debug("patreon login")
 
-	case "signup":
+	case signupSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "signup_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -791,7 +797,7 @@ func (s *webServer) handlerPatreonOAuth(w http.ResponseWriter, r *http.Request) 
 
 		s.l.Debug("patreon signup")
 
-	case "add":
+	case addSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "add_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -802,7 +808,7 @@ func (s *webServer) handlerPatreonOAuth(w http.ResponseWriter, r *http.Request) 
 
 		s.l.Debug("patreon add")
 
-	case "remove":
+	case removeSwitchString:
 		user := s.getSessionUser(w, r)
 
 		auth, err := user.GetAuthMethod(models.AUTH_PATREON)
@@ -1079,7 +1085,7 @@ func (s *webServer) handlerAuth(w http.ResponseWriter, r *http.Request) {
 
 	var formError string
 	var key string
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		err := r.ParseForm()
 		if err != nil {
 			s.l.Error("[auth] ParseForm(): %v", err)
@@ -1127,7 +1133,7 @@ func (s *webServer) handlerAuth(w http.ResponseWriter, r *http.Request) {
 		s.l.Debug("Password top; key: %q", key)
 
 		if key != "" {
-			if r.Method == "POST" {
+			if r.Method == http.MethodPost {
 				s.l.Debug("Password POST")
 				err := r.ParseForm()
 				if err != nil {

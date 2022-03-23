@@ -16,6 +16,8 @@ import (
 	"github.com/zorchenhimer/MoviePolls/logger"
 )
 
+const defaultPosterPath = "posters/unknown.jpg"
+
 type dataapi interface {
 	getTitle() (string, error)
 	getDesc() (string, error)
@@ -330,14 +332,14 @@ func (j *jikan) getPoster() (string, error) {
 	if (*dat)["image_url"] != nil {
 		fileurl = (*dat)["image_url"].(string)
 	} else {
-		return "posters/unknown.jpg", nil
+		return defaultPosterPath, nil
 	}
 
 	path := "posters/" + j.id + ".jpg"
 	err := DownloadFile(path, fileurl, j.uploadlimit)
 
 	if !(err == nil) {
-		return "posters/unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
+		return defaultPosterPath, errors.New("Error while downloading file, using unknown.jpg")
 	}
 	j.l.Debug("poster path: %s", path)
 	return path, nil

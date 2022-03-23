@@ -130,7 +130,7 @@ func (s *webServer) handlerPageUser(w http.ResponseWriter, r *http.Request) {
 	_, err = user.GetAuthMethod(models.AUTH_PATREON)
 	data.HasPatreon = err == nil
 
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		err := r.ParseForm()
 		if err != nil {
 			s.l.Error("ParseForm() error: %v", err)
@@ -290,7 +290,7 @@ func (s *webServer) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 
 	data.OAuth = twitchAuth || discordAuth || patreonAuth
 
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		// do login
 
 		un := r.PostFormValue("Username")
@@ -433,7 +433,7 @@ func (s *webServer) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 
 	data.OAuth = twitchAuth || discordAuth || patreonAuth
 
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		err := r.ParseForm()
 		if err != nil {
 			s.l.Error("Error parsing login form: %v", err)
