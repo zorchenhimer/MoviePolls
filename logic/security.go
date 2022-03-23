@@ -63,19 +63,6 @@ func (b *backend) HashPassword(pass string) string {
 	return fmt.Sprintf("%x", sha512.Sum512([]byte(b.passwordSalt+pass)))
 }
 
-func (b *backend) generatePass() (string, error) {
-	out := ""
-	for len(out) < 20 {
-		num, err := rand.Int(rand.Reader, big.NewInt(int64(15)))
-		if err != nil {
-			return "", err
-		}
-
-		out = fmt.Sprintf("%s%X", out, num)
-	}
-	return out, nil
-}
-
 func NewAdminAuth() (*models.UrlKey, error) {
 	url, err := generatePass()
 	if err != nil {

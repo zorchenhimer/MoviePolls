@@ -209,23 +209,6 @@ func New(db database.Database, log *logger.Logger) (Logic, error) {
 	return back, nil
 }
 
-type inputForm struct {
-	multipart.Form
-}
-
-func (f *inputForm) GetValue(key string) (string, error) {
-	val, ok := f.Value[key]
-	if !ok {
-		return "", fmt.Errorf("[inputForm.GetValue] Key not found")
-	}
-
-	if len(val) == 0 {
-		return "", fmt.Errorf("[inputForm.GetValue] Empty value")
-	}
-
-	return val[0], nil
-}
-
 func (b *backend) GetUrlKeys() map[string]*models.UrlKey {
 	return b.urlKeys
 }
