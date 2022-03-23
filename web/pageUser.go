@@ -224,7 +224,7 @@ func (s *webServer) handlerPageUser(w http.ResponseWriter, r *http.Request) {
 						s.doError(http.StatusInternalServerError, "Unable to link password to user", w, r)
 					}
 
-					s.backend.UpdateUser(user)
+					err = s.backend.UpdateUser(user)
 
 					if err != nil {
 						s.l.Error("Unable to update user %s", user.Name)

@@ -506,7 +506,10 @@ func (b *backend) UploadFile(file multipart.File, fileHeader *multipart.FileHead
 		return "", err
 	}
 
-	tempFile.Write(fileBytes)
+	written, err := tempFile.Write(fileBytes)
+	if err != nil || written != len(fileBytes) {
+		return "", fmt.Errorf("Error while saving file to disk: %v", err)
+	}
 
 	b.l.Debug("[uploadFile] Filename: %v", tempFile.Name())
 

@@ -415,7 +415,15 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 			}
 
 			s.l.Debug("logging in %v", newUser.Name)
-			s.login(newUser, models.AUTH_TWITCH, w, r)
+
+			err := s.login(newUser, models.AUTH_TWITCH, w, r)
+
+			if err != nil {
+				s.l.Info(err.Error())
+				http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+				return
+			}
+
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		} else {
 			s.l.Debug("AuthMethod already used")
@@ -430,7 +438,15 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 			return
 		}
 		s.l.Debug("logging in %v", user.Name)
-		s.login(user, models.AUTH_TWITCH, w, r)
+
+		err = s.login(user, models.AUTH_TWITCH, w, r)
+
+		if err != nil {
+			s.l.Info(err.Error())
+			http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+			return
+		}
+
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 	} else if strings.HasPrefix(state, "add_") {
 		// Handle adding a Twitch AuthMethod to the logged in user
@@ -671,7 +687,14 @@ func (s *webServer) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.R
 			}
 
 			s.l.Debug("logging in %v", newUser.Name)
-			s.login(newUser, models.AUTH_DISCORD, w, r)
+			err := s.login(newUser, models.AUTH_DISCORD, w, r)
+
+			if err != nil {
+				s.l.Info(err.Error())
+				http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+				return
+			}
+
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		} else {
 			s.l.Debug("AuthMethod already used")
@@ -685,7 +708,14 @@ func (s *webServer) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.R
 			return
 		}
 		s.l.Debug("logging in %v", user.Name)
-		s.login(user, models.AUTH_DISCORD, w, r)
+		err = s.login(user, models.AUTH_DISCORD, w, r)
+
+		if err != nil {
+			s.l.Info(err.Error())
+			http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+			return
+		}
+
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 	} else if strings.HasPrefix(state, "add_") {
 		user := s.getSessionUser(w, r)
@@ -943,7 +973,14 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 			}
 
 			s.l.Debug("logging in %v", newUser.Name)
-			s.login(newUser, models.AUTH_PATREON, w, r)
+
+			err = s.login(newUser, models.AUTH_PATREON, w, r)
+
+			if err != nil {
+				s.l.Info(err.Error())
+				http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+				return
+			}
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		} else {
 			s.l.Info("AuthMethod already used")
@@ -957,7 +994,12 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 			return
 		}
 		s.l.Debug("logging in %v", user.Name)
-		s.login(user, models.AUTH_PATREON, w, r)
+		err = s.login(user, models.AUTH_PATREON, w, r)
+		if err != nil {
+			s.l.Info(err.Error())
+			http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+			return
+		}
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 	} else if strings.HasPrefix(state, "add_") {
 		user := s.getSessionUser(w, r)

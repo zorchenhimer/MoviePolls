@@ -112,11 +112,11 @@ func (s *webServer) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request)
 		if confirm == "yes" {
 
 			origName := user.Name
-			s.backend.AdminDeleteUser(user)
+			err = s.backend.AdminDeleteUser(user)
 			if err != nil {
 				s.doError(
 					http.StatusBadRequest,
-					fmt.Sprintf("Unable to update user: %v", err),
+					fmt.Sprintf("Unable to delete user: %v", err),
 					w, r)
 				return
 			}
@@ -165,7 +165,16 @@ func (s *webServer) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request)
 
 		return
 	case "ban":
-		s.backend.AdminBanUser(user)
+		err = s.backend.AdminBanUser(user)
+		if err != nil {
+			if err != nil {
+				s.doError(
+					http.StatusBadRequest,
+					fmt.Sprintf("Could not ban user: %v", err),
+					w, r)
+				return
+			}
+		}
 		return
 	case "purge":
 		confirm := r.URL.Query().Get("confirm")
@@ -767,7 +776,11 @@ func (s *webServer) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 
 	var action string
 	if r.Method == "POST" {
-		r.ParseForm()
+		err := r.ParseForm()
+		if err != nil {
+			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to parse request: %v", err), w, r)
+			return
+		}
 		action = r.PostFormValue("action")
 		s.l.Debug("POSTed values: %s", r.PostForm)
 	}
