@@ -193,30 +193,34 @@ func (s *webServer) handlerLocalAuthRemove(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Logging the user back in
-	if _, err := user.GetAuthMethod(models.AUTH_TWITCH); err == nil {
+	s.saveLoginUser(user, w, r)
+
+	http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+	return
+}
+
+func (s *webServer) saveLoginUser(user *models.User, w http.ResponseWriter, r *http.Request) {
+	if _, err := user.GetAuthMethod(models.AUTH_LOCAL); err == nil {
+		err = s.login(user, models.AUTH_LOCAL, w, r)
+		if err != nil {
+			s.l.Info("Could not login user %s", user.Name)
+		}
+	} else if _, err := user.GetAuthMethod(models.AUTH_TWITCH); err == nil {
 		err = s.login(user, models.AUTH_TWITCH, w, r)
 		if err != nil {
 			s.l.Info("Could not login user %s", user.Name)
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
 		}
 	} else if _, err := user.GetAuthMethod(models.AUTH_DISCORD); err == nil {
 		err = s.login(user, models.AUTH_DISCORD, w, r)
 		if err != nil {
 			s.l.Info("Could not login user %s", user.Name)
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
 		}
 	} else if _, err := user.GetAuthMethod(models.AUTH_PATREON); err == nil {
 		err = s.login(user, models.AUTH_PATREON, w, r)
 		if err != nil {
 			s.l.Info("Could not login user %s", user.Name)
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
 		}
 	}
-	http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-	return
 }
 
 func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
@@ -297,30 +301,7 @@ func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Find a new AuthMethod to log the user back in
-		if _, err := user.GetAuthMethod(models.AUTH_LOCAL); err == nil {
-			err = s.login(user, models.AUTH_LOCAL, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		} else if _, err := user.GetAuthMethod(models.AUTH_DISCORD); err == nil {
-			err = s.login(user, models.AUTH_DISCORD, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		} else if _, err := user.GetAuthMethod(models.AUTH_PATREON); err == nil {
-			err = s.login(user, models.AUTH_PATREON, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		}
-
-		s.l.Debug("twitch remove")
+		s.saveLoginUser(user, w, r)
 
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
@@ -583,30 +564,7 @@ func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) 
 		}
 
 		// Try to log the user back in
-		if _, err := user.GetAuthMethod(models.AUTH_TWITCH); err == nil {
-			err = s.login(user, models.AUTH_TWITCH, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		} else if _, err := user.GetAuthMethod(models.AUTH_LOCAL); err == nil {
-			err = s.login(user, models.AUTH_LOCAL, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		} else if _, err := user.GetAuthMethod(models.AUTH_PATREON); err == nil {
-			err = s.login(user, models.AUTH_PATREON, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		}
-
-		s.l.Debug("discord remove")
+		s.saveLoginUser(user, w, r)
 
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
