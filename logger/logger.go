@@ -20,7 +20,6 @@ const (
 
 const (
 	logPrefixError string = "[ERROR] "
-	logPrefixChat  string = "[CHAT] "
 	logPrefixInfo  string = "[INFO] "
 	logPrefixDebug string = "[DEBUG] "
 )

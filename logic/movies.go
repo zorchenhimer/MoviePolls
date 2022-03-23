@@ -204,8 +204,8 @@ func (b *backend) AddMovie(fields map[string]*InputField, user *models.User, fil
 		if err != nil {
 			// Sadly we dont have a inputfield struct for the picture hence i need to put it somewhere else ...
 			validatedForm["Remarks"] = &InputField{Value: validatedForm["Remarks"].Value, Error: err}
-      
-      // TODO we might want to do something with the error here
+
+			// TODO we might want to do something with the error here
 			return id, validatedForm
 		}
 	}
