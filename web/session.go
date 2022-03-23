@@ -36,7 +36,7 @@ func (s *webServer) login(user *models.User, authType models.AuthType, w http.Re
 		return fmt.Errorf("Unable to gob Date")
 	}
 
-	session.Values["Date_"+string(auth.Type)] = fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed)))
+	session.Values["Date_"+string(auth.Type)] = fmt.Sprintf("%X", sha256.Sum256(gobbed))
 
 	return session.Save(r, w)
 }
@@ -100,7 +100,7 @@ func (s *webServer) getSessionUser(w http.ResponseWriter, r *http.Request) *mode
 
 		gobbed, err := localAuth.Date.GobEncode()
 
-		if err != nil || fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed))) != passDate {
+		if err != nil || fmt.Sprintf("%X", sha256.Sum256(gobbed)) != passDate {
 			s.l.Info("User's Date_Local did not match stored value")
 			err = delSession(session, w, r)
 			if err != nil {
@@ -118,7 +118,7 @@ func (s *webServer) getSessionUser(w http.ResponseWriter, r *http.Request) *mode
 
 		gobbed, err := twitchAuth.Date.GobEncode()
 
-		if err != nil || fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed))) != refreshTwitch {
+		if err != nil || fmt.Sprintf("%X", sha256.Sum256(gobbed)) != refreshTwitch {
 			s.l.Info("User's Date_Twitch did not match stored value")
 			err = delSession(session, w, r)
 			if err != nil {
@@ -136,7 +136,7 @@ func (s *webServer) getSessionUser(w http.ResponseWriter, r *http.Request) *mode
 
 		gobbed, err := discordAuth.Date.GobEncode()
 
-		if err != nil || fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed))) != refreshDiscord {
+		if err != nil || fmt.Sprintf("%X", sha256.Sum256(gobbed)) != refreshDiscord {
 			s.l.Info("User's Date_Discord did not match stored value")
 			err = delSession(session, w, r)
 			if err != nil {
@@ -154,7 +154,7 @@ func (s *webServer) getSessionUser(w http.ResponseWriter, r *http.Request) *mode
 
 		gobbed, err := patreonAuth.Date.GobEncode()
 
-		if err != nil || fmt.Sprintf("%X", sha256.Sum256([]byte(gobbed))) != refreshPatreon {
+		if err != nil || fmt.Sprintf("%X", sha256.Sum256(gobbed)) != refreshPatreon {
 			s.l.Info("User's Date_Patreon did not match stored value")
 			err = delSession(session, w, r)
 			if err != nil {
