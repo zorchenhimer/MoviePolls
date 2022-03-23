@@ -287,9 +287,7 @@ func (s *webServer) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request)
 		Host:           host,
 	}
 
-	// FIXME: implement this
-	if r.Method == http.MethodPost {
-	}
+	// TODO: handle post requests
 
 	if err := s.executeTemplate(w, "adminUserEdit", data); err != nil {
 		s.l.Error("Error rendering template: %v", err)

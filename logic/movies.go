@@ -114,7 +114,7 @@ func (b *backend) validateForm(fields map[string]*InputField) (map[string]*Input
 			return fields, autofill, links
 		}
 
-		description, ok := fields["Description"]
+		description := fields["Description"]
 		length = models.GetStringLength(description.Value)
 
 		if length > maxDescriptionLength {
@@ -216,7 +216,7 @@ func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks st
 
 	sourcelink := links[0]
 
-	results := []string{}
+	results := []string{} //nolint:ineffassign,staticcheck
 
 	if sourcelink.Type == "MyAnimeList" {
 		b.l.Debug("MAL link")

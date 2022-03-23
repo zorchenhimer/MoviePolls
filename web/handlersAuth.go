@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -330,7 +331,7 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 	}
 
 	code := r.FormValue("code")
-	token, err := twitchOAuthConfig.Exchange(oauth2.NoContext, code)
+	token, err := twitchOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		s.l.Info("Code exchange failed: %s", err)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
@@ -339,6 +340,13 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 
 	// Request the User data from the API
 	req, err := http.NewRequest("GET", "https://api.twitch.tv/helix/users", nil)
+
+	if err != nil {
+		s.l.Info("Could not retrieve Userdata from Twitch API: %s", err)
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
 	req.Header.Add("Authorization", "Bearer "+token.AccessToken)
 	req.Header.Add("Client-Id", twitchOAuthConfig.ClientID)
 
@@ -609,7 +617,7 @@ func (s *webServer) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.R
 	}
 
 	code := r.FormValue("code")
-	token, err := discordOAuthConfig.Exchange(oauth2.NoContext, code)
+	token, err := discordOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		s.l.Info("Code exchange failed: %s", err)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
@@ -618,6 +626,13 @@ func (s *webServer) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.R
 
 	// Request the User data from the API
 	req, err := http.NewRequest("GET", "https://discord.com/api/users/@me", nil)
+
+	if err != nil {
+		s.l.Info("Could not retrieve Userdata from Discord API: %s", err)
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
 	req.Header.Add("Authorization", "Bearer "+token.AccessToken)
 
 	client := &http.Client{}
@@ -891,7 +906,7 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 	}
 
 	code := r.FormValue("code")
-	token, err := patreonOAuthConfig.Exchange(oauth2.NoContext, code)
+	token, err := patreonOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		s.l.Info("Code exchange failed: %s", err)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
@@ -900,6 +915,13 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 
 	// Request the User data from the API
 	req, err := http.NewRequest("GET", "https://www.patreon.com/api/oauth2/v2/identity?fields"+u.QueryEscape("[user]")+"=email,first_name,full_name,last_name,vanity", nil)
+
+	if err != nil {
+		s.l.Info("Could not retrieve Userdata from Patreon API: %s", err)
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
 	req.Header.Add("Authorization", "Bearer "+token.AccessToken)
 
 	client := &http.Client{}
@@ -908,7 +930,6 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 		s.l.Info("Could not retrieve Userdata from Patreon API: %s", err)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
 		return
-
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {

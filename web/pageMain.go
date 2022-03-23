@@ -13,7 +13,7 @@ func (s *webServer) handlerPageMain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	movieList := []*models.Movie{}
+	movieList := []*models.Movie{} //nolint:ineffassign,staticcheck
 
 	data := struct {
 		dataPageBase
@@ -38,7 +38,7 @@ func (s *webServer) handlerPageMain(w http.ResponseWriter, r *http.Request) {
 			s.l.Error(err.Error())
 		}
 	} else {
-		var err error = nil
+		var err error = nil //nolint:ineffassign
 		movieList, err = s.backend.GetActiveMovies()
 		if err != nil {
 			s.l.Error(err.Error())

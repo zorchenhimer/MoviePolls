@@ -258,7 +258,7 @@ func (j *jikan) requestResults() error {
 
 		for _, etype := range j.excludedTypes {
 			thisType := dat["type"].(string)
-			if strings.ToLower(thisType) == strings.ToLower(etype) {
+			if strings.EqualFold(thisType, etype) {
 				return fmt.Errorf("The anime type %s was banned by the sites administrator. Please choose a different type!", thisType)
 			}
 		}

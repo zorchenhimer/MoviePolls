@@ -527,18 +527,21 @@ func (s *webServer) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 			}
 
 			newUser, err = s.backend.AddAuthMethodToUser(auth, newUser)
-
-			newUser.Id, err = s.backend.AddUser(newUser)
 			if err != nil {
 				data.ErrorMessage = append(data.ErrorMessage, err.Error())
 			} else {
-				err = s.login(newUser, models.AUTH_LOCAL, w, r)
+				newUser.Id, err = s.backend.AddUser(newUser)
 				if err != nil {
-					s.l.Error("Unable to login to session: %v", err)
-					s.doError(http.StatusInternalServerError, "Login error", w, r)
-					return
+					data.ErrorMessage = append(data.ErrorMessage, err.Error())
+				} else {
+					err = s.login(newUser, models.AUTH_LOCAL, w, r)
+					if err != nil {
+						s.l.Error("Unable to login to session: %v", err)
+						s.doError(http.StatusInternalServerError, "Login error", w, r)
+						return
+					}
+					doRedirect = true
 				}
-				doRedirect = true
 			}
 		}
 	}

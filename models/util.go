@@ -76,7 +76,7 @@ func FilterMoviesByTags(movies []*Movie, tags []string) ([]*Movie, error) {
 func movieContainsTag(movie *Movie, tag string) bool {
 
 	for _, mTag := range movie.Tags {
-		if strings.ToLower(tag) == strings.ToLower(mTag.Name) {
+		if strings.EqualFold(tag, mTag.Name) {
 			return true
 		}
 	}
