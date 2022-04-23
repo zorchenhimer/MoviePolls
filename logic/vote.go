@@ -57,7 +57,7 @@ func (b *backend) GetVotingEnabled() (bool, error) {
 }
 
 func (b *backend) GetUnlimitedVotes() (bool, error) {
-	key := ConfigVotingEnabled
+	key := ConfigUnlimitedVotes
 	config, ok := ConfigValues[key]
 	if !ok {
 		return false, fmt.Errorf("Could not find ConfigValue named %s", key)
