@@ -167,13 +167,11 @@ func (s *webServer) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request)
 	case "ban":
 		err = s.backend.AdminBanUser(user)
 		if err != nil {
-			if err != nil {
-				s.doError(
-					http.StatusBadRequest,
-					fmt.Sprintf("Could not ban user: %v", err),
-					w, r)
-				return
-			}
+			s.doError(
+				http.StatusBadRequest,
+				fmt.Sprintf("Could not ban user: %v", err),
+				w, r)
+			return
 		}
 		return
 	case "purge":
