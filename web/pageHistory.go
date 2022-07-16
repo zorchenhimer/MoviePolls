@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/zorchenhimer/MoviePolls/models"
@@ -13,7 +12,7 @@ func (s *webServer) handlerPageHistory(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.doError(
 			http.StatusInternalServerError,
-			fmt.Sprintf("something went wrong :C"),
+			"Something went wrong :C",
 			w, r)
 		s.l.Error("Unable to get past cycles: ", err)
 		return

@@ -16,6 +16,8 @@ import (
 	"github.com/zorchenhimer/MoviePolls/logger"
 )
 
+const defaultPosterPath = "posters/unknown.jpg"
+
 type dataapi interface {
 	getTitle() (string, error)
 	getDesc() (string, error)
@@ -99,6 +101,8 @@ func (t *tmdb) requestResults() error {
 	if err != nil || resp.StatusCode != 200 {
 		return fmt.Errorf("Tried to access API - Response Code: %v\nMaybe check your tmdb api token", resp.Status)
 	}
+
+	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
@@ -123,6 +127,7 @@ func (t *tmdb) requestResults() error {
 	if err != nil || resp.StatusCode != 200 {
 		return fmt.Errorf("Tried to access API - Response Code: %v\nMaybe check your tmdb api token", resp.Status)
 	}
+	defer resp.Body.Close()
 
 	body, err = ioutil.ReadAll(resp.Body)
 
@@ -237,9 +242,9 @@ var re_duration = regexp.MustCompile(`([0-9]{1,3}) min`)
 func (j *jikan) requestResults() error {
 	resp, err := http.Get("https://api.jikan.moe/v3/anime/" + j.id)
 	if err != nil || resp.StatusCode != 200 {
-
 		return errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n")
 	} else {
+		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return err
@@ -253,7 +258,7 @@ func (j *jikan) requestResults() error {
 
 		for _, etype := range j.excludedTypes {
 			thisType := dat["type"].(string)
-			if strings.ToLower(thisType) == strings.ToLower(etype) {
+			if strings.EqualFold(thisType, etype) {
 				return fmt.Errorf("The anime type %s was banned by the sites administrator. Please choose a different type!", thisType)
 			}
 		}
@@ -261,8 +266,8 @@ func (j *jikan) requestResults() error {
 		if dat["episodes"] != nil {
 			episodes := dat["episodes"].(float64)
 
-			if int(episodes) > int(j.maxEpisodes) && int(j.maxEpisodes) != 0 {
-				return fmt.Errorf("The anime has too many (%d) episodes. The site administrator only allowed animes up to %d episodes.", int(episodes), int(j.maxEpisodes))
+			if int(episodes) > j.maxEpisodes && j.maxEpisodes != 0 {
+				return fmt.Errorf("The anime has too many (%d) episodes. The site administrator only allowed animes up to %d episodes.", int(episodes), j.maxEpisodes)
 			}
 		} else {
 			return fmt.Errorf("The episode count of this anime has not been published yet. Therefore this anime can not be added.")
@@ -330,14 +335,14 @@ func (j *jikan) getPoster() (string, error) {
 	if (*dat)["image_url"] != nil {
 		fileurl = (*dat)["image_url"].(string)
 	} else {
-		return "posters/unknown.jpg", nil
+		return defaultPosterPath, nil
 	}
 
 	path := "posters/" + j.id + ".jpg"
 	err := DownloadFile(path, fileurl, j.uploadlimit)
 
 	if !(err == nil) {
-		return "posters/unknown.jpg", errors.New("Error while downloading file, using unknown.jpg")
+		return defaultPosterPath, errors.New("Error while downloading file, using unknown.jpg")
 	}
 	j.l.Debug("poster path: %s", path)
 	return path, nil

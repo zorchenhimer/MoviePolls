@@ -190,7 +190,10 @@ func New(db database.Database, log *logger.Logger) (Logic, error) {
 		if !strings.HasPrefix(host, "http") {
 			host = "http://" + host + ":8090" // maybe we should make that configurable
 		}
-		back.SetHostAddress(host)
+		err = back.SetHostAddress(host)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to set new host address: %v", err)
+		}
 
 		// Print directly to the console, not through the logger.
 		fmt.Printf("Claim admin: %s/auth/%s Password: %s\n", host, urlKey.Url, urlKey.Key)
@@ -204,23 +207,6 @@ func New(db database.Database, log *logger.Logger) (Logic, error) {
 	back.passwordSalt = passwordSalt
 
 	return back, nil
-}
-
-type inputForm struct {
-	multipart.Form
-}
-
-func (f *inputForm) GetValue(key string) (string, error) {
-	val, ok := f.Value[key]
-	if !ok {
-		return "", fmt.Errorf("[inputForm.GetValue] Key not found")
-	}
-
-	if len(val) == 0 {
-		return "", fmt.Errorf("[inputForm.GetValue] Empty value")
-	}
-
-	return val[0], nil
 }
 
 func (b *backend) GetUrlKeys() map[string]*models.UrlKey {

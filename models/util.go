@@ -24,13 +24,11 @@ func FileExists(path string) bool {
 	return true
 }
 
-var re_cleanNameA = *regexp.MustCompile(`[^a-zA-Z0-9 ]`)
-var re_cleanNameB = *regexp.MustCompile(`\s+`)
+var re_cleanName = *regexp.MustCompile(`\s+`)
 
 func CleanMovieName(input string) string {
 	input = strings.ToLower(strings.TrimSpace(input))
-	//input = re_cleanNameA.ReplaceAllString(input, "")
-	return re_cleanNameB.ReplaceAllString(input, " ")
+	return re_cleanName.ReplaceAllString(input, " ")
 }
 
 func IntSliceContains(needle int, haystack []int) bool {
@@ -78,7 +76,7 @@ func FilterMoviesByTags(movies []*Movie, tags []string) ([]*Movie, error) {
 func movieContainsTag(movie *Movie, tag string) bool {
 
 	for _, mTag := range movie.Tags {
-		if strings.ToLower(tag) == strings.ToLower(mTag.Name) {
+		if strings.EqualFold(tag, mTag.Name) {
 			return true
 		}
 	}

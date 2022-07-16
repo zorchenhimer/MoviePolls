@@ -114,7 +114,7 @@ func (b *backend) validateForm(fields map[string]*InputField) (map[string]*Input
 			return fields, autofill, links
 		}
 
-		description, ok := fields["Description"]
+		description := fields["Description"]
 		length = models.GetStringLength(description.Value)
 
 		if length > maxDescriptionLength {
@@ -204,8 +204,8 @@ func (b *backend) AddMovie(fields map[string]*InputField, user *models.User, fil
 		if err != nil {
 			// Sadly we dont have a inputfield struct for the picture hence i need to put it somewhere else ...
 			validatedForm["Remarks"] = &InputField{Value: validatedForm["Remarks"].Value, Error: err}
-      
-      // TODO we might want to do something with the error here
+
+			// TODO we might want to do something with the error here
 			return id, validatedForm
 		}
 	}
@@ -216,7 +216,7 @@ func (b *backend) doAutofill(links []*models.Link, user *models.User, remarks st
 
 	sourcelink := links[0]
 
-	results := []string{}
+	results := []string{} //nolint:ineffassign,staticcheck
 
 	if sourcelink.Type == "MyAnimeList" {
 		b.l.Debug("MAL link")
@@ -506,7 +506,10 @@ func (b *backend) UploadFile(file multipart.File, fileHeader *multipart.FileHead
 		return "", err
 	}
 
-	tempFile.Write(fileBytes)
+	written, err := tempFile.Write(fileBytes)
+	if err != nil || written != len(fileBytes) {
+		return "", fmt.Errorf("Error while saving file to disk: %v", err)
+	}
 
 	b.l.Debug("[uploadFile] Filename: %v", tempFile.Name())
 

@@ -27,35 +27,6 @@ type dataLoginForm struct {
 	PatreonOAuth bool
 }
 
-type dataAddMovie struct {
-	dataPageBase
-	ErrorMessage []string
-
-	// Offending input
-	ErrTitle       bool
-	ErrDescription bool
-	ErrLinks       bool
-	ErrRemarks     bool
-	ErrPoster      bool
-	ErrAutofill    bool
-
-	// Values for input if error
-	ValTitle       string
-	ValDescription string
-	ValLinks       string
-	ValRemarks     string
-	//ValPoster      bool
-
-	AutofillEnabled bool
-	FormfillEnabled bool
-
-	MaxRemarksLength int
-}
-
-func (d dataAddMovie) isError() bool {
-	return d.ErrTitle || d.ErrDescription || d.ErrLinks || d.ErrPoster || d.ErrAutofill || d.ErrRemarks
-}
-
 type dataError struct {
 	dataPageBase
 

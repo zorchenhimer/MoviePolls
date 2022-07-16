@@ -130,7 +130,7 @@ func (s *webServer) handlerPageUser(w http.ResponseWriter, r *http.Request) {
 	_, err = user.GetAuthMethod(models.AUTH_PATREON)
 	data.HasPatreon = err == nil
 
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		err := r.ParseForm()
 		if err != nil {
 			s.l.Error("ParseForm() error: %v", err)
@@ -224,7 +224,7 @@ func (s *webServer) handlerPageUser(w http.ResponseWriter, r *http.Request) {
 						s.doError(http.StatusInternalServerError, "Unable to link password to user", w, r)
 					}
 
-					s.backend.UpdateUser(user)
+					err = s.backend.UpdateUser(user)
 
 					if err != nil {
 						s.l.Error("Unable to update user %s", user.Name)
@@ -290,7 +290,7 @@ func (s *webServer) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 
 	data.OAuth = twitchAuth || discordAuth || patreonAuth
 
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		// do login
 
 		un := r.PostFormValue("Username")
@@ -433,7 +433,7 @@ func (s *webServer) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 
 	data.OAuth = twitchAuth || discordAuth || patreonAuth
 
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		err := r.ParseForm()
 		if err != nil {
 			s.l.Error("Error parsing login form: %v", err)
@@ -527,18 +527,21 @@ func (s *webServer) handlerUserNew(w http.ResponseWriter, r *http.Request) {
 			}
 
 			newUser, err = s.backend.AddAuthMethodToUser(auth, newUser)
-
-			newUser.Id, err = s.backend.AddUser(newUser)
 			if err != nil {
 				data.ErrorMessage = append(data.ErrorMessage, err.Error())
 			} else {
-				err = s.login(newUser, models.AUTH_LOCAL, w, r)
+				newUser.Id, err = s.backend.AddUser(newUser)
 				if err != nil {
-					s.l.Error("Unable to login to session: %v", err)
-					s.doError(http.StatusInternalServerError, "Login error", w, r)
-					return
+					data.ErrorMessage = append(data.ErrorMessage, err.Error())
+				} else {
+					err = s.login(newUser, models.AUTH_LOCAL, w, r)
+					if err != nil {
+						s.l.Error("Unable to login to session: %v", err)
+						s.doError(http.StatusInternalServerError, "Login error", w, r)
+						return
+					}
+					doRedirect = true
 				}
-				doRedirect = true
 			}
 		}
 	}

@@ -51,7 +51,7 @@ func (s *webServer) handlerPageMovie(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.doError(
 			http.StatusBadRequest,
-			fmt.Sprintf("Cannot get VotingEnabled"),
+			"Cannot get VotingEnabled",
 			w, r)
 		s.l.Error("Unable to get VotingEnabled: %v", err)
 		return
@@ -62,7 +62,7 @@ func (s *webServer) handlerPageMovie(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			s.doError(
 				http.StatusBadRequest,
-				fmt.Sprintf("Cannot get user votes :C"),
+				"Cannot get user votes :C",
 				w, r)
 			s.l.Error("Unable to get votes for user %d: %v", data.User.Id, err)
 			return

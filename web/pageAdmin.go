@@ -112,11 +112,11 @@ func (s *webServer) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request)
 		if confirm == "yes" {
 
 			origName := user.Name
-			s.backend.AdminDeleteUser(user)
+			err = s.backend.AdminDeleteUser(user)
 			if err != nil {
 				s.doError(
 					http.StatusBadRequest,
-					fmt.Sprintf("Unable to update user: %v", err),
+					fmt.Sprintf("Unable to delete user: %v", err),
 					w, r)
 				return
 			}
@@ -165,7 +165,14 @@ func (s *webServer) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request)
 
 		return
 	case "ban":
-		s.backend.AdminBanUser(user)
+		err = s.backend.AdminBanUser(user)
+		if err != nil {
+			s.doError(
+				http.StatusBadRequest,
+				fmt.Sprintf("Could not ban user: %v", err),
+				w, r)
+			return
+		}
 		return
 	case "purge":
 		confirm := r.URL.Query().Get("confirm")
@@ -278,9 +285,7 @@ func (s *webServer) handlerAdminUserEdit(w http.ResponseWriter, r *http.Request)
 		Host:           host,
 	}
 
-	// FIXME: implement this
-	if r.Method == "POST" {
-	}
+	// TODO: handle post requests
 
 	if err := s.executeTemplate(w, "adminUserEdit", data); err != nil {
 		s.l.Error("Error rendering template: %v", err)
@@ -321,7 +326,7 @@ func (s *webServer) handlerAdminConfig(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		if err = r.ParseForm(); err != nil {
 			s.l.Error("Unable to parse form: %v", err)
 			s.doError(
@@ -533,7 +538,7 @@ func (s *webServer) handlerAdminMovieEdit(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		err = r.ParseMultipartForm(4095)
 		if err != nil {
 			s.l.Error("Unable to parse form: %v", err)
@@ -679,7 +684,7 @@ func (s *webServer) handlerAdminCycles_Post(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/admin/cycles", http.StatusSeeOther)
 		return
 	}
@@ -766,8 +771,12 @@ func (s *webServer) handlerAdminCycles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var action string
-	if r.Method == "POST" {
-		r.ParseForm()
+	if r.Method == http.MethodPost {
+		err := r.ParseForm()
+		if err != nil {
+			s.doError(http.StatusInternalServerError, fmt.Sprintf("Unable to parse request: %v", err), w, r)
+			return
+		}
 		action = r.PostFormValue("action")
 		s.l.Debug("POSTed values: %s", r.PostForm)
 	}
@@ -887,7 +896,7 @@ func (s *webServer) cycleStage2(w http.ResponseWriter, r *http.Request) {
 	s.l.Debug("cycleStage2")
 
 	// No data received.  re-display list.
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		s.cycleStage1(w, r)
 		return
 	}

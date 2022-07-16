@@ -130,7 +130,7 @@ func (s *webServer) handlerPageAddMovie(w http.ResponseWriter, r *http.Request) 
 		MaxRemarksLength:     maxRemLen,
 	}
 
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		err = r.ParseMultipartForm(4096)
 		if err != nil {
 			s.l.Error("Error parsing movie form: %v", err)

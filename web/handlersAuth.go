@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -14,6 +15,12 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/twitch"
 )
+
+// Consts
+const loginSwitchString = "login"
+const signupSwitchString = "signup"
+const removeSwitchString = "remove"
+const addSwitchString = "add"
 
 // just some global variables
 var twitchOAuthConfig = &oauth2.Config{}
@@ -193,37 +200,40 @@ func (s *webServer) handlerLocalAuthRemove(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Logging the user back in
-	if _, err := user.GetAuthMethod(models.AUTH_TWITCH); err == nil {
+	s.saveLoginUser(user, w, r)
+
+	http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
+}
+
+func (s *webServer) saveLoginUser(user *models.User, w http.ResponseWriter, r *http.Request) {
+	if _, err := user.GetAuthMethod(models.AUTH_LOCAL); err == nil {
+		err = s.login(user, models.AUTH_LOCAL, w, r)
+		if err != nil {
+			s.l.Info("Could not login user %s", user.Name)
+		}
+	} else if _, err := user.GetAuthMethod(models.AUTH_TWITCH); err == nil {
 		err = s.login(user, models.AUTH_TWITCH, w, r)
 		if err != nil {
 			s.l.Info("Could not login user %s", user.Name)
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
 		}
 	} else if _, err := user.GetAuthMethod(models.AUTH_DISCORD); err == nil {
 		err = s.login(user, models.AUTH_DISCORD, w, r)
 		if err != nil {
 			s.l.Info("Could not login user %s", user.Name)
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
 		}
 	} else if _, err := user.GetAuthMethod(models.AUTH_PATREON); err == nil {
 		err = s.login(user, models.AUTH_PATREON, w, r)
 		if err != nil {
 			s.l.Info("Could not login user %s", user.Name)
-			http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-			return
 		}
 	}
-	http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-	return
 }
 
 func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 	action := r.URL.Query().Get("action")
 
 	switch action {
-	case "login":
+	case loginSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "login_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -234,7 +244,7 @@ func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 
 		s.l.Debug("twitch login")
 
-	case "signup":
+	case signupSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "signup_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -245,7 +255,7 @@ func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 
 		s.l.Debug("twitch sign up")
 
-	case "add":
+	case addSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "add_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -256,7 +266,7 @@ func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 
 		s.l.Debug("twitch add")
 
-	case "remove":
+	case removeSwitchString:
 		user := s.getSessionUser(w, r)
 
 		auth, err := user.GetAuthMethod(models.AUTH_TWITCH)
@@ -297,30 +307,7 @@ func (s *webServer) handlerTwitchOAuth(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Find a new AuthMethod to log the user back in
-		if _, err := user.GetAuthMethod(models.AUTH_LOCAL); err == nil {
-			err = s.login(user, models.AUTH_LOCAL, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		} else if _, err := user.GetAuthMethod(models.AUTH_DISCORD); err == nil {
-			err = s.login(user, models.AUTH_DISCORD, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		} else if _, err := user.GetAuthMethod(models.AUTH_PATREON); err == nil {
-			err = s.login(user, models.AUTH_PATREON, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		}
-
-		s.l.Debug("twitch remove")
+		s.saveLoginUser(user, w, r)
 
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
@@ -344,7 +331,7 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 	}
 
 	code := r.FormValue("code")
-	token, err := twitchOAuthConfig.Exchange(oauth2.NoContext, code)
+	token, err := twitchOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		s.l.Info("Code exchange failed: %s", err)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
@@ -353,6 +340,13 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 
 	// Request the User data from the API
 	req, err := http.NewRequest("GET", "https://api.twitch.tv/helix/users", nil)
+
+	if err != nil {
+		s.l.Info("Could not retrieve Userdata from Twitch API: %s", err)
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
 	req.Header.Add("Authorization", "Bearer "+token.AccessToken)
 	req.Header.Add("Client-Id", twitchOAuthConfig.ClientID)
 
@@ -364,6 +358,7 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 		return
 
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		s.l.Info("Status Code is not 200, its %v", resp.Status)
@@ -434,7 +429,15 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 			}
 
 			s.l.Debug("logging in %v", newUser.Name)
-			s.login(newUser, models.AUTH_TWITCH, w, r)
+
+			err := s.login(newUser, models.AUTH_TWITCH, w, r)
+
+			if err != nil {
+				s.l.Info(err.Error())
+				http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+				return
+			}
+
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		} else {
 			s.l.Debug("AuthMethod already used")
@@ -449,7 +452,15 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 			return
 		}
 		s.l.Debug("logging in %v", user.Name)
-		s.login(user, models.AUTH_TWITCH, w, r)
+
+		err = s.login(user, models.AUTH_TWITCH, w, r)
+
+		if err != nil {
+			s.l.Info(err.Error())
+			http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+			return
+		}
+
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 	} else if strings.HasPrefix(state, "add_") {
 		// Handle adding a Twitch AuthMethod to the logged in user
@@ -501,7 +512,6 @@ func (s *webServer) handlerTwitchOAuthCallback(w http.ResponseWriter, r *http.Re
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
 	}
-	return
 }
 
 func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) {
@@ -509,7 +519,7 @@ func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) 
 	action := r.URL.Query().Get("action")
 
 	switch action {
-	case "login":
+	case loginSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "login_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -520,7 +530,7 @@ func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) 
 
 		s.l.Debug("discord login")
 
-	case "signup":
+	case signupSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "signup_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -531,7 +541,7 @@ func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) 
 
 		s.l.Debug("discord signup")
 
-	case "add":
+	case addSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "add_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -542,7 +552,7 @@ func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) 
 
 		s.l.Debug("discord add")
 
-	case "remove":
+	case removeSwitchString:
 		user := s.getSessionUser(w, r)
 
 		auth, err := user.GetAuthMethod(models.AUTH_DISCORD)
@@ -583,30 +593,7 @@ func (s *webServer) handlerDiscordOAuth(w http.ResponseWriter, r *http.Request) 
 		}
 
 		// Try to log the user back in
-		if _, err := user.GetAuthMethod(models.AUTH_TWITCH); err == nil {
-			err = s.login(user, models.AUTH_TWITCH, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		} else if _, err := user.GetAuthMethod(models.AUTH_LOCAL); err == nil {
-			err = s.login(user, models.AUTH_LOCAL, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		} else if _, err := user.GetAuthMethod(models.AUTH_PATREON); err == nil {
-			err = s.login(user, models.AUTH_PATREON, w, r)
-			if err != nil {
-				s.l.Info("Could not login user %s", user.Name)
-				http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
-				return
-			}
-		}
-
-		s.l.Debug("discord remove")
+		s.saveLoginUser(user, w, r)
 
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
@@ -630,7 +617,7 @@ func (s *webServer) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.R
 	}
 
 	code := r.FormValue("code")
-	token, err := discordOAuthConfig.Exchange(oauth2.NoContext, code)
+	token, err := discordOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		s.l.Info("Code exchange failed: %s", err)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
@@ -639,6 +626,13 @@ func (s *webServer) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.R
 
 	// Request the User data from the API
 	req, err := http.NewRequest("GET", "https://discord.com/api/users/@me", nil)
+
+	if err != nil {
+		s.l.Info("Could not retrieve Userdata from Discord API: %s", err)
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
 	req.Header.Add("Authorization", "Bearer "+token.AccessToken)
 
 	client := &http.Client{}
@@ -648,7 +642,7 @@ func (s *webServer) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.R
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
 		return
 	}
-
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		s.l.Info("Status Code is not 200, its %v", resp.Status)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
@@ -713,7 +707,14 @@ func (s *webServer) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.R
 			}
 
 			s.l.Debug("logging in %v", newUser.Name)
-			s.login(newUser, models.AUTH_DISCORD, w, r)
+			err := s.login(newUser, models.AUTH_DISCORD, w, r)
+
+			if err != nil {
+				s.l.Info(err.Error())
+				http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+				return
+			}
+
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		} else {
 			s.l.Debug("AuthMethod already used")
@@ -727,7 +728,14 @@ func (s *webServer) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.R
 			return
 		}
 		s.l.Debug("logging in %v", user.Name)
-		s.login(user, models.AUTH_DISCORD, w, r)
+		err = s.login(user, models.AUTH_DISCORD, w, r)
+
+		if err != nil {
+			s.l.Info(err.Error())
+			http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+			return
+		}
+
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 	} else if strings.HasPrefix(state, "add_") {
 		user := s.getSessionUser(w, r)
@@ -774,14 +782,13 @@ func (s *webServer) handlerDiscordOAuthCallback(w http.ResponseWriter, r *http.R
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
 	}
-	return
 }
 
 func (s *webServer) handlerPatreonOAuth(w http.ResponseWriter, r *http.Request) {
 	action := r.URL.Query().Get("action")
 
 	switch action {
-	case "login":
+	case loginSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "login_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -792,7 +799,7 @@ func (s *webServer) handlerPatreonOAuth(w http.ResponseWriter, r *http.Request) 
 
 		s.l.Debug("patreon login")
 
-	case "signup":
+	case signupSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "signup_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -803,7 +810,7 @@ func (s *webServer) handlerPatreonOAuth(w http.ResponseWriter, r *http.Request) 
 
 		s.l.Debug("patreon signup")
 
-	case "add":
+	case addSwitchString:
 		// Generate a new state string for each login attempt and store it in the state list
 		oauthStateString := "add_" + s.backend.GetCryptRandKey(32)
 		openStates = append(openStates, oauthStateString)
@@ -814,7 +821,7 @@ func (s *webServer) handlerPatreonOAuth(w http.ResponseWriter, r *http.Request) 
 
 		s.l.Debug("patreon add")
 
-	case "remove":
+	case removeSwitchString:
 		user := s.getSessionUser(w, r)
 
 		auth, err := user.GetAuthMethod(models.AUTH_PATREON)
@@ -899,7 +906,7 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 	}
 
 	code := r.FormValue("code")
-	token, err := patreonOAuthConfig.Exchange(oauth2.NoContext, code)
+	token, err := patreonOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		s.l.Info("Code exchange failed: %s", err)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
@@ -908,6 +915,13 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 
 	// Request the User data from the API
 	req, err := http.NewRequest("GET", "https://www.patreon.com/api/oauth2/v2/identity?fields"+u.QueryEscape("[user]")+"=email,first_name,full_name,last_name,vanity", nil)
+
+	if err != nil {
+		s.l.Info("Could not retrieve Userdata from Patreon API: %s", err)
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
 	req.Header.Add("Authorization", "Bearer "+token.AccessToken)
 
 	client := &http.Client{}
@@ -916,8 +930,8 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 		s.l.Info("Could not retrieve Userdata from Patreon API: %s", err)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
 		return
-
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		s.l.Info("Status Code is not 200, its %v", resp.Status)
 		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
@@ -985,7 +999,14 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 			}
 
 			s.l.Debug("logging in %v", newUser.Name)
-			s.login(newUser, models.AUTH_PATREON, w, r)
+
+			err = s.login(newUser, models.AUTH_PATREON, w, r)
+
+			if err != nil {
+				s.l.Info(err.Error())
+				http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+				return
+			}
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		} else {
 			s.l.Info("AuthMethod already used")
@@ -999,7 +1020,12 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 			return
 		}
 		s.l.Debug("logging in %v", user.Name)
-		s.login(user, models.AUTH_PATREON, w, r)
+		err = s.login(user, models.AUTH_PATREON, w, r)
+		if err != nil {
+			s.l.Info(err.Error())
+			http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+			return
+		}
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 	} else if strings.HasPrefix(state, "add_") {
 		user := s.getSessionUser(w, r)
@@ -1046,7 +1072,6 @@ func (s *webServer) handlerPatreonOAuthCallback(w http.ResponseWriter, r *http.R
 		http.Redirect(w, r, "/user", http.StatusTemporaryRedirect)
 		return
 	}
-	return
 }
 
 var re_auth = regexp.MustCompile(`^/auth/([^/#?]+)$`)
@@ -1069,7 +1094,7 @@ func (s *webServer) handlerAuth(w http.ResponseWriter, r *http.Request) {
 	if urlKey, ok = s.backend.GetUrlKeys()[matches[1]]; !ok {
 		s.l.Debug("[auth] map !ok; matches: %v", matches)
 		mkeys := []string{}
-		for key, _ := range s.backend.GetUrlKeys() {
+		for key := range s.backend.GetUrlKeys() {
 			mkeys = append(mkeys, key)
 		}
 		s.l.Debug("[auth] map keys: %v", mkeys)
@@ -1079,7 +1104,7 @@ func (s *webServer) handlerAuth(w http.ResponseWriter, r *http.Request) {
 
 	var formError string
 	var key string
-	if r.Method == "POST" {
+	if r.Method == http.MethodPost {
 		err := r.ParseForm()
 		if err != nil {
 			s.l.Error("[auth] ParseForm(): %v", err)
@@ -1127,7 +1152,7 @@ func (s *webServer) handlerAuth(w http.ResponseWriter, r *http.Request) {
 		s.l.Debug("Password top; key: %q", key)
 
 		if key != "" {
-			if r.Method == "POST" {
+			if r.Method == http.MethodPost {
 				s.l.Debug("Password POST")
 				err := r.ParseForm()
 				if err != nil {

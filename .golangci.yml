@@ -1,0 +1,22 @@
+run:
+  skip-files:
+    # These files are not reworked so at the moment we dont care
+    - scripts/migrateLinks.go
+    - scripts/mkdata.go
+    - scripts/migrateUsers.go
+    - database/database_test.go
+    - database/helpers_test.go
+
+linters:
+  enable:
+    - bodyclose
+    # - dupl # i am not sure if we really want dupl, its only analysing the AST, not the nodes
+    # - errorlint # disabled for now since the error rework is still to be done
+    - goconst
+    - unconvert
+
+linters-settings:
+  staticcheck:
+    checks:
+      - all
+      - '-SA1002'
