@@ -1,4 +1,6 @@
-{{define "header"}}{{end}}
+{{define "header"}}
+<script type="text/javascript" src="/static/js/maxlength_indicator.js"></script>
+{{end}}
 
 {{define "body"}}
 <form method="POST" action="/add" enctype="multipart/form-data">
@@ -6,46 +8,49 @@
     <div id="addMovieForm">
 		{{if .FormfillEnabled}}
             <div class="movieInput">
-                <div>
+                <div class="movieHeader">
                     {{if (index .Fields "Title")}}{{if (index .Fields "Title").Error}}<i class='fas fa-exclamation-triangle warningIcon'></i><div class="errorPopup">{{(index .Fields "Title").Error}}</div>{{end}}{{end}}
-                    <label class="TitleLabel" for="Title">Movie Title (max. {{.MaxTitleLength}} characters)</label>
+                    <label for="Title">Movie Title (max. {{.MaxTitleLength}} characters)</label>
+                    <div class="maxlength_indicator" data-type="length" data-name="Title"></div>
                 </div>
                 <div>
-                    <textarea name="Title" id="Title" style="width:400px">{{if (index .Fields "Title")}}{{if (index .Fields "Title").Value}}{{ (index .Fields "Title").Value}}{{end}}{{end}}</textarea>
+                    <textarea name="Title" id="Title" maxlength="{{.MaxTitleLength}}">{{if (index .Fields "Title")}}{{if (index .Fields "Title").Value}}{{ (index .Fields "Title").Value}}{{end}}{{end}}</textarea>
                 </div>
             </div>
 
             <div class="movieInput">
-                <div>
+                <div class="movieHeader">
                     {{if (index .Fields "Description")}}{{if (index .Fields "Description").Error}}<i class='fas fa-exclamation-triangle warningIcon'></i><div class="errorPopup">{{(index .Fields "Description").Error}}</div>{{end}}{{end}}
                     <label for="Description">Description (max. {{.MaxDescriptionLength}} characters)</label>
+                    <div class="maxlength_indicator" data-type="length" data-name="Description"></div>
                 </div>
                 <div>
-                    <textarea name="Description" id="Description" style="width:400px">{{if (index .Fields "Description")}}{{if (index .Fields "Description").Value}}{{( index .Fields "Description").Value}}{{end}}{{end}}</textarea>
+                    <textarea name="Description" id="Description" maxlength="{{.MaxDescriptionLength}}">{{if (index .Fields "Description")}}{{if (index .Fields "Description").Value}}{{( index .Fields "Description").Value}}{{end}}{{end}}</textarea>
                 </div>
             </div>
 
             <div class="movieInput">
-                <div>
+                <div class="movieHeader">
                     {{if (index .Fields "Links")}}{{if (index .Fields "Links").Error}}<i class='fas fa-exclamation-triangle warningIcon'></i><div class="errorPopup">{{(index .Fields "Links").Error}}</div>{{end}}{{end}}
                     <label for="Links">Referencelinks (max. {{.MaxLinkLength}} characters per Link)</label>
+                    <div class="maxlength_indicator" data-type="link" data-name="Links" data-link-length={{.MaxLinkLength}}></div>
                 </div>
                 <div>
-                    <textarea name="Links" id="Links" style="width:400px">{{if (index .Fields "Links")}}{{if (index .Fields "Links").Value}}{{ (index .Fields "Links").Value}}{{end}}{{end}}</textarea>
+                    <textarea name="Links" id="Links">{{if (index .Fields "Links")}}{{if (index .Fields "Links").Value}}{{ (index .Fields "Links").Value}}{{end}}{{end}}</textarea>
                 </div>
             </div>
             <div class="movieInput">
-                <div>
+                <div class="movieHeader">
                     {{if (index .Fields "PosterFile")}}{{if (index .Fields "PosterFile").Error}}<i class='fas fa-exclamation-triangle warningIcon'></i><div class="errorPopup">{{(index .Fields "PosterFile").Error}}</div>{{end}}{{end}}
                     <label for="PosterFile">Poster Image</label>
                 </div>
                 <div>
-                    <input type="file" name="PosterFile" id="PosterFile" accept="image/*"style="width:400px"/>
+                    <input type="file" name="PosterFile" id="PosterFile" accept="image/*"/>
                 </div>
             </div>
             {{ if .AutofillEnabled }}
                 <div class="movieInput">
-                    <div>
+                    <div class="movieHeader">
                         {{if (index .Fields "AutofillBox")}}{{if (index .Fields "AutofillBox").Error}}<i class='fas fa-exclamation-triangle warningIcon'></i><div class="errorPopup">{{(index .Fields "AutofillBox").Error}}</div>{{end}}{{end}}
                         <label for="AutofillBox">Autofill Data with the provided Link</label>
                     </div>
@@ -59,23 +64,25 @@
 		{{if not .FormfillEnabled}}
         <input type="hidden" name="AutofillBox" value="on" />
         <div class="movieInput">
-            <div>
+            <div class="movieHeader">
                 {{if (index .Fields "Links")}}{{if (index .Fields "Links").Error}}<i class='fas fa-exclamation-triangle warningIcon'></i><div class="errorPopup">{{(index .Fields "Links").Error}}</div>{{end}}{{end}}
                 <label for="Links">Enter IMDB or MyAnimeList link for a movie to add (max. {{.MaxLinkLength}} characters per Link):</label>
+                <div class="maxlength_indicator" data-type="link" data-name="Links" data-link-length={{.MaxLinkLength}}></div>
             </div>
             <div>
-                <textarea name="Links" id="Links" style="width:400px">{{if (index .Fields "Links")}}{{if (index .Fields "Links").Value}}{{(index .Fields "Links").Value}}{{end}}{{end}}</textarea>
+                <textarea name="Links" id="Links">{{if (index .Fields "Links")}}{{if (index .Fields "Links").Value}}{{(index .Fields "Links").Value}}{{end}}{{end}}</textarea>
             </div>
         </div>
 		{{end}}
 
 		<div class="movieInput">
-            <div>
+            <div class="movieHeader">
                 {{if (index .Fields "Remarks")}}{{if (index .Fields "Remarks").Error}}<i class='fas fa-exclamation-triangle warningIcon'></i><div class="errorPopup">{{(index .Fields "Remarks").Error}}</div>{{end}}{{end}}
                 <label class="RemarksLabel" for="Remarks">Enter your remarks here (max. {{.MaxRemarksLength}} characters):</label>
+                <div class="maxlength_indicator" data-type="length" data-name="Remarks"></div>
             </div>
             <div>
-                <textarea name="Remarks" id="Remarks" style="width:400px" maxlength="{{.MaxRemarksLength}}">{{ if (index .Fields "Remarks")}}{{if (index .Fields "Remarks").Value}}{{(index .Fields "Remarks").Value}}{{end}}{{end}}</textarea>
+                <textarea name="Remarks" id="Remarks" maxlength="{{.MaxRemarksLength}}">{{ if (index .Fields "Remarks")}}{{if (index .Fields "Remarks").Value}}{{(index .Fields "Remarks").Value}}{{end}}{{end}}</textarea>
             </div>
         </div>
         <div class="movieInput">
