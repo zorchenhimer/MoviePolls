@@ -332,6 +332,34 @@ i:hover + .errorPopup {
     flex-direction: column;
 }
 
+.movieInput textarea,
+.movieInput input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.movieInput .movieHeader {
+    display: flex;
+    flex-direction: row;
+}
+
+.movieInput .movieHeader label {
+    flex-grow: 1;
+}
+
+.maxlength_indicator {
+    text-align: right;
+    padding-left: 10px;
+}
+
+.maxlength_indicator .warning {
+    color: #FFF87B;
+}
+
+.maxlength_indicator .limit {
+    color: #FF8C8C;
+}
+
 #headTitle {
     display: flex;
     width: 50%;
