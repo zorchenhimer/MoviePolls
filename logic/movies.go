@@ -466,7 +466,7 @@ func (b *backend) doFormfill(validatedForm map[string]*InputField, user *models.
 			b.l.Debug("Upload failed: %v", err)
 			return -1, err
 		}
-		movie.Poster = path
+		movie.Poster = "posters/" + path
 	} else {
 		movie.Poster = "posters/unknown.jpg"
 	}
