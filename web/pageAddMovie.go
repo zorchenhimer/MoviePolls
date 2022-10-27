@@ -116,7 +116,6 @@ func (s *webServer) handlerPageAddMovie(w http.ResponseWriter, r *http.Request) 
 		MaxLinkLength        int
 		MaxRemarksLength     int
 
-		HasError  bool
 		FileError error
 	}{
 		dataPageBase: s.newPageBase("Add Movie", w, r),
@@ -160,7 +159,6 @@ func (s *webServer) handlerPageAddMovie(w http.ResponseWriter, r *http.Request) 
 			return
 		} else {
 			data.Fields = fields
-			data.HasError = hasError
 		}
 	}
 	if err := s.executeTemplate(w, "addmovie", data); err != nil {

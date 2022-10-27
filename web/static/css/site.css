@@ -287,25 +287,18 @@ margin-left: 5px;
 }
 
 .warningIcon {
-    color: #FF0000
+    margin-right: 8px;
 }
 
 .errorPopup {
-    display: none;
-}
-
-i:hover + .errorPopup {
-    display: block;
-    position: absolute;
-    z-index: 200;
-    width: 390px;
+    margin: 4px 0;
     background-color: #ff8181;
     border-left: inset;
     border-color: red;
     border-width: thick;
     padding: 3px;
     padding-left: 0.5em;
-    color: #363637;    
+    color: #363637;
 }
 
 .voteButton {
@@ -330,6 +323,7 @@ i:hover + .errorPopup {
 .movieInput {
     display: flex;
     flex-direction: column;
+    margin-bottom: 18px;
 }
 
 .movieInput textarea,
