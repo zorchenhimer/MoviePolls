@@ -337,8 +337,8 @@ func (j *jikan) getPoster() (string, error) {
 	dat1 := resp["images"].(map[string]interface{})
 	dat := dat1["jpg"].(map[string]interface{})
 
-	if (dat)["image_url"] != nil {
-		fileurl = (dat)["image_url"].(string)
+	if (dat)["large_image_url"] != nil {
+		fileurl = (dat)["large_image_url"].(string)
 	} else {
 		return defaultPosterPath, nil
 	}
