@@ -51,6 +51,18 @@
             <p>Watched: {{.Movie.CycleWatched.EndedString}}</p>
             {{end}}
             <div class="movieAddedBy">Added by: {{if .Movie.AddedBy}} <div class="movieAddedName">{{.Movie.AddedBy.Name}} {{else}} somebody {{end}}</div></div>
+            {{if $user}}
+            <div class="voteButton">
+                {{if .Movie.UserVoted $user.Id }}
+                {{if and $votingEnabled (not .Movie.CycleWatched)}}<a class="voteLinkButton" href="/vote/{{.Movie.Id}}">Remove</a>{{end}}
+                {{else}}
+                {{if not .Movie.CycleWatched}}
+                {{if lt $votesAvailable 1}}No votes<br />available
+                {{else if and (gt $votesAvailable 0) $votingEnabled }}<a class="voteLinkButton" href="/vote/{{.Movie.Id}}">Vote</a>{{end}}
+                {{end}}
+                {{end}}
+            </div>
+            {{end}}
             <div>
                 {{if .Movie.Votes}}
                 <p>Votes: {{len .Movie.Votes}}</p>
@@ -61,19 +73,6 @@
                 <p>No votes</p>
                 {{end}}
             </div>
-            {{/* {{if $user}}
-            <div class="voteButton">
-                {{if .Movie.UserVoted $user.Id }}
-                 {{if and $votingEnabled (not .Movie.CycleWatched)}}<a class="voteLinkButton2" href="/vote/{{.Movie.Id}}">Remove</a>{{end}}
-                {{else}}
-                {{if not .Movie.CycleWatched}}
-                    {{if lt $votesAvailable 1}}No votes<br />available
-                    {{else if and (gt $votesAvailable 0) $votingEnabled }}<a class="voteLinkButton" href="/vote/{{.Movie.Id}}">Vote</a>{{end}}
-                    {{end}}
-                {{end}}
-            </div>
-            {{end}} */}}
-
         </div>
 </div>
 </div>

@@ -53,7 +53,7 @@ a:hover {
 
 .movieDescription {
 width: 100%;
-height: 216px;
+height: 70%;
 left: calc(50% - 360px/2 + 192px);
 top: 120px;
 
@@ -64,6 +64,7 @@ font-size: 16px;
 line-height: 24px;
 text-align: justify;
 color: #FFFFFF;
+    overflow: auto;
 }
 
 .movieRating, .movieDuration {
@@ -252,18 +253,17 @@ margin-left: 5px;
     font-size: 16px;
     color: #ddd;
     text-transform: uppercase;
-    background-color: transparent;
     border: none;
     text-decoration: none;
-    font-family: Inter;
+    font-family: Inter, serif;
     letter-spacing: 0.1rem;
-    background-color: #888888;
+    background-color: #676772;
     border-radius: 999999px;
     padding: 5px;
 }
 .voteLinkButton:hover {
     cursor: pointer;
-    background-color: #535353;
+    background-color: #888888;
 }
 .voteLinkButton2 {
     width: 140px;
@@ -303,10 +303,18 @@ margin-left: 5px;
 
 .voteButton {
     position: absolute;
-    right: 0 !important;
-    bottom: 0 !important;
+    display: inline;
+    margin-left: 32em;
+    margin-top: -2em;
+}
+
+.overviewVoteButton {
+    position: absolute;
+    right: 0px; !important;
+    bottom: 0px; !important;
     margin-right: 20px;
     margin-bottom: 20px;
+
 }
 
 .voteRight {
