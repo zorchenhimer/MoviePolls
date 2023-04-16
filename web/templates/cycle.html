@@ -83,7 +83,7 @@ var x = setInterval(function() {
                         {{end}}
                 </div>
                 {{if $user}}
-                    <div class="voteButton">
+                    <div class="overviewVoteButton">
                         {{if .UserVoted $user.Id }}
                         {{if and $votingEnabled (not .CycleWatched)}}<a href="/vote/{{.Id}}"><span class="material-icons">
                             Voted
