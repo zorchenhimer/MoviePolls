@@ -240,9 +240,9 @@ func (t *tmdb) getTags() (string, error) {
 var re_duration = regexp.MustCompile(`([0-9]{1,3}) min`)
 
 func (j *jikan) requestResults() error {
-	resp, err := http.Get("https://api.jikan.moe/v3/anime/" + j.id)
+	resp, err := http.Get("https://api.jikan.moe/v4/anime/" + j.id)
 	if err != nil || resp.StatusCode != 200 {
-		return errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v3/anime/" + j.id + "\n")
+		return errors.New("\n\nTried to access API - Response Code: " + resp.Status + "\n Request URL: " + "https://api.jikan.moe/v4/anime/" + j.id + "\n")
 	} else {
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
@@ -250,11 +250,14 @@ func (j *jikan) requestResults() error {
 			return err
 		}
 
-		var dat map[string]interface{}
+		var rawDat map[string]map[string]interface{}
 
-		if err := json.Unmarshal(body, &dat); err != nil {
+		if err := json.Unmarshal(body, &rawDat); err != nil {
 			return errors.New("Error while unmarshalling json response")
 		}
+
+		var dat map[string]interface{}
+		dat = rawDat["data"]
 
 		for _, etype := range j.excludedTypes {
 			thisType := dat["type"].(string)
@@ -330,10 +333,12 @@ func (j *jikan) getDesc() (string, error) {
 func (j *jikan) getPoster() (string, error) {
 
 	fileurl := ""
-	dat := j.resp
+	resp := *j.resp
+	dat1 := resp["images"].(map[string]interface{})
+	dat := dat1["jpg"].(map[string]interface{})
 
-	if (*dat)["image_url"] != nil {
-		fileurl = (*dat)["image_url"].(string)
+	if (dat)["image_url"] != nil {
+		fileurl = (dat)["image_url"].(string)
 	} else {
 		return defaultPosterPath, nil
 	}
@@ -342,6 +347,7 @@ func (j *jikan) getPoster() (string, error) {
 	err := DownloadFile(path, fileurl, j.uploadlimit)
 
 	if !(err == nil) {
+		fmt.Printf("Error while downloading file: %s", err)
 		return defaultPosterPath, errors.New("Error while downloading file, using unknown.jpg")
 	}
 	j.l.Debug("poster path: %s", path)
