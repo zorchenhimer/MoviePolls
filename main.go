@@ -17,9 +17,11 @@ var ReleaseVersion string
 func main() {
 	var logFile string
 	var logLevel string
+	var addr string
 	var debug bool
 	var version bool
 
+	flag.StringVar(&addr, "addr", ":8090", "Server address")
 	flag.StringVar(&logFile, "logfile", "logs/server.log", "File to write logs")
 	flag.StringVar(&logLevel, "loglevel", "debug", "Log verbosity")
 	flag.BoolVar(&debug, "debug", false, "Enable debug code")
@@ -34,7 +36,7 @@ func main() {
 
 	config := web.Options{
 		Debug:  debug,
-		Listen: ":8090",
+		Listen: addr,
 	}
 
 	if version {
