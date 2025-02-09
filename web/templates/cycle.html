@@ -16,26 +16,26 @@ var countDownDate = new Date({{.Cycle.PlannedEnd}}).getTime();
 
 var x = setInterval(function() {
 
-	var now = new Date().getTime();
-	var distance = countDownDate - now;
+        var now = new Date().getTime();
+        var distance = countDownDate - now;
 
-	var days = Math.floor(distance / (1000 * 60 * 60 * 24));
-	var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
-	document.getElementById("countdown-clock").innerHTML = days + "d " + hours + "h ";
+        document.getElementById("countdown-clock").innerHTML = days + "d " + hours + "h ";
 
-	if (distance < 0) {
-		clearInterval(x);
-		document.getElementById("countdown-clock").innerHTML = "TODAY!";
-	}
-}, 1000);
+        if (distance < 0) {
+            clearInterval(x);
+            document.getElementById("countdown-clock").innerHTML = "TODAY!";
+        }
+    }, 1000);
 </script>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet">
 <div class="countdown">
-	<p>
-	The next Movienight will be in: <strong id="countdown-clock"></strong>
-	</p>
+    <p>
+        The next Movienight will be in: <strong id="countdown-clock"></strong>
+    </p>
 </div>
 {{end}}
 {{end}}
@@ -44,12 +44,12 @@ var x = setInterval(function() {
 {{if .LastCycle}}
 {{if .LastCycle.Watched}}
 <div class="cycleHistory">
-	In the last Movienight on {{.LastCycle.EndedString}} we watched:
-	<ul>
-	{{range .LastCycle.Watched}}
-	<li><a href="/movie/{{.Id}}">{{.Name}}</a></li>
-	{{end}}
-	</ul>
+    In the last Movienight on {{.LastCycle.EndedString}} we watched:
+    <ul>
+        {{range .LastCycle.Watched}}
+        <li><a href="/movie/{{.Id}}">{{.Name}}</a></li>
+        {{end}}
+    </ul>
 </div>
 {{end}}
 {{end}}
@@ -77,27 +77,30 @@ var x = setInterval(function() {
                     <a href="/movie/{{.Id}}">{{.Name}}</a>
                 </div>
                 <div class="votePoster"><a href="/movie/{{.Id}}"></a></div>
-                    <div class="voteRight">
-                        {{if .CycleWatched}}
-                        <div style="padding-bottom: 0.5em">Watched:<br />{{.CycleWatched.EndedString}}</div>
-                        {{end}}
+                <div class="voteRight">
+                    {{if .CycleWatched}}
+                    <div style="padding-bottom: 0.5em">Watched:<br />{{.CycleWatched.EndedString}}</div>
+                    {{end}}
+                </div>
+                <div>
+                    Votes: {{len .Votes}}
                 </div>
                 {{if $user}}
-                    <div class="overviewVoteButton">
-                        {{if .UserVoted $user.Id }}
-                        {{if and $votingEnabled (not .CycleWatched)}}<a href="/vote/{{.Id}}"><span class="material-icons">
+                <div class="overviewVoteButton">
+                    {{if .UserVoted $user.Id }}
+                    {{if and $votingEnabled (not .CycleWatched)}}<a href="/vote/{{.Id}}"><span class="material-icons">
                             Voted
-                            </span></a>{{end}}
-                        {{else}}
-                        {{if not .CycleWatched}}
-                            {{if lt $votesAvailable 1}}No votes<br />available
+                        </span></a>{{end}}
+                    {{else}}
+                    {{if not .CycleWatched}}
+                    {{if lt $votesAvailable 1}}No votes<br />available
                             {{else if and (gt $votesAvailable 0) $votingEnabled }}<a href="/vote/{{.Id}}"><span class="material-icons">
-                                Vote
-                                </span></a>{{end}}
-                            {{end}}
-                        {{end}}
-                    </div>
+                            Vote
+                        </span></a>{{end}}
                     {{end}}
+                    {{end}}
+                </div>
+                {{end}}
             </div>
         </div>
         {{end}}
